@@ -12,6 +12,13 @@ internal static class Special
 
     public static double LogClipHigh { get; } = NearZero.Log1P(-ClipLow);
 
+    /// <summary>Where Mills' ratio's asymptotic series takes over, and its terms past the first: 25!!/30^26, the first left
+    /// out, is 3e-26; the generalized gamma's deep tail reads the same.</summary>
+    internal const double MillsFrom = 30.0;
+
+    /// <summary>The series' terms past its first, from <see cref="MillsFrom"/>.</summary>
+    internal const int MillsTerms = 12;
+
     private static readonly double HalfLogTwoPi = 0.5 * Math.Log(2.0 * Math.PI);
 
     // Lanczos' coefficients for g = 7, n = 9: about fifteen significant digits over the positive reals.
@@ -41,22 +48,13 @@ internal static class Special
             return NearZero.Log1P(-Distributions.NormalSf(-z));
         }
 
-        if (z < 30.0)
+        if (z < MillsFrom)
         {
             return Math.Log(Distributions.NormalSf(z));
         }
 
         // Φ̄(z) = φ(z)/z · (1 − 1/z² + 3/z⁴ − 15/z⁶ + …); at z ≥ 30 twelve terms leave less than 1e-17.
-        double inverse = 1.0 / (z * z);
-        double term = 1.0;
-        double sum = 1.0;
-        for (int k = 1; k <= 12; k++)
-        {
-            term *= -(2 * k - 1) * inverse;
-            sum += term;
-        }
-
-        return NormalLogPdf(z) - Math.Log(z) + Math.Log(sum);
+        return NormalLogPdf(z) - Math.Log(z) + Math.Log(MillsSeries.Sum(1.0 / (z * z), MillsTerms));
     }
 
     /// <summary><c>log Γ(x)</c> for <c>x &gt; 0</c>, by Lanczos' approximation.</summary>

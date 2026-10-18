@@ -27,10 +27,9 @@ internal static class IvDiagnostics
         var p = new double[k];
         var lower = new double[k];
         var upper = new double[k];
-        double half = 1.0 - ((1.0 - confidenceLevel) / 2.0);
         double quantile = spec.Debiased
-            ? Distributions.StudentQuantile(half, residualDf)
-            : Distributions.NormalQuantile(half);
+            ? CriticalValue.TwoSidedStudent(confidenceLevel, residualDf)
+            : CriticalValue.TwoSided(confidenceLevel);
         for (int j = 0; j < k; j++)
         {
             errors[j] = Math.Sqrt(fit.Covariance[(j * k) + j]);

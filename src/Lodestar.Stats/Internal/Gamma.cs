@@ -33,6 +33,9 @@ internal static class Gamma
     private const int MaxIterations = 100_000;
     private const double Epsilon = 3e-16;
 
+    // 2^-56, an eighth of the ulp of doubles in [1/2, 1): a P term below it cannot move 1 − P where Q is near one.
+    private const double OneMinusPFloor = 1.3877787807814457e-17;
+
     // A floor well above where the recurrence's denominator would underflow: Lentz
     // divides by it, so a zero one is nudged here instead of an infinity that never recovers.
     private const double Tiny = 1e-300;
@@ -41,6 +44,14 @@ internal static class Gamma
     // a short run had the fraction ahead at 160). Past x = 700 e^-x nears the subnormals, Q need not.
     private const double MaxClosedFormTwiceA = 100.0;
     private const double MaxClosedFormX = 700.0;
+
+    // Past it e^(a log x) carries its exponent's rounding over four times: ChiSquaredCdf(1e-300, 2) read 3.5e-14 off. With
+    // x^a by Math.Pow and Γ exact, 282 of 430 random moved values came nearer 1000-digit sums, 56 further (#1729).
+    internal const double LongPower = 4.0;
+
+    // 2^512, which lifts a subnormal x into the normal doubles for UnhalvedLowerLead, and the shape it serves up to.
+    private static readonly double LeadLift = PowerOfTwo.Of(512);
+    private const double MaxLiftedShape = 1.5;
 
     // cephes igam's region for 20 < a < 200, kept for every larger a: why is in Temme's remarks.
     private const double TemmeMinimumShape = 20.0;
@@ -62,87 +73,16 @@ internal static class Gamma
 
     // Stirling's correction is within 3e-17 of log Gamma*(a) from here, while the Lanczos
     // prefactor a log x - x - log Gamma(a) cancels a digit per decade of a log a.
-    private const double StirlingMinimumShape = 10.0;
+    internal const double StirlingMinimumShape = 10.0;
 
     // Below it the series for log(1 + t) - t takes at most 16 terms; above it the logarithm's
     // rounding costs under 2e-15 of t^2 / 2.
     private const double LogSeriesMaximum = 0.1;
 
-    private const int TemmeTerms = 12;
+    // The rows of TemmeSeries' c_k(η) the expansion reads, and the terms of each: twelve rows of sixteen matched
+    // twenty-five of twenty-five to 2e-16 over a in (20, 1e8] and |x - a| / a <= 0.3.
+    private const int TemmeTerms = TemmeSeries.Rows;
     private const int TemmeDegree = 16;
-
-    /// <summary>The coefficients d(k, n) of c_k(eta) = sum over n of d(k, n) eta^n, row by row.</summary>
-    /// <remarks>
-    /// Temme (1979), as DLMF 8.12.8 and 8.12.9 state it: c_0 = 1/(lambda - 1) - 1/eta and
-    /// c_k = c_(k-1)'/eta + (-1)^k g_k/(lambda - 1), g_k Stirling's coefficients for Gamma*.
-    /// Expanded here by exact rational arithmetic, lambda - 1 reverted from eta^2 / 2 =
-    /// lambda - 1 - log lambda, then rounded: c_0 starts -1/3, 1/12, -2/135 and c_1 at -1/540,
-    /// DLMF 8.12.10's values. Twelve rows of sixteen matched twenty-five of twenty-five to
-    /// 2e-16 over a in (20, 1e8] and |x - a| / a &lt;= 0.3.
-    /// </remarks>
-    private static readonly double[] TemmeCoefficients =
-    [
-        // c_0
-        -0.3333333333333333, 0.08333333333333333, -0.014814814814814815, 0.0011574074074074073,
-        0.0003527336860670194, -0.0001787551440329218, 3.919263178522438e-05, -2.185448510679992e-06,
-        -1.85406221071516e-06, 8.296711340953087e-07, -1.7665952736826078e-07, 6.707853543401498e-09,
-        1.0261809784240309e-08, -4.382036018453353e-09, 9.14769958223679e-10, -2.5514193994946248e-11,
-        // c_1
-        -0.001851851851851852, -0.003472222222222222, 0.0026455026455026454, -0.0009902263374485596,
-        0.00020576131687242798, -4.018775720164609e-07, -1.8098550334489977e-05, 7.64916091608111e-06,
-        -1.6120900894563446e-06, 4.647127802807434e-09, 1.378633446915721e-07, -5.752545603517705e-08,
-        1.1951628599778148e-08, -1.7543241719747647e-11, -1.0091543710600413e-09, 4.162792991842583e-10,
-        // c_2
-        0.004133597883597883, -0.0026813271604938273, 0.0007716049382716049, 2.0093878600823047e-06,
-        -0.0001073665322636516, 5.2923448829120125e-05, -1.2760635188618728e-05, 3.423578734096138e-08,
-        1.3721957309062934e-06, -6.298992138380055e-07, 1.4280614206064242e-07, -2.0477098421990866e-10,
-        -1.409252991086752e-08, 6.228974084922022e-09, -1.3670488396617114e-09, 9.428356159014678e-13,
-        // c_3
-        0.0006494341563786008, 0.00022947209362139917, -0.0004691894943952557, 0.00026772063206283885,
-        -7.561801671883977e-05, -2.396505113867297e-07, 1.1082654115347302e-05, -5.6749528269915965e-06,
-        1.4230900732435883e-06, -2.7861080291528143e-11, -1.6958404091930278e-07, 8.099464905388083e-08,
-        -1.9111168485973655e-08, 2.3928620439808118e-12, 2.0620131815488797e-09, -9.460496661855133e-10,
-        // c_4
-        -0.0008618882909167117, 0.0007840392217200666, -0.0002990724803031902, -1.4638452578843418e-06,
-        6.641498215465122e-05, -3.968365047179435e-05, 1.1375726970678419e-05, 2.507497226237533e-10,
-        -1.6954149536558305e-06, 8.907507532205309e-07, -2.292934834000805e-07, 2.956794137544049e-11,
-        2.8865829742708783e-08, -1.4189739437803219e-08, 3.4463580499464896e-09, -2.3024517174528067e-13,
-        // c_5
-        -0.00033679855336635813, -6.972813758365857e-05, 0.0002772753244959392, -0.00019932570516188847,
-        6.797780477937208e-05, 1.419062920643967e-07, -1.3594048189768693e-05, 8.018470256334202e-06,
-        -2.291481176508095e-06, -3.252473551298454e-10, 3.4652846491085265e-07, -1.8447187191171344e-07,
-        4.8240967037894184e-08, -1.7989466721743514e-14, -6.306194500013523e-09, 3.162417628774568e-09,
-        // c_6
-        0.0005313079364639922, -0.0005921664373536939, 0.0002708782096718045, 7.902353232660328e-07,
-        -8.153969367561969e-05, 5.61168275310625e-05, -1.8329116582843375e-05, -3.0796134506033047e-09,
-        3.465155368803609e-06, -2.0291327396058603e-06, 5.788792863149004e-07, 2.338630673826657e-13,
-        -8.828600746330484e-08, 4.7435958880408125e-08, -1.2545415020710383e-08, 8.649648858010293e-14,
-        // c_7
-        0.00034436760689237765, 5.171790908260592e-05, -0.00033493161081142234, 0.0002812695154763237,
-        -0.00010976582244684731, -1.2741009095484485e-07, 2.7744451511563645e-05, -1.8263488805711332e-05,
-        5.7876949497350525e-06, 4.93875893393627e-10, -1.0595367014026043e-06, 6.166714376110408e-07,
-        -1.7562973359060463e-07, -1.297447328701544e-12, 2.695423606288966e-08, -1.4578352908731272e-08,
-        // c_8
-        -0.0006526239185953094, 0.0008394987206720873, -0.000438297098541721, -6.969091458420552e-07,
-        0.00016644846642067547, -0.00012783517679769218, 4.629953263691304e-05, 4.557909867922708e-09,
-        -1.0595271125805195e-05, 6.783342904865167e-06, -2.1075476666258803e-06, -1.7213731432817144e-11,
-        3.773587741611098e-07, -2.1867506700122867e-07, 6.220228804018927e-08, 6.597703826733e-16,
-        // c_9
-        -0.0005967612901927463, -7.204895416020011e-05, 0.0006782308837667328, -0.0006401475260262758,
-        0.00027750107634328704, 1.819700838046515e-07, -8.479507117068503e-05, 6.105192082501531e-05,
-        -2.1073920183404862e-05, -8.858589014125599e-10, 4.5284535953805374e-06, -2.8427815022504407e-06,
-        8.708234177864641e-07, 3.6886101871706966e-12, -1.534469519070206e-07, 8.862466778790695e-08,
-        // c_10
-        0.0013324454494800656, -0.0019144384985654776, 0.0011089369134596636, 9.9324041226423e-07,
-        -0.0005087450129309319, 0.00042735056665392886, -0.00016858853767910798, -8.1301893922785e-09,
-        4.5284402370562144e-05, -3.127053674781734e-05, 1.044986828530338e-05, 4.8435226265680926e-11,
-        -2.148256587345626e-06, 1.329369701097492e-06, -4.029569309210103e-07, -1.756787766632329e-13,
-        // c_11
-        0.001579727660730835, 0.00016251626278391583, -0.0020633421035543276, 0.00213896861856891,
-        -0.0010108559391263003, -3.99127055299192e-07, 0.0003623502508476469, -0.00028143901463712157,
-        0.00010449513336495887, 2.12114184918303e-09, -2.5779417251947842e-05, 1.7281818956040464e-05,
-        -5.641377387290428e-06, -1.1024320105776174e-11, 1.1223224418895174e-06, -6.869339637952674e-07,
-    ];
 
     internal static double LogGamma(double x)
     {
@@ -220,6 +160,259 @@ internal static class Gamma
         return a < SmallShape ? SmallShapeTail(a, x, upper: false) : SeriesP(a, x);
     }
 
+    /// <summary>The chi-squared tail Q(df/2, x/2), or P when not <paramref name="upper"/>, at the exact halves of x and df.</summary>
+    /// <remarks>
+    /// Below ExactHalf.Threshold halving rounds: an x there takes <see cref="UnhalvedTail"/>, and a df there is lifted,
+    /// Q being of degree one in so small a shape. The common path stays inline: through a call ChiSquaredCdf(3.84, 1)
+    /// took 4% longer, 220 against 211 ns.
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static double ChiSquaredTail(double df, double x, bool upper)
+    {
+        if (ExactHalf.Lifts(df))
+        {
+            return LiftedChiSquaredTail(df, x, upper);
+        }
+        if (x < ExactHalf.Threshold && x > 0.0)
+        {
+            return UnhalvedTail(df / 2.0, x, upper);
+        }
+        return upper ? RegularizedQ(df / 2.0, x / 2.0) : RegularizedP(df / 2.0, x / 2.0);
+    }
+
+    /// <summary>The chi-squared tail at a df below ExactHalf.Threshold: Q at the lifted df's exact half, dropped once,
+    /// and P one less it.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static double LiftedChiSquaredTail(double df, double x, bool upper)
+    {
+        // Q(a, 0) is one at any shape, not of degree one: at x = 0 the lifted shape answers it, where df/2 could be zero.
+        if (!(x > 0.0))
+        {
+            double lifted = ExactHalf.Lifted(df) / 2.0;
+            return upper ? RegularizedQ(lifted, x / 2.0) : RegularizedP(lifted, x / 2.0);
+        }
+        return ExactHalf.FromLiftedTail(ChiSquaredTail(ExactHalf.Lifted(df), x, upper: true), upper);
+    }
+
+    /// <summary>Q(a, x/2), or P, for an x below ExactHalf.Threshold, from P = (x/2)^a / Γ(1 + a), without halving x.</summary>
+    /// <remarks>
+    /// There P holds that form to within x/2 of itself, and Q is −expm1 of its log. ChiSquaredCdf(1.5e-323, 1) read 15%
+    /// high, and ChiSquaredSf(5e-324, 2e-300) one (#1729's Review A).
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static double UnhalvedTail(double a, double x, bool upper)
+    {
+        Validate(a, x);
+        if (upper)
+        {
+            return -NearZero.Expm1(LogUnhalvedLowerLead(a, x));
+        }
+        // Past one half P is one less Q, rounded once: as the lead's power times its scale it read 1.3 to 3.5 ulps off.
+        double logGamma = LogGammaOnePlusAnyShape(a);
+        double lead = LiftedLead(a, x, LeadScale(a, logGamma));
+        return lead > 0.5 ? 1.0 + NearZero.Expm1(LogUnhalvedLowerLead(a, x, logGamma)) : lead;
+    }
+
+    /// <summary>The chi-squared tail midway between <paramref name="low"/> and the next double up, <paramref name="high"/>,
+    /// below ExactHalf.Threshold and with <paramref name="low"/> possibly zero: a point no double holds.</summary>
+    /// <remarks>UnhalvedTail's form shifted in logs from the nearer end, so the small roots round to the double nearest
+    /// the root by the midpoint, as rounding does (#1729's Review A).</remarks>
+    internal static double ChiSquaredTailBetween(in UnhalvedLead lead, double low, double high, bool upper)
+    {
+        if (lead.Lifted)
+        {
+            return ExactHalf.FromLiftedTail(LeadBetween(lead, low, high, upper: true), upper);
+        }
+        return LeadBetween(lead, low, high, upper);
+    }
+
+    private static double LeadBetween(in UnhalvedLead lead, double low, double high, bool upper)
+    {
+        double a = lead.Shape;
+        double end = low > 0.0 ? low : high;
+        double shift = MidpointShift(a, low, high);
+        return upper
+            ? -NearZero.Expm1(LogUnhalvedLowerLead(a, end, lead.LogGammaOfOnePlusShape) + shift)
+            : LiftedLead(a, end, lead.Scale * Math.Exp(shift));
+    }
+
+    /// <summary>The lower tail midway between <paramref name="low"/> and <paramref name="high"/> at an unlifted df, times
+    /// 2^<see cref="MidpointLift"/>, as the tail at the nearer end and the rise to the midpoint apart: the tail rounded
+    /// onto its subnormal grid, or e^shift onto one, a quarter-granule from the target at df 2 read as the target itself,
+    /// and ChiSquaredQuantile(1e-308, 2) stopped a granule short of 2e-308 (#1729's Review A).</summary>
+    internal static (double Lead, double Rise) ScaledLowerTailBetween(in UnhalvedLead lead, double low, double high)
+    {
+        double a = lead.Shape;
+        double end = low > 0.0 ? low : high;
+        // x^a lifted by its own test, before the scale: with 2^600 in the scale a subnormal x^a, some 12 bits, passed.
+        double at = LiftedLead(a, end, lead.Scale * MidpointLiftFactor, powerAlone: true);
+        return (at, at * NearZero.Expm1(MidpointShift(a, low, high)));
+    }
+
+    /// <summary>a log of the midpoint over the nearer end, or over x = 0's next double, its half, where low is zero.</summary>
+    private static double MidpointShift(double a, double low, double high) =>
+        a * (low > 0.0 ? NearZero.Log1P((high - low) / (2.0 * low)) : -Beta.Ln2);
+
+    /// <summary>The exponent <see cref="ScaledLowerTailBetween"/> lifts by, which takes any subnormal tail to a normal one.</summary>
+    internal const int MidpointLift = 600;
+
+    /// <summary>2^<see cref="MidpointLift"/>, the factor the small root's search scales a subnormal target by.</summary>
+    internal static readonly double MidpointLiftFactor = PowerOfTwo.Of(MidpointLift);
+
+    /// <summary>A chi-squared df's shape at its exact half, lifted where ExactHalf lifts it, with the lead's two constants
+    /// in it: a root's search reads the tail between dozens of pairs of doubles at one df (#1729's Review A).</summary>
+    internal readonly struct UnhalvedLead
+    {
+        internal UnhalvedLead(double df)
+        {
+            Lifted = ExactHalf.Lifts(df);
+            Shape = (Lifted ? ExactHalf.Lifted(df) : df) / 2.0;
+            LogGammaOfOnePlusShape = LogGammaOnePlusAnyShape(Shape);
+            Scale = LeadScale(Shape, LogGammaOfOnePlusShape);
+        }
+
+        internal bool Lifted { get; }
+
+        internal double Shape { get; }
+
+        internal double LogGammaOfOnePlusShape { get; }
+
+        internal double Scale { get; }
+    }
+
+    /// <summary><c>(x/2)^a / Γ(1 + a)</c> from x unhalved: the power by Math.Pow.</summary>
+    /// <remarks>
+    /// e^(a log(x/2)) took its exponent's rounding |a log(x/2)| times, 368 at a = 1/2, 8e-15 off (#1729's Review A). The
+    /// chi-squared lower tail's leading term, and with e^(-x/2) its density's at a small shape. A subnormal lead rounds on
+    /// the grid once, where x^a and the product each did: x is lifted by 2^512 into the normal doubles and the power
+    /// taken there, the lift's 2^(−512a) going into the scale, exact in its exponent.
+    /// </remarks>
+    internal static double UnhalvedLowerLead(double a, double x)
+    {
+        return LiftedLead(a, x, LeadScale(a, LogGammaOnePlusAnyShape(a)));
+    }
+
+    /// <summary><c>2^-a / Γ(1 + a)</c>: at a chi-squared shape 2^-a and the table, exact at an integer; elsewhere one
+    /// exponential of a small exponent.</summary>
+    /// <remarks>As 2^-a times 1/Γ at a shape of 5e-6 it read ChiSquaredCdf(1e-310, 1e-5) 2 ulps low, and as one exponential
+    /// at a = 1, e^-ln 2 an ulp off one half, ChiSquaredQuantile(1e-308, 2) a granule short of 2e-308 (#1729's Review A).</remarks>
+    private static double LeadScale(double a, double logGammaOfOnePlus) =>
+        IsHalfIntegerShape(a) ? Math.Pow(0.5, a) * ReciprocalGammaOnePlus(a) : Math.Exp(-(a * Beta.Ln2) - logGammaOfOnePlus);
+
+    /// <summary><c>x^a</c> times <paramref name="scale"/>, x lifted by 2^512 where the product would be subnormal, or where
+    /// <paramref name="powerAlone"/>, x^a itself, whose scale may lift it past the subnormals on its own.</summary>
+    private static double LiftedLead(double a, double x, double scale, bool powerAlone = false)
+    {
+        double power = Math.Pow(x, a);
+        double lead = power * scale;
+        // Past a = 1.5 no x below ExactHalf.Threshold has a lead above zero but subnormal, and 2^(-512a) nears them.
+        double tested = powerAlone ? power : lead;
+        return tested >= NearZero.SmallestNormal || a > MaxLiftedShape
+            ? lead
+            : Math.Pow(x * LeadLift, a) * (scale * Math.Pow(2.0, -512.0 * a));
+    }
+
+    // S1244: 2a landing on an integer exactly is what a chi-squared shape a = df/2 always does; a shape near one
+    // without being one takes the iterative paths and Lanczos.
+#pragma warning disable S1244
+    internal static bool IsHalfIntegerShape(double a) => a > 0.0 && 2.0 * a <= MaxClosedFormTwiceA && 2.0 * a == Math.Floor(2.0 * a);
+#pragma warning restore S1244
+
+    /// <summary>1/Γ(1 + a) at a half-integer shape, from <see cref="ReciprocalGammaOnePlusHalves"/>.</summary>
+    /// <remarks>Lanczos' log Γ holds about 1e-15 only, and moved ChiSquaredQuantile(1e-308, 2) four ulps off the 2e-308
+    /// HalfIntegerQ's inversion answers (#1729's Review A).</remarks>
+    private static double ReciprocalGammaOnePlusHalfInteger(double a) => ReciprocalGammaOnePlusHalves[(int)(2.0 * a)];
+
+    // 1/Γ(1 + k/2) for k = 0 to MaxClosedFormTwiceA, each correctly rounded from an 80-digit product of the halves and √π:
+    // a product in doubles rounded at each step past 2^53, a few ulps by k = 100 (#1729's Review A).
+    private static readonly double[] ReciprocalGammaOnePlusHalves =
+    [
+        1.0, 1.1283791670955126, 1.0, 0.7522527780636751,
+        0.5, 0.30090111122547003, 0.16666666666666666, 0.08597174606442,
+        0.041666666666666664, 0.01910483245876, 0.008333333333333333, 0.0034736059015927274,
+        0.001388888888888889, 0.0005344009079373427, 0.0001984126984126984, 7.125345439164569e-05,
+        2.48015873015873e-05, 8.38275934019361e-06, 2.7557319223985893e-06, 8.823957200203801e-07,
+        2.755731922398589e-07, 8.403768762098858e-08, 2.505210838544172e-08, 7.307625010520746e-09,
+        2.08767569878681e-09, 5.846100008416597e-10, 1.6059043836821613e-10, 4.330444450678961e-11,
+        1.1470745597729725e-11, 2.986513414261352e-12, 7.647163731819816e-13, 1.9267828479105497e-13,
+        4.779477332387385e-14, 1.1677471805518484e-14, 2.8114572543455206e-15, 6.672841031724848e-16,
+        1.5619206968586225e-16, 3.606941098229647e-17, 8.22063524662433e-18, 1.8497133837075115e-18,
+        4.110317623312165e-19, 9.022992115646397e-20, 1.9572941063391263e-20, 4.196740518905301e-21,
+        8.896791392450574e-22, 1.8652180084023562e-22, 3.868170170630684e-23, 7.937097908095133e-24,
+        1.6117375710961184e-24, 3.239631799222503e-25, 6.446950284384474e-26, 1.2704438428323542e-26,
+        2.4795962632247976e-27, 4.794127708801336e-28, 9.183689863795546e-29, 1.7433191668368497e-29,
+        3.279889237069838e-30, 6.116909357322279e-31, 1.1309962886447716e-31, 2.0735285957024674e-32,
+        3.7699876288159054e-33, 6.798454412139238e-34, 1.216125041553518e-34, 2.1582394959172183e-35,
+        3.8003907548547434e-36, 6.640736910514518e-37, 1.151633562077195e-37, 1.9823095255267216e-38,
+        3.387157535521162e-39, 5.745824711671657e-40, 9.67759295863189e-41, 1.6185421723018752e-41,
+        2.6882202662866363e-42, 4.434362115895549e-43, 7.265460179153071e-44, 1.182496564238813e-44,
+        1.911963205040282e-45, 3.0714196473735403e-46, 4.902469756513544e-47, 7.775745942717823e-48,
+        1.2256174391283858e-48, 1.91993726980687e-49, 2.9893108271424046e-50, 4.626354867004506e-51,
+        7.117406731291439e-52, 1.0885540863540014e-52, 1.6552108677421951e-53, 2.5024231870206928e-54,
+        3.7618428812322616e-55, 5.623422892181332e-56, 8.359650847182804e-57, 1.2359171191607324e-57,
+        1.817315401561479e-58, 2.657886277765016e-59, 3.866628513960594e-60, 5.595550058452665e-61,
+        8.055476070751236e-62, 1.153721661536632e-62, 1.643974708316579e-63, 2.3307508313871353e-64,
+        3.287949416633158e-65,
+    ];
+
+    /// <summary>1/Γ(1 + a): the table at a half-integer shape, else e^(−log Γ(1 + a)).</summary>
+    internal static double ReciprocalGammaOnePlus(double a) =>
+        IsHalfIntegerShape(a) ? ReciprocalGammaOnePlusHalfInteger(a) : Math.Exp(-LogGammaOnePlusAnyShape(a));
+
+    /// <summary><c>e^rest / Γ(a)</c> from a shape of SmallShape: the table at a half-integer shape, else in one exponent,
+    /// as the prefactor and the density at a small statistic take it.</summary>
+    // Inlined: as a call it cost ChiSquaredCdf(1e-6, 3) 40%, 9.3 to 10.6 against 6.7 ns (Stopwatch A/B/A/B).
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static double ExpOverGamma(double a, double rest) =>
+        IsHalfIntegerShape(a) ? a * ReciprocalGammaOnePlusHalfInteger(a) * Math.Exp(rest) : Math.Exp(rest - LogGamma(a));
+
+    /// <summary>The log of <see cref="UnhalvedLowerLead"/>, for the upper tail's expm1 and the root's closed form.</summary>
+    private static double LogUnhalvedLowerLead(double a, double x) => LogUnhalvedLowerLead(a, x, LogGammaOnePlusAnyShape(a));
+
+    /// <summary><c>a log(x/2) − log Γ(1 + a)</c>, the last given: the tail, the root's midpoint rule and its closed form read
+    /// one lead.</summary>
+    private static double LogUnhalvedLowerLead(double a, double x, double logGammaOfOnePlus) =>
+        (a * (Math.Log(x) - Beta.Ln2)) - logGammaOfOnePlus;
+
+    /// <summary>A first guess at the x below ExactHalf.Threshold whose <see cref="UnhalvedTail"/> is <paramref name="target"/>,
+    /// or NaN where that x is not below it.</summary>
+    /// <remarks>
+    /// The lead's inverse in closed form, <c>x^a = 2^a P Γ(1 + a)</c>: by Math.Pow on x^a for the lower tail, in logs
+    /// where x^a is subnormal and for the upper, whose P is one less a small target. Never through x/2, whose rounding
+    /// answered only even multiples of the smallest double, ChiSquaredQuantile(3.07e-162, 1) 1e-323 for 1.5e-323, and 0
+    /// at 1.6e-162 (#1729's Review A). The caller refines it.
+    /// </remarks>
+    internal static double UnhalvedRoot(in UnhalvedLead lead, double target, bool upper)
+    {
+        double a = lead.Shape;
+        double x;
+        if (upper)
+        {
+            x = Math.Exp(((NearZero.Log1P(-target) + lead.LogGammaOfOnePlusShape) / a) + Beta.Ln2);
+        }
+        else
+        {
+            // x^a itself, never x/2: a halved subnormal root rounds, to zero below the smallest double.
+            // The lead's own scale, 2^-a / Γ(1 + a), which the search judges the root by.
+            double power = target / lead.Scale;
+            x = power >= NearZero.SmallestNormal
+                ? Math.Pow(power, 1.0 / a)
+                : Math.Exp(((Math.Log(target) + lead.LogGammaOfOnePlusShape) / a) + Beta.Ln2);
+        }
+        return x < ExactHalf.Threshold ? x : double.NaN;
+    }
+
+    /// <summary><c>log Γ(1 + a)</c> at any positive shape: <see cref="LogGammaOnePlus"/>'s series below SmallShape, where
+    /// alone it holds, the table at a half-integer shape, and log Γ(a) + log a elsewhere.</summary>
+    internal static double LogGammaOnePlusAnyShape(double a)
+    {
+        if (a < SmallShape)
+        {
+            return LogGammaOnePlus(a);
+        }
+        return IsHalfIntegerShape(a) ? -Math.Log(ReciprocalGammaOnePlusHalfInteger(a)) : LogGamma(a) + Math.Log(a);
+    }
+
     internal static double RegularizedQ(double a, double x)
     {
         Validate(a, x);
@@ -264,7 +457,9 @@ internal static class Gamma
     /// </remarks>
     private static double SmallShapeTail(double a, double x, bool upper)
     {
-        double u = (a * Math.Log(x)) - LogGammaOnePlus(a);
+        double logPower = a * Math.Log(x);
+        double logGamma = LogGammaOnePlus(a);
+        double u = logPower - logGamma;
         double power = 1.0;
         double sum = 0.0;
         for (int n = 1; n <= MaxIterations; n++)
@@ -277,17 +472,22 @@ internal static class Gamma
                 break;
             }
         }
-        // P = e^u (1 + a T) the same way, where SeriesSum began at 1/a, which overflowed below a = 5.6e-309 and read
-        // ChiSquaredCdf(1, 1e-310) +inf (#1690's review).
-        return upper ? -NearZero.Expm1(u) - (a * sum * Math.Exp(u)) : Math.Exp(u) * (1.0 + (a * sum));
+        if (upper)
+        {
+            return -NearZero.Expm1(u) - (a * sum * Math.Exp(u));
+        }
+        // P = x^a / Γ(1 + a) (1 + a T), where SeriesSum began at 1/a, which overflowed below a = 5.6e-309 and read
+        // ChiSquaredCdf(1, 1e-310) +inf (#1690's review); past LongPower x^a by Math.Pow, as Prefactor takes it.
+        double lead = PowerTimesExp(x, a, logPower, -logGamma);
+        return lead * (1.0 + (a * sum));
     }
 
-    // S1244: 2a landing on an integer exactly is what a chi-squared tail's a = dof/2
-    // always does; a shape near one without being one takes the iterative path.
-#pragma warning disable S1244
-    private static bool IsClosedFormQ(double a, double x) =>
-        2.0 * a <= MaxClosedFormTwiceA && x <= MaxClosedFormX && 2.0 * a == Math.Floor(2.0 * a);
-#pragma warning restore S1244
+    /// <summary><c>x^a e^rest</c>, <paramref name="logPower"/> being <c>a log x</c>: past LongPower in it x^a by Math.Pow,
+    /// within it one exponential, which rounds less there.</summary>
+    internal static double PowerTimesExp(double x, double a, double logPower, double rest) =>
+        logPower < -LongPower ? Math.Pow(x, a) * Math.Exp(rest) : Math.Exp(logPower + rest);
+
+    private static bool IsClosedFormQ(double a, double x) => x <= MaxClosedFormX && IsHalfIntegerShape(a);
 
     /// <summary>e^(x^2) Q(1/2, x^2), which is erfcx(x): what <see cref="Normal"/> samples its table from.</summary>
     /// <remarks>
@@ -304,10 +504,14 @@ internal static class Gamma
             : prefactor * ContinuedFraction(0.5, s);
     }
 
-    // Q(b+1, x) = Q(b, x) + x^b e^-x / Gamma(b+1) by parts, from Q(1, x) = e^-x or Q(1/2, x) =
-    // erfc(sqrt x): positive terms only, so the error grows with the term count and not with x.
+    // Q of a shape plus one is Q plus x^b e^-x / Gamma(b+1), by parts: positive terms, whose error grows with their count
+    // and not x. Below x = a/2 past a shape of one, one less HalfIntegerP, whose series stops at 2^-56 of one.
     private static double HalfIntegerQ(int twiceA, double x)
     {
+        if (twiceA > 2 && x < twiceA / 4.0)
+        {
+            return 1.0 - HalfIntegerP(twiceA, x);
+        }
         double sum;
         double term;
         double b;
@@ -341,6 +545,29 @@ internal static class Gamma
             b += 1.0;
         }
 
+        return sum;
+    }
+
+    /// <summary>P(a, x) below x = a/2 past a shape of one, below the median, so Q is past one half and the sum's roundings were its own:
+    /// ChiSquaredSf(0.1106, 19) read 6.5 ulps below one, and (0.0341, 19) above it (#1729's Review A).</summary>
+    /// <remarks>
+    /// P's lead <c>x^a e^−x / Γ(1 + a)</c> by Math.Pow and the table, times <c>Σ x^n / ((a + 1)…(a + n))</c>: as fast as
+    /// the sum there, where 1 − SeriesP, through Stirling, took four times as long, and the sum's recurrence took a ε into
+    /// the lead. Up to x = 0.9a it held 6-ulp tails at df 99 to one, at four times the sum's time near that cut.
+    /// </remarks>
+    private static double HalfIntegerP(int twiceA, double x)
+    {
+        double a = twiceA / 2.0;
+        // Only 1 − P is read, so P's terms stop below OneMinusPFloor, absolutely.
+        double lead = Math.Pow(x, a) * Math.Exp(-x) * ReciprocalGammaOnePlusHalfInteger(a);
+        double sum = lead;
+        double n = a;
+        while (lead > OneMinusPFloor)
+        {
+            n += 1.0;
+            lead *= x / n;
+            sum += lead;
+        }
         return sum;
     }
 
@@ -418,6 +645,17 @@ internal static class Gamma
     /// </remarks>
     private static double Temme(double a, double x, bool upper)
     {
+        (double eta, double sum) = TemmeSum(a, x);
+        double remainder = Math.Exp(-0.5 * a * eta * eta) / Math.Sqrt(2.0 * Math.PI * a) * sum;
+        double argument = eta * Math.Sqrt(a / 2.0);
+        return upper
+            ? (0.5 * Normal.Erfc(argument)) + remainder
+            : (0.5 * Normal.Erfc(-argument)) - remainder;
+    }
+
+    /// <summary>Temme's η, signed as x − a, and the sum of <c>c_k(η) a^-k</c>, stopped at a growing term.</summary>
+    private static (double Eta, double Sum) TemmeSum(double a, double x)
+    {
         double sigma = (x - a) / a;
         double eta = Math.Sqrt(-2.0 * LogOnePlusMinus(sigma, x / a));
         if (x < a)
@@ -430,12 +668,7 @@ internal static class Gamma
         double previous = double.PositiveInfinity;
         for (int k = 0; k < TemmeTerms; k++)
         {
-            int row = k * TemmeDegree;
-            double coefficient = TemmeCoefficients[row + TemmeDegree - 1];
-            for (int n = TemmeDegree - 2; n >= 0; n--)
-            {
-                coefficient = (coefficient * eta) + TemmeCoefficients[row + n];
-            }
+            double coefficient = TemmeSeries.Value(k, TemmeDegree, eta);
 
             double term = inversePower * coefficient;
             if (Math.Abs(term) > previous)
@@ -452,12 +685,55 @@ internal static class Gamma
             previous = Math.Abs(term);
             inversePower /= a;
         }
+        return (eta, sum);
+    }
 
-        double remainder = Math.Exp(-0.5 * a * eta * eta) / Math.Sqrt(2.0 * Math.PI * a) * sum;
-        double argument = eta * Math.Sqrt(a / 2.0);
-        return upper
-            ? (0.5 * Normal.Erfc(argument)) + remainder
-            : (0.5 * Normal.Erfc(-argument)) - remainder;
+    /// <summary>log Q(a, x), or log P when not <paramref name="upper"/>, over a below SmallShape, where the tail lies below
+    /// the normal doubles and kept only their few bits, and <c>x f(x) / T</c>, the slope of its log in log x: the prefactor
+    /// in logs beside the fraction, the series or Temme's sum, whose own quotient the slope reads. Validated arguments.</summary>
+    /// <remarks>The slope as two logs apart, each about −x, kept only their rounding past a Newton overshoot, and
+    /// ChiSquaredIsf(1e-310, 2e-5) read 6.9e17 for 1391.48; log a, some 570 nats at 6.5e-249 against an x of 139, took
+    /// 4 ulps of x where a times the rest is exact (#1729's Review A).</remarks>
+    internal static (double Log, double Ratio) LogTail(double a, double x, bool upper)
+    {
+        if (IsTemmeRegion(a, x))
+        {
+            (double eta, double sum) = TemmeSum(a, x);
+            double y = (upper ? eta : -eta) * Math.Sqrt(a / 2.0);
+            if (y > 0.0)
+            {
+                return TemmeLogTail(a, eta, sum, y, upper);
+            }
+        }
+        else if (upper ? x >= a + 1.0 : (x < a + 1.0 && a >= SmallShape))
+        {
+            double rest = upper ? ContinuedFraction(a, x) : SeriesSum(a, x);
+            return (LogPrefactor(a, x) + Math.Log(rest), 1.0 / rest);
+        }
+        double log = Math.Log(upper ? RegularizedQ(a, x) : RegularizedP(a, x));
+        double scaledLog = log - (a < SmallShape ? Math.Log(a) : 0.0);
+        return (scaledLog, Math.Exp(LogPrefactor(a, x) - scaledLog));
+    }
+
+    /// <summary><see cref="LogTail"/> in Temme's region on the small side, <paramref name="y"/> = |η| √(a/2) positive.</summary>
+    /// <remarks>e^(−a η²/2) taken out of both terms, erfc(y) = erfcx(y) e^(−y²): the two logs apart, some 5.5e267 each at
+    /// a = 5e299, differed by their rounding, and ChiSquaredQuantile(5e-324, 1e300) read 7e299.</remarks>
+    private static (double Log, double Ratio) TemmeLogTail(double a, double eta, double sum, double y, bool upper)
+    {
+        double scaled = (0.5 * Normal.ScaledComplement(y)) + ((upper ? sum : -sum) / Math.Sqrt(2.0 * Math.PI * a));
+        // x f(x) is e^(-a η²/2 - Stirling's correction) √(a/2π), so the exponential cancels in the slope.
+        double ratio = Math.Exp(-LogStirlingCorrection(a)) * Math.Sqrt(a / (2.0 * Math.PI)) / scaled;
+        return ((-0.5 * a * eta * eta) + Math.Log(scaled), ratio);
+    }
+
+    /// <summary>The log of <see cref="Prefactor"/>, which underflows where the tail it scales does, over a below SmallShape.</summary>
+    private static double LogPrefactor(double a, double x)
+    {
+        if (a < SmallShape)
+        {
+            return (a * Math.Log(x)) - x - LogGammaOnePlus(a);
+        }
+        return a < StirlingMinimumShape ? (a * Math.Log(x)) - x - LogGamma(a) : LogStirlingPrefactor(a, x);
     }
 
     // x^a e^-x / Gamma(a), from a = 10 through Stirling so no term of order a log a cancels; the
@@ -467,14 +743,32 @@ internal static class Gamma
         // a x^a e^-x / Gamma(1 + a) below SmallShape: log Gamma(a), about -log a, rounded by |log a| ulps.
         if (a < SmallShape)
         {
-            return a * Math.Exp((a * Math.Log(x)) - x - LogGammaOnePlus(a));
+            return a * PowerTimesExp(x, a, a * Math.Log(x), -x - LogGammaOnePlus(a));
         }
         if (a < StirlingMinimumShape)
         {
-            return Math.Exp((a * Math.Log(x)) - x - LogGamma(a));
+            double power = a * Math.Log(x);
+            // At a chi-squared shape 1/Γ(a) from the table on both sides of LongPower, not Lanczos' log Γ, good to 1e-15:
+            // one side alone stepped ChiSquaredCdf(0.40379303598931077, 5) down 10 ulps as x rose (#1729's Review A).
+            return power < -LongPower ? LongPowerPrefactor(x, a) : ExpOverGamma(a, power - x);
         }
 
         return Math.Exp(StirlingExponent(a, x)) * Math.Sqrt(a / (2.0 * Math.PI));
+    }
+
+    /// <summary>x^a e^-x / Γ(a) past LongPower in a log x: x^a by Math.Pow, or where that is subnormal as mantissa and
+    /// exponent apart, the product rounding onto the subnormals once, where x^a and the product each did.</summary>
+    private static double LongPowerPrefactor(double x, double a)
+    {
+        double power = Math.Pow(x, a);
+        // At x = 0 the power is the prefactor's zero, which PowerOfTwo.Split would read as NaN.
+        if (power >= NearZero.SmallestNormal || !(x > 0.0))
+        {
+            return power * ExpOverGamma(a, -x);
+        }
+        (double mantissa, int exponent) = PowerOfTwo.Split(x);
+        (double value, int powerExponent) = PowerOfTwo.Power(mantissa, exponent, a);
+        return PowerOfTwo.Scale(value * ExpOverGamma(a, -x), powerExponent);
     }
 
     /// <summary>The logarithm of <see cref="Prefactor"/> from a shape of 10, with no term of order <c>a log a</c> formed.</summary>

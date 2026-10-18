@@ -108,6 +108,17 @@ internal static class Normal
         return 0.5 * ErfcOfSquareRoot(0.5 * square) * (1.0 + (0.5 * excess));
     }
 
+    /// <summary>erfcx(x) = e^(x²) erfc(x) for a non-negative x: the table to Cutoff, past it the asymptotic series
+    /// <c>(1/(x√π)) Σ (−1)^k (2k−1)!! / (2x²)^k</c>, whose first term left out at Cutoff is 9.5e-22.</summary>
+    internal static double ScaledComplement(double x)
+    {
+        if (x <= Cutoff)
+        {
+            return ScaledErfc(x);
+        }
+        return MillsSeries.Sum(1.0 / (2.0 * x * x), AsymptoticTerms) / (x * Math.Sqrt(Math.PI));
+    }
+
     // x lies in [0, Cutoff]; y = 4/(4+x) then lies in [LowestY, 1], and each interval's
     // polynomial is in u = 2t - 1, t being y's position inside it.
     private static double ScaledErfc(double x)
@@ -227,15 +238,7 @@ internal static class Normal
     /// <summary>Mills' ratio asymptotically: the density's logarithm, corrected by an alternating series.</summary>
     private static double Asymptotic(double z)
     {
-        double inverseSquare = 1.0 / (z * z);
-        double term = 1.0;
-        double sum = 1.0;
-        for (int k = 1; k <= AsymptoticTerms; k++)
-        {
-            term *= -(2.0 * k - 1.0) * inverseSquare;
-            sum += term;
-        }
-
+        double sum = MillsSeries.Sum(1.0 / (z * z), AsymptoticTerms);
         return (-0.5 * z * z) - Math.Log(z) - (0.5 * Math.Log(2.0 * Math.PI)) + Math.Log(sum);
     }
 

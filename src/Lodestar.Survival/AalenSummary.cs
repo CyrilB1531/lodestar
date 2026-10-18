@@ -60,7 +60,7 @@ public sealed class AalenSummary
     {
         int m = fitted.Times.Length;
         int d = fitted.FeatureCount + (fitted.Settings.FitIntercept ? 1 : 0);
-        double z = AalenAdditive.Critical(fitted.Settings.ConfidenceLevel);
+        double z = CriticalValue.TwoSided(fitted.Settings.ConfidenceLevel);
         var lower = new double[TableLength.Of(m, d, ResultTable.FeatureCount)];
         var upper = new double[TableLength.Of(m, d, ResultTable.FeatureCount)];
         for (int k = 0; k < m * d; k++)

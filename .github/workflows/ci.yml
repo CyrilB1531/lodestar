@@ -473,8 +473,10 @@ jobs:
       # 100-token minimum; the duplication the shared shape really did carry was
       # factored into ScandinavianSnowballWorker instead, which took the density
       # from 11.0% to 7.7% before this. The exclusion below carries both the measurement and the
-      # scope. Every other duplication finding in the repository still fails the
-      # gate — this is the one directory whose files are transcribed tables.
+      # scope. The Temme table is the other: twelve rows of 61 derived coefficients, every row
+      # `[ $LIT, $LIT, ... ]` to CPD, read the whole new-code density of #1729's pull request,
+      # 202 lines and 6.7%, all within the one file. Every other duplication finding in the
+      # repository still fails the gate — these are the files that are tables.
       #
       # projectBaseDir is pinned because those two exclusions are *relative*: they
       # are matched against whatever directory the scanner decided was the base,
@@ -536,7 +538,7 @@ jobs:
             /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,tests/**,.claude/**" \
             /d:sonar.exclusions="tests/oracles/**,samples/Lodestar.DocSnippets/Generated/**,tools/tests/**,assets/**,.claude/**" \
             /d:sonar.test.exclusions="tests/oracles/**" \
-            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**"
+            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**,src/Shared/TemmeSeries.cs"
 
       - name: Build the solution
         run: dotnet build Lodestar.slnx --configuration Release

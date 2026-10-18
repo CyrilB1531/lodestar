@@ -17,8 +17,7 @@ internal static class WilsonInterval
         double p = k / n;
         double q = 1.0 - p;
 
-        double z = Distributions.NormalQuantile(
-            result.Alternative == Alternative.TwoSided ? 0.5 + (0.5 * level) : level);
+        double z = result.Alternative == Alternative.TwoSided ? CriticalValue.TwoSided(level) : Distributions.NormalQuantile(level);
         double denominator = 2.0 * (n + (z * z));
         double centre = ((2.0 * n * p) + (z * z)) / denominator;
 

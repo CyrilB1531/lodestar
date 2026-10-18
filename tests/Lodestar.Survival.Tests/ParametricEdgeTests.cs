@@ -1,3 +1,4 @@
+using Lodestar.Stats;
 using Xunit;
 
 namespace Lodestar.Survival.Tests;
@@ -198,5 +199,105 @@ public sealed class ParametricEdgeTests
 
         Assert.Equal(plain, entered);
         Assert.All(plain.Survival.Select((s, i) => (s, i)), p => Assert.InRange(p.s, plain.Lower[p.i], plain.Upper[p.i]));
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(1e-200)]
+    [InlineData(-1e-160)]
+    [InlineData(1e-50)]
+    [InlineData(-1e-12)]
+    public void The_generalized_gamma_percentile_at_a_vanishing_lambda_is_the_log_normal_one(double lambda)
+    {
+        // log(λ² G)/λ took G's ε over a spread of 1/|λ|: 7.5e-7 off at 1e-10, +∞ at 1e-50, and 2/λ² overflowed past
+        // 1e-154 (#1729's Review A).
+        var model = Internal.UnivariateModel.For(ParametricModel.GeneralizedGamma, []);
+        double[] p = [1.3, Math.Log(0.7), lambda];
+        double limit = Math.Exp(1.3 + (0.7 * Distributions.NormalIsf(0.1)));
+
+        Assert.Equal(Math.Exp(1.3), model.Percentile(p, 0.5), 1e-11 * Math.Exp(1.3));
+        Assert.Equal(limit, model.Percentile(p, 0.1), 1e-11 * limit);
+    }
+
+    [Theory]
+    [InlineData(0.03, 1e-12, 6.7863563286593804)]
+    [InlineData(-0.03, 1e-12, 7.3017846095528736)]
+    [InlineData(0.0499999999, 0.1, 1.2517765997064494)]
+    [InlineData(0.049, 1e-250, 26.538411405477092)]
+    [InlineData(-0.049, 1e-300, 52.50993266313732)]
+    public void The_generalized_gamma_percentile_at_a_small_lambda_keeps_its_digits(double lambda, double probability, double w)
+    {
+        // w against a 330-digit inversion of the gamma tail at shape 1/λ²; Newton on the tail itself stopped at 39.8 for
+        // 26.5, and on Φ̄'s slope alone at λ = −0.049 never settled (#1729's Review A).
+        var model = Internal.UnivariateModel.For(ParametricModel.GeneralizedGamma, []);
+        double expected = Math.Exp(1.3 + (0.7 * w));
+
+        Assert.Equal(expected, model.Percentile([1.3, Math.Log(0.7), lambda], probability), 2e-15 * expected);
+    }
+
+    [Theory]
+    [InlineData(0.049, 5e-324, 29.352557274594482)]
+    [InlineData(-0.049, 5e-324, 55.340669887362565)]
+    [InlineData(-0.01, 1e-320, 40.877719264460886)]
+    [InlineData(0.05, 5e-324, 29.21426673848583)]
+    [InlineData(-0.5, 5e-324, 373.4035977677564)]
+    public void The_generalized_gamma_percentile_at_a_subnormal_probability_keeps_its_digits(double lambda, double probability, double w)
+    {
+        // A subnormal tail kept a few bits: w at λ = 1e-100, p = 5e-324 read 38.46163 for 38.46741 (#1729's Review A).
+        Assert.Equal(w, Internal.GeneralizedGammaQuantile.Standardized(lambda, probability), 1e-15 * w);
+    }
+
+    [Theory]
+    [InlineData(5e-324)]
+    [InlineData(1e-320)]
+    [InlineData(2.2250738585072014e-308)]
+    [InlineData(0.1)]
+    [InlineData(0.999999)]
+    public void The_generalized_gamma_percentile_at_a_vanishing_lambda_and_a_tiny_probability_is_the_normal_quantile(double probability)
+    {
+        // At 2^-1022 a step under half an ulp read as leaving the bracket, and w settled 3 ulps off; at 0.1 Newton on the
+        // normal tail's rounding moved it 3 ulps.
+        double z = Distributions.NormalIsf(probability);
+        Assert.Equal(z, Internal.GeneralizedGammaQuantile.Standardized(1e-100, probability));
+        Assert.Equal(z, Internal.GeneralizedGammaQuantile.Standardized(-1e-300, probability));
+    }
+
+    [Fact]
+    public void The_log_logistic_percentile_keeps_the_digits_of_its_odds()
+    {
+        // 1/(1 − p) − 1 at p = 1e-13, and 1/p − 1 at p = 1 − 1e-13, kept the ε of a quotient near one: 1.4e-3 and 1.1e-3
+        // of the odds.
+        double small = 1e-13;
+        var model = Internal.UnivariateModel.For(ParametricModel.LogLogistic, []);
+        double expected = 3.0 * Math.Pow(small / (1.0 - small), -1.0 / 2.5);
+        Assert.Equal(expected, model.Percentile([3.0, 2.5], small), 1e-15 * expected);
+
+        double large = 1.0 - 1e-13;
+        var regression = Internal.AftShape.For(AftModel.LogLogistic);
+        double aft = Math.Exp(1.3) * Math.Pow((1.0 - large) / large, 1.0 / 2.5);
+        Assert.Equal(aft, regression.Percentile(1.3, Math.Log(2.5), large), 1e-15 * aft);
+    }
+
+    [Fact]
+    public void The_generalized_gamma_percentile_refuses_a_NaN_lambda_as_main_did_and_the_log_normals_keep_a_tiny_probability()
+    {
+        var model = Internal.UnivariateModel.For(ParametricModel.GeneralizedGamma, []);
+        Assert.Throws<ArgumentOutOfRangeException>(() => model.Percentile([1.3, Math.Log(0.7), double.NaN], 0.1));
+
+        // 1 − 2^-53 is one, whose normal quantile is +∞: the upper quantile of 1e-20 itself is 9.26.
+        var logNormal = Internal.UnivariateModel.For(ParametricModel.LogNormal, []);
+        Assert.Equal(Math.Exp(1.3 + (0.7 * 9.262340089798408)), logNormal.Percentile([1.3, 0.7], 1e-20), 1e-14 * 2401.0);
+        var regression = Internal.AftShape.For(AftModel.LogNormal);
+        Assert.Equal(Math.Exp(1.3 + (0.7 * 9.262340089798408)), regression.Percentile(1.3, Math.Log(0.7), 1e-20), 1e-14 * 2401.0);
+    }
+
+    [Fact]
+    public void A_critical_value_near_a_level_of_one_keeps_its_digits()
+    {
+        // NormalQuantile(1 − (1 − level)/2) kept about four digits at 1 − 1e-12, and read +∞ at 1 − 2^-53; against the
+        // 50-digit upper quantile of the double (1 − level)/2, 4.999889391399392e-13.
+        double level = 1.0 - 1e-12;
+        Assert.Equal(7.1305098928792724, Lodestar.Internal.CriticalValue.TwoSided(level), 1e-15 * 7.13);
+        Assert.True(double.IsFinite(Lodestar.Internal.CriticalValue.TwoSided(1.0 - 1e-15)));
     }
 }

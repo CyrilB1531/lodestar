@@ -97,7 +97,7 @@ public sealed class AftSummary
         (double[] theta, double[] covariance) = estimate;
         (double logLikelihood, double nullLogLikelihood, double concordance) = fit;
         int k = theta.Length;
-        double critical = Distributions.NormalQuantile(1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0));
+        double critical = CriticalValue.TwoSided(settings.ConfidenceLevel);
         var errors = new double[k];
         var z = new double[k];
         var p = new double[k];

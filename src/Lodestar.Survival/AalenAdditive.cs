@@ -422,7 +422,4 @@ public static class AalenAdditive
 
         return counts;
     }
-
-    /// <summary>The two-sided normal critical value for a level.</summary>
-    internal static double Critical(double level) => Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));
 }

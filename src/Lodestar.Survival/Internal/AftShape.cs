@@ -78,8 +78,9 @@ internal abstract class AftShape
         public override Jet LogOneMinusSurvival(Jet primary, Jet ancillary, double t) =>
             Jet.NormalLogCdf((Math.Log(t) - primary) / Jet.Exp(ancillary));
 
+        // The upper normal quantile of p itself: 1 − p kept only log10(1/p) digits, and read +∞ at p = 1e-20.
         public override double Percentile(double primary, double ancillary, double p) =>
-            Math.Exp(primary) * Math.Exp(Math.Exp(ancillary) * Distributions.NormalQuantile(1.0 - p));
+            Math.Exp(primary) * Math.Exp(Math.Exp(ancillary) * Distributions.NormalIsf(p));
 
         public override double Expectation(double primary, double ancillary)
         {
@@ -107,7 +108,7 @@ internal abstract class AftShape
             -Jet.LogAddExp0(-Jet.Exp(ancillary) * (Math.Log(t) - primary));
 
         public override double Percentile(double primary, double ancillary, double p) =>
-            Math.Exp(primary) * Math.Pow((1.0 / p) - 1.0, 1.0 / Math.Exp(ancillary));
+            Math.Exp(primary) * Math.Pow((1.0 - p) / p, 1.0 / Math.Exp(ancillary));
 
         /// <summary><c>απ/β / sin(π/β)</c> where <c>β &gt; 1</c>, NaN otherwise: the mean diverges, as lifelines reports it.</summary>
         public override double Expectation(double primary, double ancillary)

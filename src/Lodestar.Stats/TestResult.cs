@@ -52,12 +52,11 @@ public sealed record TTestResult(double Statistic, double PValue, double Degrees
         }
 
         // A one-sided test spends its whole error budget on one side, so the tail
-        // is 1 - level rather than half of it, and the other bound is infinite.
-        double tail = Alternative == Alternative.TwoSided ? (1.0 - level) / 2.0 : 1.0 - level;
+        // is 1 - level rather than half of it, and the other bound is infinite: StudentMultiplier takes it.
         // S1244: a zero standard error spans nothing, even where the quantile is past every double (#1690's review),
         // and scipy's finite quantile there gives the estimate as both bounds.
 #pragma warning disable S1244
-        double half = StandardError == 0.0 ? 0.0 : Internal.Beta.StudentQuantile(tail, DegreesOfFreedom) * StandardError;
+        double half = StandardError == 0.0 ? 0.0 : StudentMultiplier(level) * StandardError;
 #pragma warning restore S1244
 
         // The open bound is scipy's estimate plus an infinite quantile times the standard error, NaN where that is zero.
@@ -71,6 +70,21 @@ public sealed record TTestResult(double Statistic, double PValue, double Degrees
             // value stored on the result is a broken invariant, not a bad call.
             _ => throw new InvalidOperationException($"Unrecognised alternative: {Alternative}."),
         };
+    }
+
+    /// <summary>The upper Student quantile of what lies outside <paramref name="level"/>, half of it two-sided: one-sided
+    /// below one half by symmetry from the level itself, where <c>1 − level</c> rounded to one below 2^-53 and was
+    /// refused under a parameter the caller never passed, and kept six digits at 1e-10 (#1729's Review A).</summary>
+    private double StudentMultiplier(double level)
+    {
+        // The inversion's own root, finite at its cap as main read it, not the public quantile's ±∞ there.
+        if (Alternative == Alternative.TwoSided)
+        {
+            return Internal.Beta.StudentQuantile((1.0 - level) / 2.0, DegreesOfFreedom);
+        }
+        return level < 0.5
+            ? -Internal.Beta.StudentQuantile(level, DegreesOfFreedom)
+            : Internal.Beta.StudentQuantile(1.0 - level, DegreesOfFreedom);
     }
 }
 
@@ -134,7 +148,7 @@ public sealed record PearsonResult(double Statistic, double PValue)
         // taken at the level itself rather than at half of what is left outside it.
         return Alternative switch
         {
-            Alternative.TwoSided => Bounds(z, error, Distributions.NormalQuantile(0.5 + (level / 2.0))),
+            Alternative.TwoSided => Bounds(z, error, CriticalValue.TwoSided(level)),
             Alternative.Less => (-1.0, Math.Tanh(z + (Distributions.NormalQuantile(level) * error))),
             Alternative.Greater => (Math.Tanh(z - (Distributions.NormalQuantile(level) * error)), 1.0),
             // CA2208: Alternative is a field, not a parameter here -- a bad value stored on
@@ -202,13 +216,9 @@ public sealed record BinomialResult(double Statistic, double PValue)
             };
         }
 
-        // A one-sided interval spends its whole error budget on one side, so the tail is
-        // 1 - level rather than half of it, and the other bound is the proportion's own limit.
-        double tail = Alternative == Alternative.TwoSided ? (1.0 - level) / 2.0 : 1.0 - level;
-
         return method switch
         {
-            ProportionInterval.Exact => ClopperPearson(tail),
+            ProportionInterval.Exact => ClopperPearson(level),
             ProportionInterval.Wilson => Internal.WilsonInterval.Bounds(this, level, corrected: false),
             ProportionInterval.WilsonCorrected => Internal.WilsonInterval.Bounds(this, level, corrected: true),
             _ => throw new ArgumentOutOfRangeException(nameof(method), method, null),
@@ -216,16 +226,35 @@ public sealed record BinomialResult(double Statistic, double PValue)
     }
 
     /// <summary>The exact interval, inverted from the binomial tails through the beta they are.</summary>
-    private (double Low, double High) ClopperPearson(double tail)
+    /// <remarks>
+    /// A one-sided interval spends its whole error budget on one side, so its tail is 1 − level rather than half of it,
+    /// and the other bound is the proportion's own limit. Each bound's probability is passed with its complement, the smaller
+    /// exact, and the bound solved from it past one half: <c>1 − level</c> rounded to one below 2^-53, and read (0, 0) at 1e-20.
+    /// </remarks>
+    private (double Low, double High) ClopperPearson(double level)
     {
+        bool twoSided = Alternative == Alternative.TwoSided;
+        double outside = twoSided ? (1.0 - level) / 2.0 : 1.0 - level;
+        // The low bound's beta probability is what lies outside below it, the high bound's what lies inside below it.
+        double inside = twoSided ? 1.0 - outside : level;
         double low = Successes == 0 || Alternative == Alternative.Less
             ? 0.0
-            : Internal.BetaQuantile.Invert(tail, Successes, Trials - Successes + 1.0);
+            : BetaAt(outside, inside, Successes, Trials - Successes + 1.0);
         double high = Successes == Trials || Alternative == Alternative.Greater
             ? 1.0
-            : Internal.BetaQuantile.Invert(1.0 - tail, Successes + 1.0, Trials - (double)Successes);
+            : BetaAt(inside, outside, Successes + 1.0, Trials - (double)Successes);
 
         return (low, high);
+    }
+
+    /// <summary>The x with <c>I_x(a, b) = p</c>, from <paramref name="p"/> itself up to one half, past it from both tails:
+    /// the inversion reflects there and answers one less a root near one, which kept a few digits of a small bound,
+    /// 6e-9 of 9.9e-9 at no success in 1e9 trials, at 0.95 as at 0.9999.</summary>
+    private static double BetaAt(double p, double complement, double a, double b)
+    {
+        return p > 0.5
+            ? Internal.BetaQuantile.InvertBoth(p, complement, a, b).X
+            : Internal.BetaQuantile.Invert(p, a, b);
     }
 }
 

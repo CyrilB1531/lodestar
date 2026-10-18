@@ -129,6 +129,24 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/NearZero.cs" Link="Internal/NearZero.cs" />
   </ItemGroup>
 
+  <!-- Temme's uniform expansion's coefficients, one table for the incomplete gamma in Lodestar.Stats and the
+       generalized gamma quantile in Lodestar.Survival (#1729). -->
+  <ItemGroup Condition="'$(LodestarIncludesTemmeSeries)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/TemmeSeries.cs" Link="Internal/TemmeSeries.cs" />
+  </ItemGroup>
+
+  <!-- A confidence interval's normal and Student multipliers, one copy for Lodestar.Stats, Lodestar.Stats.Regression,
+       Lodestar.Stats.TimeSeries and Lodestar.Survival (#1729). -->
+  <ItemGroup Condition="'$(LodestarIncludesCriticalValue)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/CriticalValue.cs" Link="Internal/CriticalValue.cs" />
+  </ItemGroup>
+
+  <!-- Mills' ratio's asymptotic series, for the normal tail in Lodestar.Stats and the generalized gamma quantile in
+       Lodestar.Survival (#1729). -->
+  <ItemGroup Condition="'$(LodestarIncludesMillsSeries)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/MillsSeries.cs" Link="Internal/MillsSeries.cs" />
+  </ItemGroup>
+
   <!-- A product's exact rounding, a fused multiply-add on net10.0 and Dekker's split product on
        netstandard2.0: Lodestar.Stats' incomplete beta takes its shape exponent with it, and its normal
        tail the exact exponent past z = 6 (#1690). -->

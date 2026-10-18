@@ -12,7 +12,7 @@ public static double ChiSquaredIsf(double p, double df)
 
 **Returns** — `scipy.stats.chi2.isf(p, df)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when `df` is not positive. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when `df` is not positive.
 
 **Example** — the 5% critical value of a test on four degrees of freedom.
 

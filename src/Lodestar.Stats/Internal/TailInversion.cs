@@ -183,6 +183,36 @@ internal static class TailInversion
 #pragma warning restore S1244
     }
 
+    /// <summary>A walk's rule: whether to take the ulp from one double to its neighbour.</summary>
+    internal interface IUlpStep
+    {
+        bool Takes(double from, double to);
+    }
+
+    /// <summary><paramref name="value"/> walked an ulp at a time, down or up, while <paramref name="step"/> takes each
+    /// ulp, at most <paramref name="maxSteps"/>, never below zero: the F quantile walks its crossing in f with it, eight ulps
+    /// each way, and the chi-squared small root's search reads <see cref="TakesStep"/> for each of its probes.</summary>
+    internal static double Walk<TStep>(double value, bool down, int maxSteps, ref TStep step)
+        where TStep : struct, IUlpStep
+    {
+        for (int i = 0; i < maxSteps && TakesStep(value, down, ref step, out double next); i++)
+        {
+            value = next;
+        }
+        return value;
+    }
+
+    /// <summary>Whether <paramref name="step"/> takes the ulp from <paramref name="value"/>, down or up, to <paramref name="next"/>.</summary>
+    internal static bool TakesStep<TStep>(double value, bool down, ref TStep step, out double next)
+        where TStep : struct, IUlpStep
+    {
+        next = down ? NextDown(value) : NextUp(value);
+        // S1244: NextDown(0) is 0 itself, the end of a walk down, which the step must not read as a step up.
+#pragma warning disable S1244
+        return next != value && step.Takes(value, next);
+#pragma warning restore S1244
+    }
+
     /// <summary>The next double above a non-negative <paramref name="value"/>, either zero included; NaN, +∞ and negatives answer themselves.</summary>
     /// <remarks>Math.BitIncrement on net10.0, the bits on netstandard2.0, which has none; both only where they agree.</remarks>
     internal static double NextUp(double value)

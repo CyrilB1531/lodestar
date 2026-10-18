@@ -12,7 +12,7 @@ public static double FisherSnedecorCdf(double f, double numeratorDf, double deno
 
 **Returns** — `scipy.stats.f.cdf(f, dfn, dfd)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when either degrees of freedom is not positive, `NaN` included. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+**Exceptions** — `ArgumentOutOfRangeException` when either degrees of freedom is not positive, `NaN` included.
 
 **Example** — the mass below an overall test statistic of four.
 

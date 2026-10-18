@@ -12,7 +12,7 @@ public static double ChiSquaredCdf(double x, double df)
 
 **Returns** — `scipy.stats.chi2.cdf(x, df)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+**Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included.
 
 **Example** — the mass below the 5% critical value on one degree of freedom.
 

@@ -214,10 +214,9 @@ public static class OrdinaryLeastSquares
         var pValues = new double[parameterCount];
         var lower = new double[parameterCount];
         var upper = new double[parameterCount];
-        double half = 1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0);
         double multiplier = robust
-            ? Distributions.NormalQuantile(half)
-            : Distributions.StudentQuantile(half, residualDegreesOfFreedom);
+            ? CriticalValue.TwoSided(settings.ConfidenceLevel)
+            : CriticalValue.TwoSidedStudent(settings.ConfidenceLevel, residualDegreesOfFreedom);
 
         for (int j = 0; j < parameterCount; j++)
         {

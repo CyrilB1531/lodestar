@@ -62,7 +62,7 @@ public static class KruskalWallis
 
         // Rounding can land H a hair below zero on a perfectly balanced split (#1245); scipy's
         // chdtrc answers NaN there, where the regularized Q would throw.
-        double pValue = h < 0.0 ? double.NaN : Gamma.RegularizedQ(dof / 2.0, h / 2.0);
+        double pValue = h < 0.0 ? double.NaN : Gamma.ChiSquaredTail(dof, h, upper: true);
 
         return new TestResult(h, pValue);
     }
