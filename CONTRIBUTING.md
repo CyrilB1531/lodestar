@@ -80,8 +80,8 @@ Two things change what you will see on a pull request of your own:
 
 - **A fork or a Dependabot pull request skips the analysis steps**, where `SONAR_TOKEN` is
   unreachable. The build and the tests still run there.
-- **A pull request that changes only Markdown, or only a workflow the pull-request pipeline does
-  not read, skips the build.** When it moved a Markdown file, `Lint` runs the documentation tests
+- **A pull request that changes only Markdown, the nightly benchmark's ratios, or a workflow the
+  pull-request pipeline does not read, skips the build.** When it moved a Markdown file, `Lint` runs the documentation tests
   in the build's place, against the binaries `main` published for your base commit. The rules are
   [`tools/skip_build.py`](tools/README.md#skip_buildpy)'s; a skip is accepted only for a pull
   request classified that way, never a bare `skipped`.

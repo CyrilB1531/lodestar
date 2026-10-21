@@ -8,9 +8,12 @@ workflow this rule excludes: 6 minutes of build and test, 2.1 of sample, 1.1 of
 oracles, and a Windows job still running after the required checks had gone green.
 A one-line change to any other workflow paid the same, and now costs about 100 s.
 
-Two classes answer ``true`` here:
+Three classes answer ``true`` here, alone or mixed:
 
 * **Markdown only**, which is `docs_only.py`'s answer — the reduced path #857 added.
+* **The nightly benchmark's ratios**, `bench/nightly/ratios.csv`, which only Python reads —
+  `nightly_series.py`, whose tests `Lint`'s pytest runs on every pull request — so the
+  nightly run's own pull request, two pages and that file, skips the build too (#1735).
 * **Workflow only**, meaning every path is one of the workflow-ish files ``UNREAD``
   names: nothing in the pull-request pipeline reads `release.yml`,
   `release-nuget-org.yml`, `bench-nightly.yml`, `bench-ondemand.yml`,
@@ -63,16 +66,22 @@ UNREAD = frozenset({
 })
 
 
+# Data no .NET project reads: only tools/nightly_series.py does, and pytest judges it on every pull request (#1735).
+PYTHON_DATA = frozenset({
+    "bench/nightly/ratios.csv",
+})
+
+
 def workflow_only(path: str) -> bool:
     """Whether one path is a workflow-ish file the pull-request pipeline does not read."""
     return path in UNREAD
 
 
 def skip_build(paths: Iterable[str]) -> bool:
-    """Whether every non-blank path is Markdown or a workflow the pipeline does not read."""
+    """Whether every non-blank path is Markdown, the nightly ratios, or a workflow the pipeline does not read."""
     listed = [path.strip() for path in paths if path.strip()]
     return bool(listed) and all(
-        path.endswith(".md") or workflow_only(path) for path in listed)
+        path.endswith(".md") or path in PYTHON_DATA or workflow_only(path) for path in listed)
 
 
 def workflows_only(paths: Iterable[str]) -> bool:
