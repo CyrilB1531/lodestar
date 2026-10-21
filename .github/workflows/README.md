@@ -72,8 +72,9 @@ at all on such a pull request, and a required check that never arrives stays pen
 
 A pull request that cannot change what the build proves takes a shorter path. A first job,
 `Changed files`, lists its files and asks
-[`tools/skip_build.py`](../../tools/README.md#skip_buildpy) whether every one is either Markdown or
-a workflow the pull-request pipeline does not read — never `ci.yml`, which is the gate itself and
+[`tools/skip_build.py`](../../tools/README.md#skip_buildpy) whether every one is Markdown, the
+nightly benchmark's `bench/nightly/ratios.csv`, which only Python reads, or a workflow the
+pull-request pipeline does not read — never `ci.yml`, which is the gate itself and
 is tested by running it. When every file qualifies, the build, the sample, the oracles, Windows and
 the analysis are skipped. `Lint` then runs the documentation tests **when a Markdown file moved** —
 on the net10.0 binaries `main` published for the base commit, with this pull request's docs staged

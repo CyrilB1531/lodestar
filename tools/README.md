@@ -859,11 +859,13 @@ in this directory open with thirty-line docstrings on purpose.
 ## `skip_build.py`
 
 Answers whether a pull request changes nothing the build, the tests or the Windows checks can
-judge ([#1073](https://github.com/CyrilB1531/lodestar/issues/1073)). Two classes qualify: Markdown
-only, which is `docs_only.py`'s answer, and **workflow only** — every path a workflow-ish file
-other than `.github/workflows/ci.yml`: `release.yml`, `release-nuget-org.yml`, `bench-nightly.yml`,
-`bench-ondemand.yml`, `classify-pull-request.yml`, `wiki.yml` and `dependabot.yml`, enumerated in
-`UNREAD` and asserted against the directory. Nothing in the pull-request pipeline reads them, so a
+judge ([#1073](https://github.com/CyrilB1531/lodestar/issues/1073)). Three classes qualify, alone
+or mixed: Markdown, which is `docs_only.py`'s answer; `bench/nightly/ratios.csv`, which only
+`nightly_series.py` reads and `Lint`'s pytest judges, so the nightly run's own pull request skips
+the build ([#1735](https://github.com/CyrilB1531/lodestar/issues/1735)); and **workflow only** —
+every path a workflow-ish file other than `.github/workflows/ci.yml`: `release.yml`,
+`release-nuget-org.yml`, `bench-nightly.yml`, `bench-ondemand.yml`, `classify-pull-request.yml`,
+`wiki.yml` and `dependabot.yml`, enumerated in `UNREAD` and asserted against the directory. Nothing in the pull-request pipeline reads them, so a
 build and a platform check say nothing about a change to one. What that cost was measured on
 [#1072](https://github.com/CyrilB1531/lodestar/pull/1072) — six minutes of build and test, and a
 Windows job still running after the required checks had gone green — and a one-line change to

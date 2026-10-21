@@ -717,9 +717,10 @@ jobs:
     steps:
       # A skip passes only where a classified path skips that job by design, and the class is
       # named in the log rather than a bare `skipped` being waved through: build-test and sample
-      # are conditioned on skip_build, which is Markdown, workflows the pipeline does not read, or
-      # both; docs-snippets on the narrower workflows_only, because a docs change is exactly what
-      # breaks a guide snippet, so one Markdown file anywhere runs it (#997, #1055, #1073).
+      # are conditioned on skip_build, which is Markdown, the nightly ratios, workflows the pipeline
+      # does not read, or a mix (#1735); docs-snippets on the narrower workflows_only, because a docs
+      # change is exactly what breaks a guide snippet, so one Markdown file anywhere runs it (#997,
+      # #1055, #1073).
       - name: The build, the tests, the analysis and the packaging gates passed
         env:
           SKIP_BUILD: ${{ needs.changes.outputs.skip_build }}
@@ -736,7 +737,7 @@ jobs:
             elif [ "$WORKFLOWS_ONLY" = "true" ]; then
               class="workflow-only"
             else
-              class="Markdown-and-workflow-only"
+              class="Markdown, nightly-ratios and workflow-only"
             fi
           else
             class=""

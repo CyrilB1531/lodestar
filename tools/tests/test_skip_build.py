@@ -27,6 +27,9 @@ SPEC.loader.exec_module(TOOL)
     [".github/workflows/classify-pull-request.yml", "docs/a.md"],
     [".github/dependabot.yml"],
     [".github/workflows/wiki.yml", "README.md"],
+    # The nightly run's own pull request (#1735).
+    ["docs/guides/nightly_run.md", "docs/guides/benchmark_latest.md", "bench/nightly/ratios.csv"],
+    ["bench/nightly/ratios.csv"],
 ])
 def test_a_pull_request_the_build_cannot_judge(paths):
     assert TOOL.skip_build(paths) is True
@@ -46,6 +49,8 @@ def test_a_pull_request_the_build_cannot_judge(paths):
     ["docs/wiki-map.json"],
     ["Lodestar.slnx"],
     ["tests/oracles/snowball_fr.json"],
+    ["bench/nightly/other.csv"],
+    ["bench/bench-map.json"],
 ])
 def test_a_pull_request_the_build_must_judge(paths):
     assert TOOL.skip_build(paths) is False
@@ -169,3 +174,17 @@ def test_main_prints_the_answer(monkeypatch, capsys):
 
     assert TOOL.main(["skip_build.py"]) == 0
     assert capsys.readouterr().out.strip() == "true"
+
+
+def test_the_nightly_ratios_are_not_workflow_only():
+    # Not a workflow: the docs-snippets job keys on --workflows-only, and must not skip for it.
+    assert TOOL.workflows_only(["bench/nightly/ratios.csv"]) is False
+
+
+def test_the_python_data_is_read_by_no_dotnet_project():
+    # The skip holds only while no .NET project or test reads the file; a C# reader would need the build.
+    for path in TOOL.PYTHON_DATA:
+        name = pathlib.PurePosixPath(path).name
+        readers = [p for p in list(ROOT.glob("src/**/*")) + list(ROOT.glob("tests/**/*")) + list(ROOT.glob("bench/**/*"))
+                   if p.is_file() and p.suffix in {".cs", ".csproj", ".props", ".targets"} and name in p.read_text(errors="ignore")]
+        assert not readers, f"{path} is read by {readers}, so a change to it needs the build."
