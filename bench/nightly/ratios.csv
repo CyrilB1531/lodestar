@@ -9909,3 +9909,15 @@ date,commit,cpu,class,parameters,method,ratio
 2026-10-22,e5d07e37e3fcd62ac524e3ebc1069dc02e0a0e66,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=10,TreeNearest,0.59
 2026-10-22,e5d07e37e3fcd62ac524e3ebc1069dc02e0a0e66,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=2000,FullScan,1.0
 2026-10-22,e5d07e37e3fcd62ac524e3ebc1069dc02e0a0e66,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=2000,TreeNearest,0.93
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=10000, K=10, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=10000, K=10, Device=CPUAc(...) GPU) [26]",GpuResident,3147.95
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=10000, K=100, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=10000, K=100, Device=CPUAc(...) GPU) [26]",GpuResident,2986.39
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=10000, K=1000, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=10000, K=1000, Device=CPUAc(...) GPU) [26]",GpuResident,2335.19
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=10, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=10, Device=CPUAc(...) GPU) [26]",GpuResident,2151.23
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=100, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=100, Device=CPUAc(...) GPU) [26]",GpuResident,2021.66
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=1000, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-23,b7818719585e35e8c1448884e1c36a152a3cd170,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=1000, Device=CPUAc(...) GPU) [26]",GpuResident,2003.66
