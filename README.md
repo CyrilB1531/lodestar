@@ -282,8 +282,7 @@ workflow refuses the job if the tag and `Version.props` disagree. Repository-wid
 one — but a minor or a major does, and tagging before that edit gives a tag the workflow refuses,
 because it disagrees with the version `Version.props` declares. Re-tagging a version the feed
 already holds is rejected rather than absorbed: the workflows do not pass `--skip-duplicate`, which
-used to report that case as a successful release that shipped nothing. That a declared version is
-still off the feed is checked directly in CI by `tools/check_version_floor.py`.
+used to report that case as a successful release that shipped nothing.
 
 To consume them, add a source pointing at the owner's feed (with a GitHub token
 that has `read:packages`):

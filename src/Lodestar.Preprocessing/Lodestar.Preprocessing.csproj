@@ -23,37 +23,16 @@
     overloads take (decision 0003, which applies 0138's precedent rather than reopening it), and
     Lodestar.Cluster for the one-dimensional k-means KBinsDiscretizer's kmeans strategy runs
     (#1122): an edge rather than a second Lloyd's algorithm written here, which is what #763
-    decided. Each is a PackageReference against its published floor, like every other src/ edge
-    (decision 0001), with the usual developer-loop opt-in, never set in CI:
+    decided.
 
-        export LodestarUseProjectRefs=true
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <ItemGroup>
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
     <ProjectReference Include="../Lodestar.Cluster/Lodestar.Cluster.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Stats" />
-    <PackageReference Include="Lodestar.Cluster" />
-  </ItemGroup>
-
-  <!-- The one-hot encoder's infrequent-category options live in Lodestar.Abstractions (#1161), so
-       this package reaches that project unconditionally until the next Lodestar.Abstractions is on
-       nuget.org; packing turns the reference into a dependency on that version. The release swaps
-       it back for a PackageReference and drops its exception in ci.yml's "src/ ships
-       PackageReference only" step. -->
-  <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Preprocessing: LodestarUseProjectRefs=true — referencing Lodestar.Stats, Lodestar.Abstractions and Lodestar.Cluster by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Preprocessing.Tests" />

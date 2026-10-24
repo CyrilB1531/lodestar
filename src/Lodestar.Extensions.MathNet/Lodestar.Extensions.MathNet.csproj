@@ -24,30 +24,12 @@
   <!--
     One Lodestar edge: CsrMatrix is the type being converted.
 
-    Expressed as a PackageReference against the published package, like every
-    other src/ edge, so the build graph is the graph consumers see
-    (decision 0001). The opt-in below exists only so that editing two packages in
-    one branch does not require a pack-and-restore cycle per edit:
-
-        export LodestarUseProjectRefs=true
-
-    It is never set in CI, and the packed .nuspec is asserted there.
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Abstractions" />
-  </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Extensions.MathNet: LodestarUseProjectRefs=true — referencing Lodestar.Abstractions by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Extensions.MathNet.Tests" />

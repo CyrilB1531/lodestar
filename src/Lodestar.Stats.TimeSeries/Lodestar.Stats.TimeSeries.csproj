@@ -22,33 +22,15 @@
     for the fits the augmented Dickey-Fuller test runs per candidate lag. The second is the reason
     this is a package at all.
 
-    Both are PackageReferences against their published floors, like every other src/ edge
-    (decision 0001), with the usual developer-loop opt-in, never set in CI. The
-    Lodestar.Stats.Regression floor is 0.2.0 and no lower: 0.1.0 declares OlsOptions.WithIntercept
-    with a plain setter where 0.2.0 has an init one, and a build against 0.1.0 throws
-    MissingMethodException wherever 0.2.0 is loaded (#671).
 
-        export LodestarUseProjectRefs=true
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
     <ProjectReference Include="../Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Abstractions" />
-    <PackageReference Include="Lodestar.Stats" />
-    <PackageReference Include="Lodestar.Stats.Regression" />
-  </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Stats.TimeSeries: LodestarUseProjectRefs=true — referencing Lodestar.Abstractions, Lodestar.Stats and Lodestar.Stats.Regression by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Stats.TimeSeries.Tests" />

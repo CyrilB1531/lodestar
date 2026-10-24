@@ -38,11 +38,15 @@
     <InternalsVisibleTo Include="Lodestar.Gpu.NetStandard.Tests" />
   </ItemGroup>
 
-  <!-- MinHashScheme, forwarded to Lodestar.Abstractions (decision 0003, #1142), and SearchResult,
-       which TiledCosineTopK.Search returns (#1214). The floor is pinned in
-       src/Directory.Packages.props, like every other src/ reference. -->
+  <!--
+    MinHashScheme, forwarded to Lodestar.Abstractions (decision 0003, #1142), and SearchResult,
+    which TiledCosineTopK.Search returns (#1214).
+
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
+  -->
   <ItemGroup>
-    <PackageReference Include="Lodestar.Abstractions" />
+    <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

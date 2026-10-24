@@ -19,12 +19,12 @@
     <InternalsVisibleTo Include="Lodestar.Conformal.NetStandard.Tests" />
   </ItemGroup>
 
-  <!-- The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142). The
-       cross-conformal enums it adds live there too (#1159), so it reaches that project
-       unconditionally until the next Lodestar.Abstractions is on nuget.org; packing turns the
-       reference into a dependency on that version. The release swaps it back for a
-       PackageReference on the published floor and drops its exception in ci.yml's
-       "src/ ships PackageReference only" step. -->
+  <!--
+    The data types this package forwards to Lodestar.Abstractions (decision 0003, #1142).
+
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
+  -->
   <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>

@@ -222,8 +222,7 @@ def test_contributing_names_every_guard_the_hook_excludes():
         f"CONTRIBUTING.md says {sorted(named)} stay out of the hook and OFFLINE_EXCLUSIONS "
         f"here holds {sorted(OFFLINE_EXCLUSIONS)}. The two move together: an exclusion is a "
         "decision with an ADR, and the paragraph is where a contributor reads it. Guards "
-        "the paragraph mentions for another reason belong in a paragraph of their own, "
-        "which is where `check_version_floor.py --check-feed` went.")
+        "the paragraph mentions for another reason belong in a paragraph of their own.")
 
     said = spelled(section.group(1), "CONTRIBUTING.md's exclusion paragraph")
     assert said == len(OFFLINE_EXCLUSIONS), (
