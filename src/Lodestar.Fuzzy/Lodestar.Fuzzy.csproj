@@ -13,44 +13,16 @@
   </PropertyGroup>
 
   <!--
-    Fuzz.Ratio is Indel.NormalizedSimilarity × 100, so the dependency on
-    Lodestar.Text is real and permanent. What changed is how it is expressed: a
-    PackageReference against the published package, so the build graph is the
-    graph consumers see, and the two packages can release on their own cadences.
+    Fuzz.Ratio is Indel.NormalizedSimilarity × 100, so the dependency on Lodestar.Text is real
+    and permanent.
 
-    The default — no property set — is the path CI packs and ships. The opt-in
-    below exists only so that editing Lodestar.Text and Lodestar.Fuzzy in the same
-    branch does not require a pack-and-restore cycle per edit:
 
-        export LodestarUseProjectRefs=true
-
-    MSBuild reads environment variables as properties, so that one export covers
-    dotnet build, dotnet test and the IDE. It is never set in CI, and the packed
-   .nuspec is asserted there — see docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <ProjectReference Include="../Lodestar.Text/Lodestar.Text.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Text" />
-  </ItemGroup>
-
-  <!-- ExtractResult, forwarded to Lodestar.Abstractions (#1142), hashes every NaN alike since #1285,
-       so this reaches that project unconditionally until the next Lodestar.Abstractions is on
-       nuget.org; packing turns the reference into a dependency on that version. The release swaps it
-       back for a PackageReference and drops its exception in ci.yml's "src/ ships PackageReference
-       only" step. -->
   <ItemGroup>
+    <ProjectReference Include="../Lodestar.Text/Lodestar.Text.csproj" />
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Fuzzy: LodestarUseProjectRefs=true — referencing Lodestar.Abstractions and Lodestar.Text by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
 </Project>

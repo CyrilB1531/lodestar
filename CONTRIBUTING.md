@@ -211,23 +211,18 @@ opens the Store instead of running anything.
 
 ```bash
 # POSIX (bash/zsh)
-python3 tools/check_version_floor.py
 python3 tools/extract_doc_snippets.py && dotnet build samples/Lodestar.DocSnippets -c Release
 python3 tools/check_machine_paths.py
 ```
 
 ```powershell
 # PowerShell — split, not chained with `&&`, which needs PowerShell 7+
-python tools/check_version_floor.py
 python tools/extract_doc_snippets.py
 dotnet build samples/Lodestar.DocSnippets -c Release
 python tools/check_machine_paths.py
 ```
 
-`check_version_floor.py` is offline and instant. It catches the version numbers
-that must agree drifting apart, which MSBuild is perfectly happy to let happen. CI runs it
-with `--check-feed`, which additionally proves the dependency floor is published
-— see [`tools/README.md`](tools/README.md). If you touched packaging, packing and
+If you touched packaging, packing and
 running `python3 tools/check_nuspec_dependencies.py ./artifacts --require-all` (`python …` on
 Windows, per the split above) closes the loop.
 
@@ -254,8 +249,8 @@ git config core.hooksPath .githooks
 git config core.hooksPath .githooks
 ```
 
-`.githooks/pre-commit` then runs the twenty-two offline guards —
-`check_machine_paths.py`, `check_sdd_citations.py`, `check_comment_length.py`, `check_version_floor.py`,
+`.githooks/pre-commit` then runs the twenty-one offline guards —
+`check_machine_paths.py`, `check_sdd_citations.py`, `check_comment_length.py`,
 `check_sample_culture.py`, `check_bench_map.py`, `check_sample_coverage.py`,
 `check_netstandard_guards.py`, `check_no_console_writeline.py`,
 `check_readme_pack_loop.py`, `check_claude_md_packages.py`,
@@ -295,10 +290,8 @@ commit, which a commit made before a pull request exists has none to name,
 `check_pr_closes.py` reads a pull request's description, which a commit does not
 have.
 
-`check_version_floor.py` needs no exclusion. CI passes it `--check-feed`, which reaches
-nuget.org, and the hook does not — but that is a flag rather than a guard, and its two offline
-rules run in both places. [`tools/README.md`](tools/README.md) carries each exclusion beside the
-guard it excludes, with the reason.
+[`tools/README.md`](tools/README.md) carries each exclusion beside the guard it excludes, with
+the reason.
 
 ## Before pushing: the half the build cannot see
 
@@ -314,46 +307,16 @@ a clean run promises nothing**.
 
 ## Working across two packages
 
-The four libraries version and release independently, and `Lodestar.Fuzzy`
-reaches `Lodestar.Text` through a `PackageReference` on the published package
-rather than a project reference — the reasoning is in
-[`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
-
-A plain clone builds with no extra step: the version `Lodestar.Fuzzy` depends on
-is a floor pinned in `src/Directory.Packages.props`, and it always names a
-release that is already on nuget.org.
-
-**When a branch edits `Lodestar.Text` and `Lodestar.Fuzzy` together**, that floor
-points at a `Lodestar.Text` older than the one in your working tree, so
-`Lodestar.Fuzzy` would compile against the published assembly and not see your
-change. Flip the reference back for the duration:
-
-```bash
-# POSIX (bash/zsh)
-export LodestarUseProjectRefs=true
-dotnet build Lodestar.slnx -c Release   # prints a reminder that this is on
-```
-
-```powershell
-# PowerShell
-$env:LodestarUseProjectRefs = 'true'
-dotnet build Lodestar.slnx -c Release   # prints a reminder that this is on
-```
-
-MSBuild reads environment variables as properties, so one export covers `build`,
-`test` and the IDE. Nothing to pass per command, and nothing to pack and restore
-between edits.
-
-Two things to keep straight:
-
-- **It is a local loop, not a merge strategy.** CI never sets the property and
-  asserts the default path, so a branch whose `Lodestar.Fuzzy` needs new
-  `Lodestar.Text` API cannot go green. Release `Lodestar.Text` first, raise the
-  floor in `src/Directory.Packages.props`, then land the `Lodestar.Fuzzy` side.
-  Two packages that release independently cannot also be merged as one.
-- **Unset it before measuring anything.** With the property on you are building a
-  graph that will never ship; benchmark numbers and packaging checks taken there
-  describe nothing real.
+Until the packages are on nuget.org, every `src/` project reaches its `Lodestar.*` siblings by
+`ProjectReference` ([#1739](https://github.com/CyrilB1531/lodestar/issues/1739)), so a branch that
+edits two packages together builds and tests against both working trees with no extra step, and
+the two land in one pull request. `dotnet pack` turns each reference into a dependency on the
+sibling's declared version, which `tools/check_nuspec_dependencies.py` asserts. This suspends the
+published-floor model of
+[`docs/decisions/0001`](docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md)
+and [`0003`](docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md) until that first
+publication, when the change that made it is reverted and each floor raised to the version just
+published.
 
 **A feature pull request never touches `Version.props`.** `main` carries the next revision rather
 than the published one, so the number your branch packs is already ahead of the feed. Moving it is

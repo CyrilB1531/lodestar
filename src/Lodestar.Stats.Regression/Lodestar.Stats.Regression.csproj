@@ -23,40 +23,14 @@
     from losing digits the normal equations would square away. Decision 0003 published
     exactly those four members for this package and no others.
 
-    PackageReference against the published floors, like every other src/ edge, so the
-    build graph is the graph consumers see (decision 0001). The opt-in below exists only
-    so that editing two packages in one branch does not need a pack-and-restore per edit:
-
-        export LodestarUseProjectRefs=true
-
-    It is never set in CI, and the packed .nuspec is asserted there.
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <ItemGroup>
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
     <ProjectReference Include="../Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Stats" />
-    <PackageReference Include="Lodestar.Decomposition" />
-  </ItemGroup>
-
-  <!-- The instrumental-variables data types this package adds live in Lodestar.Abstractions
-       (decision 0003, #1155), so it reaches that project unconditionally until the next
-       Lodestar.Abstractions is on nuget.org; packing turns the reference into a dependency on
-       that version. The release swaps it back for a PackageReference on the published floor and
-       drops its exception in ci.yml's "src/ ships PackageReference only" step, as after #1142. -->
-  <ItemGroup>
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Stats.Regression: LodestarUseProjectRefs=true — referencing Lodestar.Stats and Lodestar.Decomposition by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Stats.Regression.Tests" />

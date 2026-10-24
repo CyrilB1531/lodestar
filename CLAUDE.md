@@ -184,30 +184,16 @@ travel across one and NuGet resolves package assets against the *mirror's* frame
 The one deliberate behavioural split is `VectorMath.Dot` — `Vector<T>` SIMD on
 net10, scalar loop on netstandard2.0.
 
-### 2. Versions are per package, and `src/` references packages, not projects
+### 2. Versions are per package, and `src/` references projects until the packages ship
 
 Each publishable project declares its version in a sibling `src/<Package>/Version.props` and
-nowhere else. `Lodestar.Fuzzy` reaches `Lodestar.Text` through a `PackageReference` on a
-**published floor** pinned in `src/Directory.Packages.props`, which is what makes `git clone &&
-dotnet build` work with no pack step. A CI job asserts through evaluated MSBuild that no `src/`
-project carries a `ProjectReference`.
-
-When a branch edits two packages together, the floor points at an older
-`Lodestar.Text` than your working tree:
-
-```bash
-# POSIX (bash/zsh)
-export LodestarUseProjectRefs=true   # local developer loop only; CI never sets it
-```
-
-```powershell
-# PowerShell
-$env:LodestarUseProjectRefs = 'true'   # local developer loop only; CI never sets it
-```
-
-Unset it before measuring anything: with it on you are building a graph that will never ship.
-CONTRIBUTING.md's [*Working across two packages*](CONTRIBUTING.md#working-across-two-packages) has
-the release order that gets such a branch to green. Release tags are `<PackageId>/v<Version>`.
+nowhere else. **Until the packages are on nuget.org, every `src/` project reaches its `Lodestar.*`
+siblings by `ProjectReference`** ([#1739](https://github.com/CyrilB1531/lodestar/issues/1739)), so a
+change to one package is seen by its dependents in the same branch, and `dotnet pack` turns each
+reference into a dependency on the sibling's declared version. A CI job asserts through evaluated
+MSBuild that no `src/` project carries a `PackageReference` to a sibling, and
+`tools/check_nuspec_dependencies.py` asserts the packed ranges. Release tags are
+`<PackageId>/v<Version>`.
 
 ### 3. Conformance is proven by frozen oracles, not by hand-written expectations
 

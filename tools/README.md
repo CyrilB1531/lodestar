@@ -46,8 +46,6 @@ given:
   do — floats at `1e-9`, relative where the suite compares relatively, everything else exactly — which is what the
   `Oracles are reproducible` gate asks instead of byte-identity
   (tools/compare_oracles.py).
-- `check_version_floor.py` verifies that the version numbers the source tree
-  keeps in three places still agree.
 - `check_pr_closes.py` refuses a pull request that closes no issue, or whose
   closing keyword names an issue that is not open here or not assigned to its
   author; `pr-closes.yml` runs it on every pull request.
@@ -162,7 +160,7 @@ given:
   has what it does and does not cover. About a second is the whole budget, and it
   is already spent: measured over the whole tree on one machine, 0.97 s for
   `check_machine_paths.py`, 0.12 s for `check_comment_length.py`, 0.06 s for
-  `check_version_floor.py` and 0.03 s for `check_sample_culture.py` — 1.18 s for
+  the since-removed `check_version_floor.py` and 0.03 s for `check_sample_culture.py` — 1.18 s for
   those four in sequence. A guard that reached `dotnet build` would be
   uninstalled within a week.
 - `check_adr_immutable.py` refuses a pull request that touches a
@@ -513,16 +511,14 @@ python tools/check_nuspec_dependencies.py artifacts
 A package's dependency graph is a *build output*, derived from whatever restore
 resolved, so nobody writes it down and nothing notices when it drifts. This
 script is where it is written down. It matters more since the four packages
-version independently: `Lodestar.Fuzzy` reaches `Lodestar.Text` through a
-`PackageReference`, and that edge is now the one thing holding the two together.
+version independently. Until the packages are on nuget.org every `Lodestar.*` edge is a
+`ProjectReference` ([#1739](https://github.com/CyrilB1531/lodestar/issues/1739)).
 See [`../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md`](../docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md).
 
 Dependency **ids and version ranges** are both asserted. The range matters as
-much as the id here: a `PackageReference` emits the floor from
-`src/Directory.Packages.props`, while the `LodestarUseProjectRefs` developer loop
-emits `Lodestar.Text`'s own current version. Same id, different number — which is
-what lets this check catch a package accidentally built with the escape hatch
-left on.
+much as the id here: a `ProjectReference` emits the sibling's declared version from its
+`Version.props`, and `EXPECTED` reads that same file, so an edge packed against anything else
+fails.
 
 ## `check_netstandard_guards.py`
 
@@ -553,26 +549,6 @@ file, which is how the first rule's breakage survived unnoticed.
 
 A mirror therefore reports more tests than its sibling suite, by exactly the number of
 guard facts it carries — one per assembly it must prove it loaded.
-
-## `check_version_floor.py`
-
-Checks the three places a `Lodestar.Text` version number lives, each for a
-different reason, none of which MSBuild relates to the others:
-
-```bash
-python tools/check_version_floor.py               # offline: the two rules below
-python tools/check_version_floor.py --check-feed  # also: the floor is published
-```
-
-- `src/Lodestar.Text/Version.props` — what `Lodestar.Text` *is*.
-- `src/Directory.Packages.props` — the *floor* `Lodestar.Fuzzy` requires of it.
-- `check_nuspec_dependencies.py` — the floor that check asserts actually shipped.
-
-The floor must not exceed the declared version, and must already be on nuget.org
-— that is what makes `git clone && dotnet build` work with no pack step. A floor
-naming an unpublished version still builds for whoever raised it, whose cache is
-warm, and fails for everyone else. `--check-feed` is what turns that into a CI
-failure rather than a contributor's bug report.
 
 ## `check_pr_closes.py`
 

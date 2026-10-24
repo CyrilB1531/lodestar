@@ -37,7 +37,8 @@ tails and on ``Lodestar.Decomposition`` for the Householder QR -- the four membe
 decision 0003 published for it. The prose above walks the first of the twenty-seven edges;
 ``EXPECTED`` below is the authority for all of them. The ranges are asserted too, not
 only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
-edge with the wrong floor is a different edge.
+edge with the wrong floor is a different edge. Until the packages are on nuget.org every Lodestar
+edge is a ProjectReference (#1739), so its floor is the sibling's declared version.
 
 Each external dependency appears exactly once: ``Microsoft.ML.OnnxRuntime`` under
 ``Lodestar.Onnx``, ``Microsoft.Extensions.AI.Abstractions`` under
@@ -94,45 +95,22 @@ POLYFILLS = {"System.Memory": "4.6.3", "System.Numerics.Vectors": "4.6.1"}
 # netstandard2.0-only, two-package status: docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
 PERSISTENCE = {STJ: "10.0.12"}
 
-# long-comment: Directory.Packages.props' PackageVersion, one per sibling a package reaches, and
-# why the Lodestar floors moved together on 2026-09-24. A PackageReference emits this floor, but
-# LodestarUseProjectRefs emits the sibling's own version instead, which is how a build left in the
-# developer loop is caught. #1142 moved every package's public data types into
-# Lodestar.Abstractions 0.2.0 and forwards them from the package that declared them, so a floor on
-# a release from before the move, beside Lodestar.Abstractions 0.2.0, declares the same type
-# twice (CS0433). Each sibling that moved types is floored at the release that forwards them.
-
-# Lodestar.Abstractions, Lodestar.Cluster and Lodestar.Stats.Regression all sit at their second
-# minor, named once rather than spelled three times (S1192).
-SECOND_MINOR = "0.2.0"
-ABSTRACTIONS_FLOOR = SECOND_MINOR
-TEXT_FLOOR = "0.7.0"
-STATS_FLOOR = "0.5.0"
-DECOMPOSITION_FLOOR = "0.3.0"
-CLUSTER_FLOOR = SECOND_MINOR
-# 0.6.0 was already the lowest possible: 0.5.0 still declares OnnxRuntime.
-EMBEDDINGS_FLOOR = "0.8.0"
-
-# Lodestar.Onnx moved no type, so 0.1.0 still holds: its first release, and OnnxTextEmbedder has
-# been public since it.
-ONNX_FLOOR = "0.1.0"
-
-# 0.1.0 declares OlsOptions.WithIntercept with a plain setter where 0.2.0 has an init one, so a
-# build against 0.1.0 throws MissingMethodException beside 0.2.0 (#671).
-STATS_REGRESSION_FLOOR = SECOND_MINOR
-
 def declared_version(package: str, prop: str) -> str:
     """The version src/<package>/Version.props declares, which pack emits for a ProjectReference."""
     text = (pathlib.Path(__file__).resolve().parent.parent / "src" / package / "Version.props").read_text()
     return re.search(rf"<{prop}>([^<]+)</{prop}>", text).group(1)
 
 
-# Stats.Regression reaches Abstractions by ProjectReference until its IV data types are published
-# (#1155); pack emits the project's declared version, and the release restores ABSTRACTIONS_FLOOR.
-ABSTRACTIONS_PROJECT_FLOOR = declared_version("Lodestar.Abstractions", "LodestarAbstractionsVersion")
-# Lodestar.Survival reaches Lodestar.Stats by project too, for the tails #1172's parametric fitters read, until the
-# release publishes them.
-STATS_PROJECT_FLOOR = declared_version("Lodestar.Stats", "LodestarStatsVersion")
+# Every Lodestar edge is a ProjectReference until the packages are on nuget.org (#1739), and pack
+# emits the sibling's declared version for one, so each edge's floor is that version.
+ABSTRACTIONS_FLOOR = declared_version(ABSTRACTIONS, "LodestarAbstractionsVersion")
+TEXT_FLOOR = declared_version(TEXT, "LodestarTextVersion")
+STATS_FLOOR = declared_version(STATS, "LodestarStatsVersion")
+DECOMPOSITION_FLOOR = declared_version(DECOMPOSITION, "LodestarDecompositionVersion")
+CLUSTER_FLOOR = declared_version(CLUSTER, "LodestarClusterVersion")
+EMBEDDINGS_FLOOR = declared_version(EMBEDDINGS, "LodestarEmbeddingsVersion")
+ONNX_FLOOR = declared_version(ONNX, "LodestarOnnxVersion")
+STATS_REGRESSION_FLOOR = declared_version(STATS_REGRESSION, "LodestarStatsRegressionVersion")
 
 # Directory.Packages.props' PackageVersion for both Microsoft.Extensions.*.Abstractions
 # pins: Extensions.AI and Extensions.VectorData agree on it without a range to reconcile.
@@ -154,20 +132,19 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {**POLYFILLS},
     },
     TEXT: {
-        # The project's version until the release publishes #1193's PorterStemmerMode.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
+        # One Lodestar edge: CsrMatrix, SparseNorm and the data types it forwards (#1142).
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     FUZZY: {
-        # The project's version until the release publishes #1285's ExtractResult hash.
-        NET: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # Fuzz.Ratio is built on Indel, and ExtractResult is forwarded to Abstractions (#1142).
+        NET: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {TEXT: TEXT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     EMBEDDINGS: {
-        # Nothing external since 0.6.0; one Lodestar edge, to the data types it forwards (#1142),
-        # at the project's version until the release publishes #1285's SentencePiece hash.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS, **PERSISTENCE},
+        # Nothing external since 0.6.0; one Lodestar edge, to the data types it forwards (#1142).
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     ONNX: {
         # The repository's only external dependency, and the only package that
@@ -204,42 +181,39 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, MATHNET: "5.0.0", **POLYFILLS},
     },
     CLUSTER: {
-        # One Lodestar edge, to its data types (#1142), at the project's version until the release
-        # publishes #1163's options; Lloyd's algorithm is arithmetic over spans.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # One Lodestar edge, to its data types (#1142); Lloyd's algorithm is arithmetic over spans.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     PREPROCESSING: {
         # Three core edges: the normal quantile (0138), the CsrMatrix (0139), KBinsDiscretizer's Lloyd
-        # (1122); Abstractions is the project's version until the release publishes #1161's options.
-        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, CLUSTER: CLUSTER_FLOOR},
+        # (1122).
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, CLUSTER: CLUSTER_FLOOR},
         NETSTANDARD: {
             STATS: STATS_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
             CLUSTER: CLUSTER_FLOOR,
             **POLYFILLS,
         },
     },
     METRICS: {
-        # One Lodestar edge, to the data types it forwards (#1142), no System.Text.Json; the
-        # project's version until the release publishes #1285's ClassRow and AverageRow hashes.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # One Lodestar edge, to the data types it forwards (#1142), no System.Text.Json.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     CONFORMAL: {
-        # Arithmetic over spans; its #1159 enums sit in the unpublished Abstractions, so the edge is
-        # that project's version until the release.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # Arithmetic over spans; one Lodestar edge, to the #1159 enums it names.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS_REGRESSION: {
         # Two Lodestar edges and nothing external, which is what keeps this core tier:
         # the tails that make a p-value, and the QR that solves without squaring XtX.
-        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
+        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
         NETSTANDARD: {
             STATS: STATS_FLOOR,
             DECOMPOSITION: DECOMPOSITION_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR,
+            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
             **POLYFILLS,
         },
     },
@@ -255,22 +229,22 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     SURVIVAL: {
-        # Nothing external, which keeps this core tier: the distribution tails, published for it, and its data
-        # types, both at the projects' versions until the release publishes #1170's types and #1172's tails.
-        NET: {STATS: STATS_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {STATS: STATS_PROJECT_FLOOR, ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # Nothing external, which keeps this core tier: the distribution tails published for it,
+        # and its data types (#1170).
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     DECOMPOSITION: {
         # The one edge of this package, and the reason Lodestar.Abstractions exists: CsrMatrix and its
-        # dense-block products; the project's version until the release publishes #1232's records.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # dense-block products.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS: {
-        # One Lodestar edge, to its data types (#1142), at the project's version until the release
-        # publishes #1162's; otherwise arithmetic over arrays, with tails computed here.
-        NET: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR},
-        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_PROJECT_FLOOR, **POLYFILLS},
+        # One Lodestar edge, to its data types (#1142, #1162); otherwise arithmetic over arrays, with
+        # tails computed here.
+        NET: {ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
 }
 

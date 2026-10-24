@@ -16,9 +16,6 @@
     whichever it already has cached, and a duplicate push is absorbed by the feed
     while the job reports success. 0.3.0 shipped on 2026-08-14, so this number
     moves ahead of the feed rather than sitting on it.
-
-    tools/check_version_floor.py keeps this in step with the dependency floor in
-    src/Directory.Packages.props.
   -->
   <PropertyGroup>
     <LodestarTextVersion>0.7.1</LodestarTextVersion>

@@ -1,5 +1,5 @@
 #!/bin/sh
-# The twenty-two offline guards, run against the index instead of after the push.
+# The twenty-one offline guards, run against the index instead of after the push.
 #
 #   install:  git config core.hooksPath .githooks
 #   skip once:  git commit --no-verify
@@ -28,8 +28,7 @@ root=$(git rev-parse --show-toplevel) || exit 1
 cd "$root" || exit 1
 
 # check_nuspec_dependencies.py is absent because it reads a packed ./artifacts,
-# and --check-feed is absent from the floor guard because it reaches nuget.org.
-# Both would make a commit wait on something a commit should not wait on.
+# which would make a commit wait on something a commit should not wait on.
 #
 # Spelled as paths rather than bare names so this list and ci.yml's steps read
 # the same, which is what tools/tests/test_pre_commit_hook.py compares.
@@ -38,7 +37,6 @@ for guard in \
     tools/check_machine_paths.py \
     tools/check_sdd_citations.py \
     tools/check_comment_length.py \
-    tools/check_version_floor.py \
     tools/check_sample_culture.py \
     tools/check_bench_map.py \
     tools/check_sample_coverage.py \

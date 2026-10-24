@@ -7,7 +7,7 @@
     0.1.0 is this package's first release. It releases on its own schedule
     rather than matching the others: it depends on Lodestar.Abstractions alone,
     and Lodestar.Stats.Regression, Lodestar.Stats.TimeSeries, Lodestar.Survival
-    and Lodestar.Preprocessing depend on it, each through a published floor
+    and Lodestar.Preprocessing depend on it
     (tools/check_nuspec_dependencies.py holds the edges).
   -->
   <PropertyGroup>

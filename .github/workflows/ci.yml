@@ -123,7 +123,7 @@ jobs:
       # tools/requirements.lock.txt are unused here. Installed anyway, deliberately:
       # a second, narrower lock for these two test files would be a second hashed
       # graph to keep in sync with tools/requirements.txt by hand, which is exactly
-      # the kind of drift check_version_floor.py exists to catch elsewhere in this
+      # the kind of drift the tools/check_*.py guards exist to catch elsewhere in this
       # repository -- and --only-binary :all: means the install is wheels-only with
       # nothing to compile, so the wall-clock cost of the extra packages is a pip
       # resolve, not a build. One lock file, one source of truth.
@@ -639,53 +639,20 @@ jobs:
           echo "::error::End analysis failed three times."
           exit 1
 
-      # The libraries reference each other by package, never by project. The
-      # opt-in developer loop (LodestarUseProjectRefs) puts a ProjectReference
-      # back, so a text grep cannot tell the shipped path from the local one —
-      # it would match the conditional ItemGroup either way. Evaluated MSBuild
-      # can, and this job never sets the property.
-      - name: src/ ships PackageReference only
+      # Until the packages are on nuget.org the libraries reference each other by project, never by
+      # package (#1739): a PackageReference would restore a published release, not the working tree.
+      # Evaluated MSBuild rather than a grep, so a conditional ItemGroup cannot hide one.
+      - name: src/ references its siblings by project
         run: |
           for proj in src/Lodestar.Abstractions src/Lodestar.Text src/Lodestar.Embeddings src/Lodestar.Fuzzy src/Lodestar.Metrics src/Lodestar.Conformal src/Lodestar.Decomposition src/Lodestar.Onnx src/Lodestar.Extensions.AI src/Lodestar.Extensions.MathNet src/Lodestar.Extensions.VectorData src/Lodestar.Cluster src/Lodestar.Preprocessing src/Lodestar.Stats src/Lodestar.Stats.Regression src/Lodestar.Stats.TimeSeries src/Lodestar.Survival src/Lodestar.Gpu; do
-            refs=$(dotnet msbuild "$proj" -getItem:ProjectReference -p:TargetFramework=net10.0 \
-              | python3 -c 'import sys, json; print(" ".join(i["Identity"] for i in json.load(sys.stdin)["Items"]["ProjectReference"]))')
-            # Until the next Lodestar.Abstractions is on nuget.org: the instrumental-variables data
-            # types Lodestar.Stats.Regression names live there (#1155). The release drops this line.
-            [ "$proj" = src/Lodestar.Stats.Regression ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # The same, for the cross-conformal enums Lodestar.Conformal names (#1159).
-            [ "$proj" = src/Lodestar.Conformal ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the one-hot encoder's options Lodestar.Preprocessing names (#1161).
-            [ "$proj" = src/Lodestar.Preprocessing ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the decomposition options that became records (#1232).
-            [ "$proj" = src/Lodestar.Decomposition ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the Porter stemmer's mode Lodestar.Text names (#1193).
-            [ "$proj" = src/Lodestar.Text ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the k-sample variant and correlation matrix Lodestar.Stats names (#1162).
-            [ "$proj" = src/Lodestar.Stats ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the k-means restart options Lodestar.Cluster names (#1163).
-            [ "$proj" = src/Lodestar.Cluster ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the log-rank options and restricted mean Lodestar.Survival names (#1170).
-            [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            # And for the distribution tails its parametric fitters read from Lodestar.Stats (#1172).
-            [ "$proj" = src/Lodestar.Survival ] && refs=${refs//..\/Lodestar.Stats\/Lodestar.Stats.csproj/}
-            # And for the NaN-stable hashes of the records Metrics, Embeddings and Fuzzy name (#1285).
-            [ "$proj" = src/Lodestar.Metrics ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            [ "$proj" = src/Lodestar.Embeddings ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            [ "$proj" = src/Lodestar.Fuzzy ] && refs=${refs//..\/Lodestar.Abstractions\/Lodestar.Abstractions.csproj/}
-            refs=$(echo $refs)
+            refs=$(dotnet msbuild "$proj" -getItem:PackageReference -p:TargetFramework=net10.0 \
+              | python3 -c 'import sys, json; print(" ".join(i["Identity"] for i in json.load(sys.stdin)["Items"].get("PackageReference", []) if i["Identity"].startswith("Lodestar.")))')
             if [ -n "$refs" ]; then
-              echo "::error::$proj references $refs by project; src/ must reference published packages."
+              echo "::error::$proj references $refs by package; until the packages are on nuget.org, src/ references its siblings by project (#1739)."
               exit 1
             fi
           done
 
-      # Three files hold a Lodestar.Text version number for three different
-      # reasons, and MSBuild is happy when they disagree. --check-feed also
-      # proves the floor is resolvable, which is what lets a clean clone build
-      # with no pack step — a broken floor otherwise surfaces only on a machine
-      # whose NuGet cache is cold, never on the one that raised it.
-      - name: The Lodestar.Text floor is coherent
-        run: python3 tools/check_version_floor.py --check-feed
 
       # The sample is the only thing a contributor reads to see a package work, and
       # it printed 0,807 on a French console against CI's 0.807 for two releases
@@ -1071,5 +1038,3 @@ jobs:
       - name: The sample prints no number in the contributor's culture
         run: python tools/check_sample_culture.py
 
-      - name: The Lodestar.Text floor is coherent
-        run: python tools/check_version_floor.py

@@ -27,34 +27,13 @@
     and its constructor names Lodestar.Embeddings' BatchEncoder, which is the
     overload of EmbedBatch that owns the padding.
 
-    Expressed as PackageReferences against the published packages, like every
-    other src/ edge, so the build graph is the graph consumers see
-    (decision 0001).
-
-    The opt-in below exists only so that editing several packages in one branch
-    does not require a pack-and-restore cycle per edit:
-
-        export LodestarUseProjectRefs=true
-
-    It is never set in CI, and the packed .nuspec is asserted there.
+    Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
+    dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' == 'true'">
+  <ItemGroup>
     <ProjectReference Include="../Lodestar.Onnx/Lodestar.Onnx.csproj" />
     <ProjectReference Include="../Lodestar.Embeddings/Lodestar.Embeddings.csproj" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(LodestarUseProjectRefs)' != 'true'">
-    <PackageReference Include="Lodestar.Onnx" />
-    <PackageReference Include="Lodestar.Embeddings" />
-  </ItemGroup>
-
-  <!-- Loud on purpose: a local build that silently differed from the shipped one
-       is the failure mode this whole arrangement is designed to avoid. -->
-  <Target Name="WarnOnLocalProjectRefs" BeforeTargets="Build"
-          Condition="'$(LodestarUseProjectRefs)' == 'true'">
-    <Message Importance="high"
-             Text="Lodestar.Extensions.AI: LodestarUseProjectRefs=true — referencing Lodestar.Onnx and Lodestar.Embeddings by project, not by package. This is the developer loop, not what ships." />
-  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lodestar.Extensions.AI.Tests" />
