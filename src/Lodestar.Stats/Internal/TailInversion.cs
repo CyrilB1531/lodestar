@@ -183,34 +183,272 @@ internal static class TailInversion
 #pragma warning restore S1244
     }
 
-    /// <summary>A walk's rule: whether to take the ulp from one double to its neighbour.</summary>
-    internal interface IUlpStep
+    /// <summary>A search's test on the bit pattern of a non-negative double, which orders as the double does.</summary>
+    internal interface IBitTest
     {
-        bool Takes(double from, double to);
+        bool Holds(long bits);
     }
 
-    /// <summary><paramref name="value"/> walked an ulp at a time, down or up, while <paramref name="step"/> takes each
-    /// ulp, at most <paramref name="maxSteps"/>, never below zero: the F quantile walks its crossing in f with it, eight ulps
-    /// each way, and the chi-squared small root's search reads <see cref="TakesStep"/> for each of its probes.</summary>
-    internal static double Walk<TStep>(double value, bool down, int maxSteps, ref TStep step)
-        where TStep : struct, IUlpStep
+    /// <summary>A quantile's exact tail before its last rounding, and one Newton step on it toward the target from a point
+    /// whose tail that is.</summary>
+    internal interface INewtonTail
     {
-        for (int i = 0; i < maxSteps && TakesStep(value, down, ref step, out double next); i++)
+        ExactTail Exact(double statistic);
+
+        double Stepped(double statistic, ExactTail exact);
+
+        /// <summary>Whether a tail before its last rounding reaches the target.</summary>
+        bool Reaches(ExactTail exact);
+    }
+
+    /// <summary>The last bit pattern still holding <paramref name="test"/> and the first failing it, by steps doubling from
+    /// <paramref name="from"/>, where it holds, toward <paramref name="limit"/>, never reached, then halving between them;
+    /// <paramref name="limit"/> as the failing one where no probe fails. The chi-squared small root and the F quantile at
+    /// tiny dfs both search the doubles so.</summary>
+    internal static (long Held, long Failed) SearchBits<TTest>(long from, long limit, ref TTest test)
+        where TTest : struct, IBitTest
+    {
+        (long held, long failed) = DoubleBits(from, limit, ref test);
+        return HalveBits(held, failed, ref test);
+    }
+
+    /// <summary>SearchBits' doubling steps alone: the last probe holding <paramref name="test"/> and the first failing it,
+    /// <paramref name="limit"/>, untested, where none fails.</summary>
+    private static (long Held, long Failed) DoubleBits<TTest>(long from, long limit, ref TTest test)
+        where TTest : struct, IBitTest
+    {
+        long held = from;
+        long failed = limit;
+        long distance = Math.Abs(limit - from);
+        // Each probe stays strictly between from and limit, and the step stops before it could pass the largest long.
+        for (long step = 1; step < distance; step *= 2)
         {
-            value = next;
+            long probe = limit > from ? from + step : from - step;
+            if (!test.Holds(probe))
+            {
+                failed = probe;
+                break;
+            }
+            held = probe;
+            if (step > distance / 2)
+            {
+                break;
+            }
         }
-        return value;
+        return (held, failed);
     }
 
-    /// <summary>Whether <paramref name="step"/> takes the ulp from <paramref name="value"/>, down or up, to <paramref name="next"/>.</summary>
-    internal static bool TakesStep<TStep>(double value, bool down, ref TStep step, out double next)
-        where TStep : struct, IUlpStep
+    /// <summary>The bits of the smallest double whose tail reaches its target, <paramref name="reaches"/> telling which do,
+    /// within <paramref name="window"/> of <paramref name="from"/>; −1 where the tail crosses no nearer.</summary>
+    /// <remarks>An inversion's root lands a few ulps from its crossing where the tail is exact to its last bit (#1745);
+    /// farther, the tail is too flat, or too far from that, for its doubles to place the root better than the inversion.</remarks>
+    internal static long NearestReaching<TTest>(long from, long window, ref TTest reaches)
+        where TTest : struct, IBitTest =>
+        NearestReaching(from, window, reaches.Holds(from), ref reaches);
+
+    /// <summary>The same with the test at <paramref name="from"/> already read, <paramref name="atFrom"/>.</summary>
+    private static long NearestReaching<TTest>(long from, long window, bool atFrom, ref TTest reaches)
+        where TTest : struct, IBitTest
     {
-        next = down ? NextDown(value) : NextUp(value);
-        // S1244: NextDown(0) is 0 itself, the end of a walk down, which the step must not read as a step up.
-#pragma warning disable S1244
-        return next != value && step.Takes(value, next);
-#pragma warning restore S1244
+        long limit = atFrom
+            ? Math.Max(from - window, 0)
+            : Math.Min(from + window, BitConverter.DoubleToInt64Bits(double.MaxValue));
+        if (limit == from)
+        {
+            // No double beyond: from itself, read already, where it reaches; else none.
+            return atFrom ? from : -1;
+        }
+        var sided = new Sided<TTest>(reaches, atFrom);
+        (long held, long failed) = DoubleBits(from, limit, ref sided);
+        // The steps never test their limit: 0 reaches nothing, and any other is read here, before the halving, which spent
+        // six tails on a window holding no crossing; a crossing at its edge, or the largest double (#1745's Review A).
+        if (failed == limit && limit != 0 && reaches.Holds(limit) == atFrom)
+        {
+            return -1;
+        }
+        (held, failed) = HalveBits(held, failed, ref sided);
+        return atFrom ? held : failed;
+    }
+
+    // The ulps either side of an inversion's root within which its crossing is searched, and half of them, within which a
+    // Newton step from it is the start; past them up to NewtonSteps steps, each from the last's own exact tail.
+    private const long CrossingWindow = 128;
+    private const double NewtonReach = 64.0;
+    private const int NewtonSteps = 3;
+
+    /// <summary>The first Newton step from <paramref name="root"/>, whose exact tail is <paramref name="exact"/>, to move
+    /// within NewtonReach ulps, the steps before it farther and each taken from its own tail; else the last point reached.
+    /// <paramref name="atStart"/> is the exact tail at the start where a step took it, else NaN.</summary>
+    /// <remarks>A root farther than NewtonReach kept the inversion's start: Student's at df 1999 searched 14 exact tails, 47 us
+    /// to scipy's 24, and at dfs near 0.05 crossings 196 ulps off lay past the window (#1745's Review A).</remarks>
+    private static double NewtonStart<TTail>(double root, ExactTail exact, double? firstStep, ref TTail tail, out ExactTail atStart)
+        where TTail : struct, INewtonTail
+    {
+        double start = root;
+        double next = root;
+        atStart = exact;
+        for (int step = 0; step < NewtonSteps; step++)
+        {
+            next = step == 0 && firstStep.HasValue ? firstStep.Value : tail.Stepped(start, exact);
+            if (!(next > 0.0 && next <= double.MaxValue))
+            {
+                return start;
+            }
+            if (step == NewtonSteps - 1 || Math.Abs(next - start) <= NewtonReach * (NextUp(start) - start))
+            {
+                break;
+            }
+            start = next;
+            exact = tail.Exact(start);
+            atStart = exact;
+        }
+        // A step that moved nothing lands on the tail just taken, which Settle would otherwise take again.
+        atStart = BitConverter.DoubleToInt64Bits(next) == BitConverter.DoubleToInt64Bits(start)
+            ? exact
+            : new ExactTail(new DoubleDouble(double.NaN, 0.0), inDouble: false);
+        return next;
+    }
+
+    /// <summary>The bits of the smallest double reaching the target near the Newton steps' start from <paramref name="root"/>,
+    /// whose exact tail is <paramref name="exact"/> and test <paramref name="rootReaches"/>; −1 as Settle has it.</summary>
+    internal static long Settled<TTail, TTest>(double root, ExactTail exact, bool rootReaches, ref TTail tail, ref TTest reaches)
+        where TTail : struct, INewtonTail
+        where TTest : struct, IBitTest =>
+        Settled(root, exact, rootReaches, ref tail, ref reaches, searchesFar: true, firstStep: null);
+
+    /// <summary><see cref="Settled{TTail, TTest}(double, ExactTail, bool, ref TTail, ref TTest)"/>, or
+    /// <see cref="NotSearched"/> where <paramref name="searchesFar"/> does not hold and the crossing is not at the Newton
+    /// steps' start, the root or a neighbour of either; <paramref name="firstStep"/> the first step where the caller took it, NaN included.</summary>
+    internal static long Settled<TTail, TTest>(
+        double root, ExactTail exact, bool rootReaches, ref TTail tail, ref TTest reaches, bool searchesFar, double? firstStep)
+        where TTail : struct, INewtonTail
+        where TTest : struct, IBitTest
+    {
+        double start = NewtonStart(root, exact, firstStep, ref tail, out ExactTail atStart);
+        bool? startReaches = double.IsNaN(atStart.Rounded) ? null : tail.Reaches(atStart);
+        return Settle(root, start, rootReaches, startReaches, ref reaches, searchesFar);
+    }
+
+    /// <summary>What Settled answers where it was told not to search past the windows.</summary>
+    internal const long NotSearched = -2;
+
+    /// <summary>The bits of the smallest double reaching the target near <paramref name="start"/>, else near
+    /// <paramref name="root"/>, a step the double forms misjudged, as at the narrow F law of dfs (3e235, 3e139), else the
+    /// crossing searched from the root however far; −1 where no double above the root reaches the target.</summary>
+    /// <remarks><paramref name="rootReaches"/> is the test at the root, which the caller has read, and
+    /// <paramref name="startReaches"/> the start's where read: read again, each cost a whole tail, 5 us of
+    /// FisherSnedecorIsf(0.9999999999, 1999, 3e-9)'s 29, scipy's 28.5 (#1745's Review A).</remarks>
+    private static long Settle<TTest>(double root, double start, bool rootReaches, bool? startReaches, ref TTest reaches, bool searchesFar)
+        where TTest : struct, IBitTest
+    {
+        long startBits = BitConverter.DoubleToInt64Bits(start);
+        long rootBits = BitConverter.DoubleToInt64Bits(root);
+        // Not searching far, the start and its neighbour alone: a window's eight tails cost more than the root they replace.
+        long window = searchesFar ? CrossingWindow : 1;
+        long nearest;
+        if (startBits == rootBits)
+        {
+            nearest = NearestReaching(rootBits, window, rootReaches, ref reaches);
+        }
+        else
+        {
+            // −1 is no double's bits, so an unread start is never taken as known.
+            var known = new KnownAt<TTest>(reaches, rootBits, rootReaches, startReaches.HasValue ? startBits : -1L, startReaches ?? false);
+            nearest = NearestReaching(startBits, window, ref known);
+            // The root's window through the start's known answers, searching far or not: unread, a law narrower than an ulp
+            // left its crossing at the root's neighbour, FisherSnedecorIsf(0.5000001175890465, 1.33e35, 1.41e61) an ulp short.
+            nearest = nearest < 0 ? NearestReaching(rootBits, window, rootReaches, ref known) : nearest;
+        }
+        if (nearest >= 0)
+        {
+            return nearest;
+        }
+        return searchesFar ? FarCrossing(rootBits, rootReaches, ref reaches) : NotSearched;
+    }
+
+    /// <summary>The crossing past the window about <paramref name="from"/>, whose test is <paramref name="atFrom"/> and the
+    /// window's throughout, by steps doubling from its edge toward it then halving; −1 where no double above reaches the target.</summary>
+    /// <remarks>Past the window where a tail is a double form's, whose Newton steps aim at the target itself: kept, the
+    /// root read 1,522 ulps past the crossing at F dfs (0.001, 1e6), the tail a subnormal half's limit (#1745's Review A).</remarks>
+    private static long FarCrossing<TTest>(long from, bool atFrom, ref TTest reaches)
+        where TTest : struct, IBitTest
+    {
+        // The window's doubles were read: from its edge the steps test none again, eight tails (#1745's Review A).
+        long largest = BitConverter.DoubleToInt64Bits(double.MaxValue);
+        from = atFrom ? from - CrossingWindow : Math.Min(from + CrossingWindow, largest);
+        if (atFrom)
+        {
+            return SearchBits(from, 0L, ref reaches).Held;
+        }
+        if (from == largest)
+        {
+            return -1;
+        }
+        // The largest double tested before halving toward it, as NearestReaching tests its limit: some 60 tails otherwise
+        // where no double above the root reaches the target (#1745's Review A).
+        var shortOf = new Sided<TTest>(reaches, false);
+        (long held, long failed) = DoubleBits(from, largest, ref shortOf);
+        if (failed == largest && !reaches.Holds(largest))
+        {
+            return -1;
+        }
+        return HalveBits(held, failed, ref shortOf).Failed;
+    }
+
+    /// <summary>One Newton step from <paramref name="statistic"/>, the tail <paramref name="excess"/> past its aim and its
+    /// slope in log of the statistic <paramref name="front"/>, against a tail rising with the statistic where
+    /// <paramref name="risingTail"/> holds: F's and Student's steps, one form.</summary>
+    internal static double EdgeStep(double statistic, double excess, double front, bool risingTail)
+    {
+        double step = statistic * (excess / front);
+        return risingTail ? statistic - step : statistic + step;
+    }
+
+    /// <summary>A test whose answer at <c>known</c> is already known, as the root's is to Settle: a search from a step one
+    /// ulp off it read that whole tail again.</summary>
+    private struct KnownAt<TTest>(TTest inner, long known, bool holds, long other, bool otherHolds) : IBitTest
+        where TTest : struct, IBitTest
+    {
+        private TTest _inner = inner;
+
+        public bool Holds(long bits)
+        {
+            if (bits == known)
+            {
+                return holds;
+            }
+            return bits == other ? otherHolds : _inner.Holds(bits);
+        }
+    }
+
+    /// <summary>A test, or its negation, as the bit search's test from a start where it reads <c>side</c>.</summary>
+    internal struct Sided<TTest>(TTest inner, bool side) : IBitTest
+        where TTest : struct, IBitTest
+    {
+        private TTest _inner = inner;
+        private readonly bool _side = side;
+
+        public bool Holds(long bits) => _inner.Holds(bits) == _side;
+    }
+
+    /// <summary>The adjacent bit patterns halving leaves of <paramref name="held"/>, holding <paramref name="test"/>, and
+    /// <paramref name="failed"/>, failing it; neither end is tested.</summary>
+    internal static (long Held, long Failed) HalveBits<TTest>(long held, long failed, ref TTest test)
+        where TTest : struct, IBitTest
+    {
+        while (Math.Abs(failed - held) > 1)
+        {
+            long middle = held + ((failed - held) / 2);
+            if (test.Holds(middle))
+            {
+                held = middle;
+            }
+            else
+            {
+                failed = middle;
+            }
+        }
+        return (held, failed);
     }
 
     /// <summary>The next double above a non-negative <paramref name="value"/>, either zero included; NaN, +∞ and negatives answer themselves.</summary>

@@ -59,69 +59,70 @@ internal static class ChiSquaredRoot
             double stepped = upper ? root + step : root - step;
             root = stepped > 0.0 && stepped < ExactHalf.Threshold ? stepped : root;
         }
-        var rule = new ChiSquaredMidpoint(target, df, upper, lead);
+        var rising = new ChiSquaredMidpoint(target, df, upper, lead);
         long start = BitConverter.DoubleToInt64Bits(root);
-        if (Steps(start, up: true, ref rule))
+        if (rising.Holds(start))
         {
             // A walk still stepping at 2^-1021 stops there: the root lies at or past it, nearer than the inversion's x below.
-            return Search(start, up: true, ref rule);
+            return Search(start, up: true, rising);
         }
-        return Steps(start, up: false, ref rule) ? Search(start, up: false, ref rule) : root;
+        ChiSquaredMidpoint falling = rising.Falling();
+        return falling.Holds(start) ? Search(start, up: false, falling) : root;
     }
 
     /// <summary>The double a walk of single ulps from <paramref name="start"/> would stop at, found by steps doubling
     /// until one is not taken and then halving: the walk alone, four ulps each way, returned a guess the rejected Newton
     /// step left further off as is (#1729's Review A). Within a run of doubles whose midpoint tails round alike, the
     /// first reached, as the walk would.</summary>
-    private static double Search(long start, bool up, ref ChiSquaredMidpoint rule)
+    private static double Search(long start, bool up, ChiSquaredMidpoint rule)
     {
-        // The search keeps the last double that steps on and the first that does not, both as bits.
-        long end = BitConverter.DoubleToInt64Bits(ExactHalf.Threshold);
-        long taken = start;
-        long stopped = up ? end : 0;
-        for (long step = 1; step < end; step *= 2)
-        {
-            long probe = up ? start + step : start - step;
-            if (probe <= 0 || probe >= end)
-            {
-                break;
-            }
-            if (!Steps(probe, up, ref rule))
-            {
-                stopped = probe;
-                break;
-            }
-            taken = probe;
-        }
-        while (Math.Abs(stopped - taken) > 1)
-        {
-            long middle = taken + ((stopped - taken) / 2);
-            if (Steps(middle, up, ref rule))
-            {
-                taken = middle;
-            }
-            else
-            {
-                stopped = middle;
-            }
-        }
-        return BitConverter.Int64BitsToDouble(stopped);
+        long end = up ? BitConverter.DoubleToInt64Bits(ExactHalf.Threshold) : 0;
+        return BitConverter.Int64BitsToDouble(TailInversion.SearchBits(start, end, ref rule).Failed);
     }
 
-    /// <summary>Whether the walk takes the ulp from the double of these bits, up or down; never below zero.</summary>
-    private static bool Steps(long bits, bool up, ref ChiSquaredMidpoint rule) =>
-        TailInversion.TakesStep(BitConverter.Int64BitsToDouble(bits), down: !up, ref rule, out _);
-
-    /// <summary>The search's rule: a step toward the chi-squared root, taken where the tail at the midpoint lies short of the target.</summary>
-    private readonly struct ChiSquaredMidpoint(double target, double df, bool upper, Gamma.UnhalvedLead lead) : TailInversion.IUlpStep
+    /// <summary>The search's rule: whether the walk takes the ulp from the double of a probe's bits, up or down, toward
+    /// the chi-squared root, where the tail at the midpoint lies short of the target; never below zero.</summary>
+    private readonly struct ChiSquaredMidpoint : TailInversion.IBitTest
     {
-        private readonly Gamma.UnhalvedLead _lead = lead;
+        private readonly Gamma.UnhalvedLead _lead;
+        private readonly bool _upper;
+        private readonly bool _up;
 
         // A subnormal lower target at an unlifted df is met scaled by 2^600 with its tail, both normal there; the df's own
         // lift by 2^200 is the lead's, a separate case.
-        private readonly (bool Scaled, double Target) _goal = Goal(target, df, upper);
+        private readonly (bool Scaled, double Target) _goal;
 
-        public bool Takes(double from, double to)
+        /// <summary>The rule walking up.</summary>
+        internal ChiSquaredMidpoint(double target, double df, bool upper, Gamma.UnhalvedLead lead)
+        {
+            _lead = lead;
+            _upper = upper;
+            _up = true;
+            _goal = Goal(target, df, upper);
+        }
+
+        private ChiSquaredMidpoint(in ChiSquaredMidpoint rising)
+        {
+            _lead = rising._lead;
+            _upper = rising._upper;
+            _up = false;
+            _goal = rising._goal;
+        }
+
+        /// <summary>The same rule walking down, its goal formed once.</summary>
+        internal ChiSquaredMidpoint Falling() => new(in this);
+
+        public bool Holds(long bits)
+        {
+            double from = BitConverter.Int64BitsToDouble(bits);
+            double to = _up ? TailInversion.NextUp(from) : TailInversion.NextDown(from);
+            // S1244: NextDown(0) is 0 itself, the end of a walk down, which must not read as a step up.
+#pragma warning disable S1244
+            return to != from && Takes(from, to);
+#pragma warning restore S1244
+        }
+
+        private bool Takes(double from, double to)
         {
             // The lower tail rises with x and the upper falls, so the root lies above the midpoint where its tail there is
             // still short of the target on that side.
@@ -136,13 +137,13 @@ internal static class ChiSquaredRoot
             }
             else
             {
-                miss = Gamma.ChiSquaredTailBetween(_lead, low, high, upper) - _goal.Target;
+                miss = Gamma.ChiSquaredTailBetween(_lead, low, high, _upper) - _goal.Target;
             }
             if (to > from)
             {
-                return upper ? miss > 0.0 : miss < 0.0;
+                return _upper ? miss > 0.0 : miss < 0.0;
             }
-            return upper ? miss < 0.0 : miss > 0.0;
+            return _upper ? miss < 0.0 : miss > 0.0;
         }
 
         private static (bool Scaled, double Target) Goal(double target, double df, bool upper) =>

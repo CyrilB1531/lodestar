@@ -234,7 +234,7 @@ internal static class BetaQuantile
         {
             double x = _complementSmall ? 1.0 - s : s;
             double y = _complementSmall ? s : 1.0 - s;
-            double density = Beta.Front(_a, _b, x, y, _logs.OfBeta) / (x * y);
+            double density = Beta.FastFront(_a, _b, x, y, _logs.OfBeta) / (x * y);
             double slope = s * density / value;
             return Increasing ? slope : -slope;
         }
@@ -363,23 +363,51 @@ internal static class BetaQuantile
         return seed > 0.0 && seed < 0.5 ? seed : mean;
     }
 
-    /// <summary>The double nearest the small side's mean at which the tail crosses its target, walked to ulp by ulp.</summary>
-    /// <remarks>Past MaxWalk ulps, which a law narrower than one only reaches past its tails' last doubles, Refine takes over.</remarks>
+    /// <summary>The double nearest the small side's mean at which the tail crosses its target, by steps doubling from it in
+    /// ulps, then halving between the last two.</summary>
+    /// <remarks>Past MaxWalk ulps, which a law narrower than one only reaches past its tails' last doubles, Refine takes over.
+    /// Walked ulp by ulp, FisherSnedecorQuantile(5.4e-194, 1.6e264, 1.2e31) read some 60 tails, 33 us to scipy's 25 (#1745's
+    /// Review A).</remarks>
     private static double WalkFromMean(in SmallSideTail tail, double s)
     {
         double value = tail.Value(s);
         bool up = value < tail.Target == tail.Increasing;
-        for (int i = 0; i < MaxWalk; i++)
+        long from = BitConverter.DoubleToInt64Bits(s);
+        var side = new StartSide(tail, up, value);
+        (long held, long crossed) = TailInversion.SearchBits(from, from + ((up ? 1L : -1L) * (MaxWalk + 1L)), ref side);
+        if (double.IsNaN(side.CrossedValue))
         {
-            double next = up ? TailInversion.NextUp(s) : TailInversion.NextDown(s);
-            double nextValue = tail.Value(next);
-            if ((nextValue < tail.Target == tail.Increasing) != up)
-            {
-                return Math.Abs(nextValue - tail.Target) < Math.Abs(value - tail.Target) ? next : s;
-            }
-            (s, value) = (next, nextValue);
+            return Refine(tail, BitConverter.Int64BitsToDouble(held));
         }
-        return Refine(tail, s);
+        bool crossedNearer = Math.Abs(side.CrossedValue - tail.Target) < Math.Abs(side.HeldValue - tail.Target);
+        return BitConverter.Int64BitsToDouble(crossedNearer ? crossed : held);
+    }
+
+    /// <summary>Whether the small side's tail at a double's bits is still on the start's side of the target, keeping the
+    /// values of the last bits on each side, which the search answers.</summary>
+    private struct StartSide(SmallSideTail tail, bool up, double value) : TailInversion.IBitTest
+    {
+        private readonly SmallSideTail _tail = tail;
+        private readonly bool _up = up;
+
+        internal double HeldValue { get; private set; } = value;
+
+        internal double CrossedValue { get; private set; } = double.NaN;
+
+        public bool Holds(long bits)
+        {
+            double atValue = _tail.Value(BitConverter.Int64BitsToDouble(bits));
+            bool holds = (atValue < _tail.Target == _tail.Increasing) == _up;
+            if (holds)
+            {
+                HeldValue = atValue;
+            }
+            else
+            {
+                CrossedValue = atValue;
+            }
+            return holds;
+        }
     }
 
     /// <summary>Whether WidthTolerance of x's relative width in I_x(a, b) is below StepTolerance, squared to take no root.</summary>

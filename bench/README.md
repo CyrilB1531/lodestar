@@ -1843,16 +1843,11 @@ dotnet run -c Release --project bench/Lodestar.Stats.Benchmarks -- --filter '*Ol
 ### What the pair does and does not compare
 
 Both rows compute a whole table, and **the two tables are not the same table.** Accord exports no
-variance inflation factor anywhere in its 4 796 members, so `Learn` performs one solve. `Fit`
-performs five at four regressors — the model, plus one auxiliary regression per regressor — because
-its table carries the VIFs. Neither library offers a cheaper shape, so this is the only comparison
-available; there is no coefficients-only row either, since adding one would have measured `Fit`
-twice under two names.
-
-That asymmetry is what the numbers show, and it inverts with size: this package wins at 100 rows
-and loses at 10 000, which is exactly what doing five factorisations instead of one predicts once
-the `O(mn²)` term overtakes the fixed per-call overhead. Read the ratio next to what each side
-returns, not on its own.
+variance inflation factor anywhere in its 4 796 members, so `Learn` performs one solve. `Fit`'s
+table also carries the VIFs, read off one decomposition of the standardised design since #591.
+Neither library offers a cheaper shape, so this is the only comparison available; there is no
+coefficients-only row either, since adding one would have measured `Fit` twice under two names.
+Read the ratio next to what each side returns, not on its own.
 
 The shapes differ on purpose and the difference is part of the cost. `Lodestar.Stats.Regression`
 takes a row-major `ReadOnlySpan<double>` — one allocation the caller already has — where Accord

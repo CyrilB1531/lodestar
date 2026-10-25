@@ -133,6 +133,12 @@
        generalized gamma quantile in Lodestar.Survival (#1729). -->
   <ItemGroup Condition="'$(LodestarIncludesTemmeSeries)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/TemmeSeries.cs" Link="Internal/TemmeSeries.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/TemmeSeries.Table.cs" Link="Internal/TemmeSeries.Table.cs" />
+  </ItemGroup>
+
+  <!-- The trigamma function, one copy for Lodestar.Stats' tiny-shape log B and Lodestar.Survival's log-gamma jet. -->
+  <ItemGroup Condition="'$(LodestarIncludesTrigamma)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Trigamma.cs" Link="Internal/Trigamma.cs" />
   </ItemGroup>
 
   <!-- A confidence interval's normal and Student multipliers, one copy for Lodestar.Stats, Lodestar.Stats.Regression,

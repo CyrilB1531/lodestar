@@ -93,22 +93,6 @@ internal static class Special
         return result + Math.Log(x) - (0.5 / x) - series;
     }
 
-    /// <summary><c>ψ′(x)</c>, the trigamma function, by recurrence up to six and its asymptotic series.</summary>
-    public static double Trigamma(double x)
-    {
-        double result = 0.0;
-        while (x < 6.0)
-        {
-            result += 1.0 / (x * x);
-            x += 1.0;
-        }
-
-        double inverse = 1.0 / (x * x);
-        double series = (1.0 / x) + (inverse / 2.0) + ((1.0 / (x * x * x)) * ((1.0 / 6.0) - (inverse * ((1.0 / 30.0)
-            - (inverse * ((1.0 / 42.0) - (inverse * (1.0 / 30.0))))))));
-        return result + series;
-    }
-
     /// <summary><c>log Q(a, x)</c> or <c>log P(a, x)</c> through the published chi-squared tails, clipped as lifelines clips them.</summary>
     public static double LogIncompleteGamma(double a, double x, bool upper)
     {
