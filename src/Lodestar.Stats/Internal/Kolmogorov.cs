@@ -100,39 +100,8 @@ internal static class Kolmogorov
     private const double ExactSlopeThreshold = 1.4;
 
     private const int ScaleBits = 128;
-    private static readonly double ScaleUp = PowerOfTwo(ScaleBits);
-    private static readonly double ScaleDown = PowerOfTwo(-ScaleBits);
-
-    // Math.ScaleB does not exist on netstandard2.0; repeated multiply/divide by
-    // 2.0 is exact (only ever moves the exponent bits), standing in for it here.
-    private static double PowerOfTwo(int exponent)
-    {
-        double factor = exponent >= 0 ? 2.0 : 0.5;
-        double result = 1.0;
-        for (int i = 0; i < Math.Abs(exponent); i++)
-        {
-            result *= factor;
-        }
-
-        return result;
-    }
-
-    private static double ScaleByPowerOfTwo(double value, int exponent)
-    {
-        if (exponent == 0)
-        {
-            return value;
-        }
-
-        double factor = exponent > 0 ? 2.0 : 0.5;
-        double result = value;
-        for (int i = 0; i < Math.Abs(exponent); i++)
-        {
-            result *= factor;
-        }
-
-        return result;
-    }
+    private static readonly double ScaleUp = PowerOfTwo.Of(ScaleBits);
+    private static readonly double ScaleDown = PowerOfTwo.Of(-ScaleBits);
 
     /// <summary>The two-sided <b>finite-sample</b> Kolmogorov tail: P(D_n &gt; d), scipy's <c>kstwo.sf</c>.</summary>
     /// <remarks>
@@ -396,7 +365,8 @@ internal static class Kolmogorov
             }
         }
 
-        double probability = ScaleByPowerOfTwo(mantissa, exponent);
+        // Rounded once into the subnormals; only 1 − it reaches the public members, where a granule here is not seen.
+        double probability = PowerOfTwo.Scale(mantissa, exponent);
         return Math.Min(1.0, Math.Max(0.0, probability));
     }
 

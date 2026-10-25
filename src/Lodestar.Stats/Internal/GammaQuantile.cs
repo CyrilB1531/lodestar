@@ -32,6 +32,13 @@ internal static class GammaQuantile
     // log(double.Epsilon): a root below it is no double, and zero says so.
     private const double LogSmallestDenormal = -744.44;
 
+    // 2^-1030: below it a subnormal tail keeps under 44 bits, fewer than its log's ulp of some 708 nats leaves; above, the
+    // log read ChiSquaredQuantile(2.225073858507201e-308, 2) 250 ulps off where the tail held it to one.
+    private const double LogsBelow = 8.691694759794e-311;
+
+    // log(double.Epsilon / 2): a tail below it rounds to zero, the bracket's end the inversion bisects toward.
+    private const double LogUnderflow = -745.13;
+
     /// <summary>The <c>x</c> with <c>P(a, x) = p</c>, or <c>Q(a, x) = p</c> when <paramref name="upper"/>.</summary>
     /// <param name="p">The probability, in <c>[0, 1]</c>.</param>
     /// <param name="a">The shape; positive.</param>
@@ -86,16 +93,27 @@ internal static class GammaQuantile
             return 0.0;
         }
 
+        // A target past LogsBelow is judged on the tail's log: the tail itself kept a few bits, and ChiSquaredIsf(5e-324, 1)
+        // read 1481.4857 for 1481.1267 (#1729's Review A).
+        return problem.InLogs ? Iterate<LogTailStep>(x, problem) : Iterate<TailStep>(x, problem);
+    }
+
+    /// <summary>Newton within the bracket, each step and side from <typeparamref name="TStep"/>: one loop for the tail and
+    /// its log, a struct so the step is inlined, where a branch on the two cost ChiSquaredIsf(1e-10, 100) 2.7%.</summary>
+    private static double Iterate<TStep>(double x, in Problem problem)
+        where TStep : struct, IStep
+    {
+        TStep step = default;
         double low = 0.0;
         double high = double.PositiveInfinity;
 
         for (int i = 0; i < MaxIterations; i++)
         {
-            double value = upper ? Gamma.RegularizedQ(a, x) : Gamma.RegularizedP(a, x);
+            double logStep = step.Take(x, problem, out bool below, out double logResidual);
 
             // P rises with x and Q falls, so the side of the root a value puts x on depends on
             // which tail is solved.
-            if ((value < target) != upper)
+            if (below != problem.Upper)
             {
                 low = x;
             }
@@ -104,7 +122,6 @@ internal static class GammaQuantile
                 high = x;
             }
 
-            double logStep = NewtonLogStep(x, value, problem, out double logResidual);
             if (TailInversion.Finish(x, logStep, logResidual, low, high, problem.Rule, out double next))
             {
                 return next;
@@ -116,20 +133,55 @@ internal static class GammaQuantile
         return x;
     }
 
-    /// <summary>The Newton step on <c>log T</c> against <c>log x</c>, with the log residual it divides.</summary>
+    /// <summary>A Newton step on <c>log T</c> against <c>log x</c>, with the log residual it divides and whether the tail
+    /// lies below the target.</summary>
+    private interface IStep
+    {
+        double Take(double x, in Problem problem, out bool below, out double logResidual);
+    }
+
+    /// <summary>The step on the tail itself.</summary>
     /// <remarks>
     /// <c>d log P / d log x = x f(x) / P</c> with <c>f</c> the gamma density, and the negative of
     /// the same over <c>Q</c> for the upper tail; <c>log(x f(x)) = a log x − x − log Γ(a)</c>.
     /// </remarks>
-    private static double NewtonLogStep(double x, double value, in Problem problem, out double logResidual)
+    private readonly struct TailStep : IStep
     {
-        double logXDensity = problem.A >= StirlingSlopeShape
-            ? Gamma.LogStirlingPrefactor(problem.A, x)
-            : (problem.A * Math.Log(x)) - x - problem.LogGammaA;
-        double logValue = Math.Log(value);
-        double inverseSlope = 1.0 / (Math.Exp(logXDensity - logValue) * (problem.Upper ? -1.0 : 1.0));
-        logResidual = TailInversion.LogResidual(problem.Target, problem.LogTarget, value, logValue, inverseSlope);
-        return TailInversion.NewtonStep(logResidual, inverseSlope);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public double Take(double x, in Problem problem, out bool below, out double logResidual)
+        {
+            double value = problem.Upper ? Gamma.RegularizedQ(problem.A, x) : Gamma.RegularizedP(problem.A, x);
+            below = value < problem.Target;
+            double logValue = Math.Log(value);
+            double inverseSlope = InverseSlope(x, logValue, problem);
+            logResidual = TailInversion.LogResidual(problem.Target, problem.LogTarget, value, logValue, inverseSlope);
+            return TailInversion.NewtonStep(logResidual, inverseSlope);
+        }
+
+        /// <summary><c>d log x / d log T</c>, from <c>log(x f(x)) = a log x − x − log Γ(a)</c> and the tail's log.</summary>
+        private static double InverseSlope(double x, double logValue, in Problem problem)
+        {
+            double logXDensity = problem.A >= StirlingSlopeShape
+                ? Gamma.LogStirlingPrefactor(problem.A, x)
+                : (problem.A * Math.Log(x)) - x - problem.LogGammaA;
+            return 1.0 / (Math.Exp(logXDensity - logValue) * (problem.Upper ? -1.0 : 1.0));
+        }
+    }
+
+    /// <summary>The step on the tail's log and the slope its parts give, for a subnormal target.</summary>
+    private readonly struct LogTailStep : IStep
+    {
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public double Take(double x, in Problem problem, out bool below, out double logResidual)
+        {
+            (double logValue, double ratio) = Gamma.LogTail(problem.A, x, problem.Upper);
+            below = logValue < problem.LogScaledTarget;
+            logResidual = problem.LogScaledTarget - logValue;
+            // A tail a double holds as zero bisects, as on the tail itself: Newton in log x from x = 2e285 gains a nat a
+            // step, and ChiSquaredIsf(1e-310, 2e-5) ran out at 6.9e17 for 1391.48 (#1729's Review A).
+            double slope = problem.Upper ? -ratio : ratio;
+            return logValue + problem.LogScale < LogUnderflow ? double.NaN : TailInversion.NewtonStep(logResidual, 1.0 / slope);
+        }
     }
 
     /// <summary>A first guess: the small-x leading term in the lower tail, Wilson-Hilferty otherwise.</summary>
@@ -175,6 +227,11 @@ internal static class GammaQuantile
             A = a;
             Target = target;
             LogTarget = Math.Log(target);
+            // Below Gamma.SmallShape the tail and the target over a, as Gamma.LogTail takes the tail; read only in logs.
+            InLogs = MeetsInLogs(target, a);
+            bool scaled = a < Gamma.SmallShape && InLogs;
+            LogScale = scaled ? Math.Log(a) : 0.0;
+            LogScaledTarget = scaled ? LogOver(target, a) : LogTarget;
             Upper = upper;
             // Read only below StirlingSlopeShape, by the slope; past it the slope is Stirling's.
             LogGammaA = a < StirlingSlopeShape ? Gamma.LogGamma(a) : double.NaN;
@@ -189,11 +246,32 @@ internal static class GammaQuantile
 
         internal double LogTarget { get; }
 
+        /// <summary>Whether the target is met on the tail's log, the one decision the step and the scaled target read.</summary>
+        internal bool InLogs { get; }
+
+        internal double LogScale { get; }
+
+        internal double LogScaledTarget { get; }
+
         internal bool Upper { get; }
 
         internal double LogGammaA { get; }
 
         /// <summary>The step in <c>log x</c> below which the root is settled, and the midpoint's anchor.</summary>
         internal StepRule Rule { get; }
+
+        /// <summary>Whether a target is met on the tail's log: past LogsBelow, or anywhere subnormal below Gamma.SmallShape,
+        /// where the log over a is no longer some 708 nats and the subnormal tail's slope in log x is small: ChiSquaredIsf(1e-310,
+        /// 2^-1021) sat on a plateau 43 ulps from its root.</summary>
+        private static bool MeetsInLogs(double target, double a) =>
+            target < LogsBelow || (target < NearZero.SmallestNormal && a < Gamma.SmallShape);
+
+        /// <summary><c>log(target / a)</c>: the quotient's log where it is normal, past its 570 nats of log a, else the two logs
+        /// apart, a then within 36 nats of one; a subnormal quotient kept a few bits, ChiSquaredIsf(1e-320, 4.4e-7) 7e-14 off.</summary>
+        private static double LogOver(double target, double a)
+        {
+            double quotient = target / a;
+            return quotient >= NearZero.SmallestNormal ? Math.Log(quotient) : Math.Log(target) - Math.Log(a);
+        }
     }
 }

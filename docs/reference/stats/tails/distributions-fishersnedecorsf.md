@@ -14,7 +14,7 @@ freedom, both of which must be positive and finite.
 **Returns** — `scipy.stats.f.sf(f, dfn, dfd)`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when either degrees-of-freedom argument is not
-positive, `NaN` included. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+positive, `NaN` included.
 
 **Example** — the overall significance of a model with two regressors on twenty residual degrees
 of freedom.

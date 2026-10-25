@@ -275,4 +275,16 @@ public sealed class SerialCorrelationEdgeTests
         Assert.Equal("lagCount", Assert.Throws<ArgumentOutOfRangeException>(() => SerialCorrelation.PartialAutocorrelation(Series, 0)).ParamName);
         Assert.Equal("lagCount", Assert.Throws<ArgumentOutOfRangeException>(() => SerialCorrelation.LjungBox(Series, 0)).ParamName);
     }
+
+    [Fact]
+    public void A_band_near_a_level_of_one_keeps_its_multiplier_digits()
+    {
+        // 1 − (1 − level)/2 rounded: at 1 − 1e-12 the multiplier kept about four digits, and read +∞ at 1 − 2^-53.
+        double level = 1.0 - 1e-12;
+        AutocorrelationResult result = SerialCorrelation.Autocorrelation(
+            Series, 1, new AutocorrelationOptions { BartlettConfidenceInterval = false, ConfidenceLevel = level });
+        double expected = 7.1305098928792724 / Math.Sqrt(Series.Length);
+
+        Assert.Equal(expected, (result.ConfidenceUpper[1] - result.ConfidenceLower[1]) / 2.0, 1e-14 * expected);
+    }
 }

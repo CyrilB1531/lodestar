@@ -297,7 +297,7 @@ public sealed class DistributionsEdgeTests
     }
 
     [Theory]
-    [InlineData(1e-300, 19, 0xC35502298BE600AD)]
+    [InlineData(1e-300, 19, 0xC35502298BE600B9)]
     [InlineData(0.025, 19, 0xC000BE83653B666F)]
     [InlineData(0.975, 20, 0x4000B00D9A954439)]
     [InlineData(1e-20, 20, 0xC043AEA949D929D0)]
@@ -310,8 +310,8 @@ public sealed class DistributionsEdgeTests
     [InlineData(5e-324, 2000, 0xC04768CC558ABEBC)]
     public void Student_quantiles_keep_their_bits_across_the_cached_log_beta(double p, double df, ulong bits)
     {
-        // Either side of 20, where LogBeta turns to Stirling, and of 2000, where the large-shape expansion starts. #1690's
-        // normalizer moved (1e-20, 20) one ulp, Newton stopping elsewhere inside its tolerance; the rest are pre-#1686.
+        // Either side of 20 and of 2000; #1690 moved (1e-20, 20) an ulp, and #1729's x^a by Math.Pow (1e-300, 19) from
+        // 17 ulps of the 60-digit root to 0.8; the rest are pre-#1686.
         double expected = BitConverter.Int64BitsToDouble(unchecked((long)bits));
         if (OperatingSystem.IsLinux())
         {
@@ -557,16 +557,31 @@ public sealed class DistributionsEdgeTests
     }
 
     [Fact]
-    public void Chi_squared_and_F_refuse_a_df_whose_half_is_not_a_double_by_its_own_name()
+    public void Chi_squared_and_F_take_a_df_of_the_smallest_double_at_its_exact_half()
     {
-        // Half of 5e-324 rounds to zero, which the shapes refused as "a", "b" or "x" (#1690's review); the
-        // positivity checks still come first, in main's order.
-        Assert.Equal("df", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredSf(1.0, 5e-324)).ParamName);
-        Assert.Equal("df", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.ChiSquaredPdf(1.0, 5e-324)).ParamName);
-        Assert.Equal("numeratorDf", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorSf(1.0, 5e-324, 1.0)).ParamName);
-        Assert.Equal("denominatorDf", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorPdf(1.0, 1.0, 5e-324)).ParamName);
+        // Half of 5e-324 rounds to zero, which the shapes refused (#1690's review); lifted, it is half of 1e-323's law,
+        // the densities of degree one in so small a shape. The positivity checks still come first, in main's order.
+        double chi = Distributions.ChiSquaredPdf(1e-300, 1e-323) / 2.0;
+        Assert.Equal(chi, Distributions.ChiSquaredPdf(1e-300, 5e-324), 1e-15 * chi);
+        double fisher = Distributions.FisherSnedecorPdf(1e-300, 1e-323, 1.0) / 2.0;
+        Assert.Equal(fisher, Distributions.FisherSnedecorPdf(1e-300, 5e-324, 1.0), 1e-15 * fisher);
+        // The small tail of degree one in the lifted shape, 1.8428648589878496e-321 to 40 digits, on the side that shape names.
+        Assert.Equal(1.843e-321, Distributions.FisherSnedecorCdf(1.0, 1.0, 5e-324));
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(1.0, 1.0, 5e-324));
+        Assert.Equal(1.843e-321, Distributions.FisherSnedecorSf(1.0, 5e-324, 1.0));
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(1.0, 5e-324, 1.0));
+        // The chi-squared upper tail is a E1(x/2) at a = 2.47e-324: 1.705e-321 at 1e-300, and below half a granule at one.
+        Assert.Equal(1.705e-321, Distributions.ChiSquaredSf(1e-300, 5e-324));
+        Assert.Equal(1.84e-321, Distributions.ChiSquaredSf(5e-324, 5e-324));
+        // At 1e-323, an even multiple whose half is a double, the lift still applies, and the tail is twice as large.
+        Assert.Equal(3.414e-321, Distributions.ChiSquaredSf(1e-300, 1e-323));
+        Assert.Equal(5e-324, Distributions.ChiSquaredSf(1.0, 1e-323));
+        Assert.Equal(0.0, Distributions.ChiSquaredSf(1.0, 5e-324));
+        Assert.Equal(1.0, Distributions.ChiSquaredCdf(1.0, 5e-324));
+        // Every x above zero has a lower tail of one to rounding: the median is the support's end, from either side.
+        Assert.Equal(0.0, Distributions.ChiSquaredQuantile(0.5, 5e-324));
+        Assert.Equal(0.0, Distributions.ChiSquaredIsf(0.5, 5e-324));
         Assert.Equal("denominatorDf", Assert.Throws<ArgumentOutOfRangeException>(() => Distributions.FisherSnedecorQuantile(0.5, 5e-324, -1.0)).ParamName);
-        Assert.Equal(0.0, Distributions.ChiSquaredSf(1.0, 1e-323), 1e-322);
     }
 
     [Fact]
@@ -1194,16 +1209,26 @@ public sealed class DistributionsEdgeTests
     }
 
     [Theory]
-    [InlineData(1500.0, 19.0, 2.185326408261663e-307)]
+    [InlineData(1500.0, 19.0, 2.185326408261971e-307)]
     [InlineData(1490.0, 9.0, 1.36925296e-315)]
     [InlineData(1450.0, 10.0, 7.881545898871309e-306)]
     [InlineData(1e100, 10.0, 0.0)]
     [InlineData(1e200, 6.0, 0.0)]
     public void The_chi_squared_upper_tail_density_keeps_main_s_form(double x, double df, double density)
     {
-        // A fallback keyed on a small prefactor took the upper tail too: inf * 0 read NaN at 1e100, and 0 at 1500 (#1708's
-        // Review A); scipy's chi2.pdf, the subnormal one to its own granularity.
+        // A small-prefactor fallback read NaN at 1e100 and 0 at 1500 (#1708's Review A). scipy's chi2.pdf, the subnormal
+        // to its granularity; at 1500 a 60-digit product, which scipy, through Lanczos' Γ(9.5), reads 1.4e-13 low.
         Assert.Equal(density, Distributions.ChiSquaredPdf(x, df), Math.Max(1e-13 * density, 1e-322));
+    }
+
+    [Fact]
+    public void A_split_whose_f_over_dfd_overflows_keeps_its_odds()
+    {
+        // f/d2 is +inf here, and y fell back to the subnormal d1 f, 5.4e-5 off (#1727's Review B). The split from exact
+        // rationals of the three doubles.
+        (double lower, double upper) = Lodestar.Stats.Internal.Beta.FisherSplit(1234.567, 1e-323, 2.3e-308);
+        Assert.Equal(5.303975149469276e-13, lower, 1e-15 * lower);
+        Assert.Equal(0.9999999999994696, upper, 3.3e-16);
     }
 
     [Fact]
@@ -1219,7 +1244,103 @@ public sealed class DistributionsEdgeTests
     public void The_chi_squared_density_at_a_subnormal_shape_divides_before_it_rounds()
     {
         // a e^(...) rounded to a subnormal before the division by x, 3.4e-9 off (#1708's Review A); e^(...) is one here.
-        const double df = 2.0000000000123e-315;
-        Assert.Equal(df / 2.0 / 1e-300, Distributions.ChiSquaredPdf(1e-300, df), 1e-15 * 1e-15);
+        // a is the df's exact half, 1.000000000952012e-315 in 50-digit Decimal, which df / 2.0 rounds (#1729's Review A).
+        Assert.Equal(1.000000000952012e-15, Distributions.ChiSquaredPdf(1e-300, 2.0000000000123e-315), 1e-15 * 1e-15);
+    }
+
+    [Theory]
+    [InlineData(5e-324, 1.0, true, 1481.1266547553563)]
+    [InlineData(5e-324, 800.0, true, 3447.2257792597159)]
+    [InlineData(5e-324, 1e9, true, 1001721300.6458117)]
+    [InlineData(5e-324, 800.0, false, 49.134364251159558)]
+    [InlineData(1e-320, 5e4, false, 38853.679807961526)]
+    [InlineData(5e-324, 1e10, false, 9994560873.1097090)]
+    [InlineData(5e-324, 1e300, false, 1e300)]
+    [InlineData(1e-310, 2e-5, true, 1391.4842226185543)]
+    [InlineData(2.225073858507201e-308, 2.0, false, 4.450147717014402e-308)]
+    [InlineData(1e-320, 4.39780802753384e-7, true, 1429.8470689058026)]
+    public void A_chi_squared_quantile_at_a_subnormal_probability_keeps_its_digits(double p, double df, bool upper, double x)
+    {
+        // Judged on the subnormal tail itself, which kept a few bits, ChiSquaredIsf(5e-324, 1) read 1481.4857 (#1729's
+        // Review A); against 50-digit roots of the tail's log.
+        double root = upper ? Distributions.ChiSquaredIsf(p, df) : Distributions.ChiSquaredQuantile(p, df);
+        Assert.Equal(x, root, 1e-15 * x);
+    }
+
+    [Fact]
+    public void The_F_density_at_a_small_shape_keeps_its_digits_either_side_of_the_product_cut()
+    {
+        // Front's exponent of 45 nats read 6e-15 off at 0.002, where a df an ulp under took products (#1729's Review A).
+        Assert.Equal(3.1289999644237285e-30, Distributions.FisherSnedecorPdf(1e10, 0.002, 5), 1e-15 * 3.1289999644237285e-30);
+        Assert.Equal(3.1289999644237285e-30, Distributions.FisherSnedecorPdf(1e10, 2.0 * Math.BitDecrement(1e-3), 5), 1e-15 * 3.1289999644237285e-30);
+    }
+
+    [Fact]
+    public void A_chi_squared_inverse_tail_near_one_at_a_subnormal_root_is_the_quantile_of_its_complement()
+    {
+        // Q near one held P to ε, and the root sat 5 granules from the lower quantile's (#1729's Review A).
+        double p = Math.Pow(2.0, -45.0);
+        Assert.Equal(Distributions.ChiSquaredQuantile(p, 0.0875), Distributions.ChiSquaredIsf(1.0 - p, 0.0875));
+    }
+
+    [Fact]
+    public void A_chi_squared_lower_quantile_near_one_at_a_subnormal_root_is_the_inverse_tail_of_its_complement()
+    {
+        // P near one held Q to ε, and the root sat 11,541 granules from the inverse tail's (#1729's Review A).
+        Assert.Equal(Distributions.ChiSquaredIsf(1.0 - 0.99645, 1e-5), Distributions.ChiSquaredQuantile(0.99645, 1e-5));
+    }
+
+    [Theory]
+    [InlineData(1e300, 3.7, 1e300)]
+    [InlineData(1e300, 3.0, 1e250)]
+    public void An_F_tail_past_a_huge_denominator_df_is_zero_not_NaN(double f, double dfn, double dfd)
+    {
+        // x^a by Math.Pow underflowed beside an e^rest past the doubles, and 0 times +∞ read NaN (#1729's Review A).
+        Assert.Equal(0.0, Distributions.FisherSnedecorSf(f, dfn, dfd));
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(f, dfn, dfd));
+    }
+
+    [Theory]
+    [InlineData(2.5e-305, 2.0, 5.0, 2.5e-305)]
+    [InlineData(1e-200, 2.0, 5.0, 1e-200)]
+    public void An_F_lower_tail_far_below_one_keeps_its_digits(double f, double dfn, double dfd, double expected)
+    {
+        // e^(a log x) took some 700 nats' rounding and read 2.5e-305's tail 500 ulps off (#1729's Review A); the 60-digit
+        // tail at dfs 2 and 5 is f itself to 3e-17.
+        Assert.Equal(expected, Distributions.FisherSnedecorCdf(f, dfn, dfd), 2e-15 * expected);
+    }
+
+    [Theory]
+    [InlineData(1e-308)]
+    [InlineData(4.619638887548376e-309)]
+    [InlineData(3e-320)]
+    public void The_chi_squared_quantile_at_df_two_and_a_subnormal_root_is_twice_the_probability(double p)
+    {
+        // The midpoint's tail rounded onto its grid read a quarter-granule as the target, a granule short (#1729's Review A).
+        Assert.Equal(2.0 * p, Distributions.ChiSquaredQuantile(p, 2.0));
+    }
+
+    [Fact]
+    public void An_F_lower_tail_beside_a_second_df_near_the_smallest_normal_keeps_its_bits()
+    {
+        // b times the front, subnormal there, dropped bits the division by a brought back; against the 80-digit tail.
+        Assert.Equal(1.6364237716358404e-308, Distributions.FisherSnedecorCdf(5e-324, 0.15, 4.450147717014403e-308), 2e-15 * 1.64e-308);
+    }
+
+    [Fact]
+    public void A_chi_squared_lower_tail_with_a_subnormal_power_rounds_once()
+    {
+        // x^a rounded onto the subnormals and the product with 1/Γ again, a granule off; against the 80-digit tail.
+        Assert.Equal(7.52252778063675e-310, Distributions.ChiSquaredCdf(2e-206, 3.0));
+    }
+
+    [Theory]
+    [InlineData(0.5)]
+    [InlineData(3.0)]
+    [InlineData(9.5)]
+    public void The_gamma_prefactor_at_zero_is_zero(double a)
+    {
+        // Past LongPower the power went to PowerOfTwo.Split, which reads zero as NaN (#1729's Review A).
+        Assert.Equal(0.0, Lodestar.Stats.Internal.Gamma.Prefactor(a, 0.0));
     }
 }

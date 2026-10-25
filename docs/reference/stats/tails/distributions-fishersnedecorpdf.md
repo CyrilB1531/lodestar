@@ -13,7 +13,7 @@ public static double FisherSnedecorPdf(double f, double numeratorDf, double deno
 
 **Returns** — `scipy.stats.f.pdf(f, dfn, dfd)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when either degrees of freedom is not positive, `NaN` included. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+**Exceptions** — `ArgumentOutOfRangeException` when either degrees of freedom is not positive, `NaN` included.
 
 **Example** — the density at one, for a model with two regressors and twenty residual degrees of freedom.
 

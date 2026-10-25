@@ -12,7 +12,7 @@ public static double FisherSnedecorQuantile(double p, double numeratorDf, double
 
 **Returns** — `scipy.stats.f.ppf(p, dfn, dfd)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when either degrees of freedom is not positive. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+**Exceptions** — `ArgumentOutOfRangeException` when `p` is outside `[0, 1]`, `NaN` included, or when either degrees of freedom is not positive.
 
 **Example** — the 5% critical value of an overall test on two and twenty degrees of freedom.
 

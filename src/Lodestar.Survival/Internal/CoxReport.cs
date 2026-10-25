@@ -155,7 +155,7 @@ internal static class CoxReport
         double level = settings.Level;
         double[] covariance = covariances.Reported;
         int p = coefficients.Length;
-        double multiplier = Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));
+        double multiplier = CriticalValue.TwoSided(level);
         double[] errors = new double[p];
         double[] z = new double[p];
         double[] pValues = new double[p];

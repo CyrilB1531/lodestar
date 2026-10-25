@@ -13,7 +13,7 @@ past two and answers `NaN` ([decision 0010](../../../decisions/0010-each-algorit
 
 **Returns** — `scipy.stats.chi2.pdf(x, df)`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included. A df of `5e-324`, whose half is not a double, is refused too (#1690).
+**Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included.
 
 **Example** — the density at two, on four degrees of freedom.
 

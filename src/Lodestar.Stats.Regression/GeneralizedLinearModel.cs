@@ -113,8 +113,7 @@ public static class GeneralizedLinearModel
         var p = new double[parameterCount];
         var lower = new double[parameterCount];
         var upper = new double[parameterCount];
-        double multiplier = Distributions.NormalQuantile(
-            1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0));
+        double multiplier = CriticalValue.TwoSided(settings.ConfidenceLevel);
 
         for (int j = 0; j < parameterCount; j++)
         {

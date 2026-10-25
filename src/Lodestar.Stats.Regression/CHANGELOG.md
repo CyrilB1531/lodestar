@@ -10,8 +10,13 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 - `InstrumentalVariables` fits two-stage least squares, LIML with Fuller's correction and two-step GMM at `linearmodels` parity, with the unadjusted, robust, kernel and clustered covariances, the first-stage diagnostics and the overidentification tests. ([#1155](https://github.com/CyrilB1531/lodestar/issues/1155))
 - `PanelRegression` fits fixed effects, between, first-difference and random-effects panel regressions at `linearmodels` parity, with the unadjusted, robust, clustered and Driscoll-Kraay covariances. ([#1156](https://github.com/CyrilB1531/lodestar/issues/1156))
 
+### Changed
+
+- `Lodestar.Stats.Regression` needs the next `Lodestar.Stats`, for the upper normal and Student quantiles its interval multipliers read. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
+
 ### Fixed
 
+- `OrdinaryLeastSquares.Fit`, `GeneralizedLinearModel.Fit`, `MultinomialLogit.Fit` and the instrumental-variables and panel fits keep their interval multiplier's digits at a confidence level near one, which moves an ordinary level's by a few ulps toward the exact quantile. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
 - `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` refuse a copy past one array — the design with its intercept column, which a design that fits one array can pass, and the VIFs' copy or the GLS covariance, which only a span over native memory reaches — where the copy failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `InstrumentalVariables` and `PanelRegression` count their columns in `long`, so column counts near `int.MaxValue` over no rows are refused as leaving no residual degree of freedom where their sum wrapped negative and passed. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `PanelRegression` refuses a panel with no rows, where its constant search read past the end, and refuses any other estimator than a first difference for want of rows before that search reads the regressors. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))

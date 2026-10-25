@@ -139,8 +139,9 @@ internal abstract class UnivariateModel
 
         public override Jet LogOneMinusSurvival(Jet[] p, double t) => Jet.NormalLogCdf((Math.Log(t) - p[0]) / p[1]);
 
+        // The upper normal quantile of p itself: 1 − p kept only log10(1/p) digits, and read +∞ at p = 1e-20.
         public override double Percentile(double[] p, double probability) =>
-            Math.Exp(p[0] + (p[1] * Distributions.NormalQuantile(1.0 - probability)));
+            Math.Exp(p[0] + (p[1] * Distributions.NormalIsf(probability)));
     }
 
     private sealed class LogLogistic : UnivariateModel
@@ -163,7 +164,7 @@ internal abstract class UnivariateModel
 
         public override Jet LogOneMinusSurvival(Jet[] p, double t) => -Jet.LogAddExp0(-p[1] * (Math.Log(t) - Jet.Log(p[0])));
 
-        public override double Percentile(double[] p, double probability) => p[0] * Math.Pow((1.0 / (1.0 - probability)) - 1.0, -1.0 / p[1]);
+        public override double Percentile(double[] p, double probability) => p[0] * Math.Pow(probability / (1.0 - probability), -1.0 / p[1]);
     }
 
     /// <summary>A constant hazard between consecutive breakpoints, one rate per piece.</summary>
@@ -275,16 +276,8 @@ internal abstract class UnivariateModel
                 + (z / p[2]) - Jet.LogIncompleteGamma(inverseSquare, clipped, positive);
         }
 
-        public override double Percentile(double[] p, double probability)
-        {
-            double lambda = p[2];
-            double sigma = Math.Exp(p[1]);
-            double a = 1.0 / (lambda * lambda);
-            double x = lambda > 0.0
-                ? Distributions.ChiSquaredIsf(probability, 2.0 * a) / 2.0
-                : Distributions.ChiSquaredQuantile(probability, 2.0 * a) / 2.0;
-            return Math.Exp(sigma * Math.Log(x * lambda * lambda) / lambda) * Math.Exp(p[0]);
-        }
+        public override double Percentile(double[] p, double probability) =>
+            Math.Exp(p[0] + (Math.Exp(p[1]) * GeneralizedGammaQuantile.Standardized(p[2], probability)));
 
         /// <summary>lifelines' <c>clip(·, 1e-300, 1e20)</c>, which stops the derivative outside it as numpy's does.</summary>
         private static Jet Clipped(Jet value)

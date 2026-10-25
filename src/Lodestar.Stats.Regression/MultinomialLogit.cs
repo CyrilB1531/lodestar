@@ -128,7 +128,7 @@ public static class MultinomialLogit
     {
         int equations = categories.Length - 1;
         int rowCount = residualDegreesOfFreedom + modelDegreesOfFreedom + equations;
-        double multiplier = Distributions.NormalQuantile(1.0 - ((1.0 - settings.ConfidenceLevel) / 2.0));
+        double multiplier = CriticalValue.TwoSided(settings.ConfidenceLevel);
         var coefficients = new double[equations][];
         var errors = new double[equations][];
         var z = new double[equations][];

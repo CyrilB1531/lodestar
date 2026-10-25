@@ -15,7 +15,7 @@ internal static class Beta
     private const int MaxIterations = 1_000_000;
 
     // From here both log Gamma* are Stirling's, as in Gamma.Prefactor.
-    private const double StirlingMinimumShape = 10.0;
+    internal const double StirlingMinimumShape = Gamma.StirlingMinimumShape;
     private const double Epsilon = 3e-16;
     private const double Tiny = 1e-300;
 
@@ -46,9 +46,21 @@ internal static class Beta
     // The terms FisherTailFromLimit's first form drops are of order z = o y; below this they are below a double's precision.
     private const double LimitBound = 1e-17;
 
+    // Past it in a log x the exponent's rounding passes 1e-14, the most the fraction beside it is off: below, Math.Pow
+    // moved tails whose fraction is 50 ulps off by 20 either way.
+    private const double LongFrontPower = 100.0;
+
+    // log(2^-1022) and the largest argument Math.Exp keeps finite: SmallFront's two factors stay doubles between them.
+    private const double LogSmallestNormal = -708.39;
+    private const double MaxExpArgument = 709.78;
+
     // Below Gamma.SmallShape, where Gamma.LogGammaOnePlus holds, log(s B) is taken whole, by LogScaledBeta: the direct
     // fraction divides by a through it, and the reflected side is SmallShapeLowerTail rather than 1 - I.
     internal const double SmallShape = Gamma.SmallShape;
+
+    // Below it with b ≥ 2a, I_x(a, b) is about two thirds or more, where the fraction lost 6 ulps at FisherSnedecorSf(1e-322,
+    // 3.7, 1e-322); nearer, one less I near a half was 2.5 ulps off at FisherSnedecorCdf(1e-10, 1e-10, 1e-10).
+    private const double TinyShape = 1e-8;
 
     // A guard, not the stopping rule: no point of the #841 grids took more than 22 terms.
     private const int MaxExpansionTerms = 64;
@@ -157,10 +169,50 @@ internal static class Beta
         }
         if (a < SmallShape)
         {
-            return ScaledFront(a, b, x, y, CachedOrScaled(logs.ScaledFirst, a, b)) / ContinuedFraction(a, b, x);
+            return SmallFirstShape(a, b, x, y, logs);
         }
-        return Front(a, b, x, y, logs.OfBeta) / (a * ContinuedFraction(a, b, x));
+        return b < SmallShape
+            ? SmallSecondShape(a, b, x, y, logs.ScaledSecond)
+            : Front(a, b, x, y, logs.OfBeta) / (a * ContinuedFraction(a, b, x));
 #pragma warning restore S2234
+    }
+
+    /// <summary>I_x(a, b) on the fraction's direct side at a below SmallShape.</summary>
+    // Out of line, as SmallSecondShape, so the fraction at ordinary shapes keeps ByFraction's size.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static double SmallFirstShape(double a, double b, double x, double y, in ShapeLogs logs)
+    {
+        // S2234: the reflection I_x(a, b) = 1 - I_y(b, a), and b B(b, a), the shapes swapped on purpose.
+#pragma warning disable S2234
+        if (a < TinyShape && b >= 2.0 * a)
+        {
+            return 1.0 - SmallShapeLowerTail(b, a, x, logs.ScaledFirst);
+        }
+        // b below a: a B(a, b) is (a/b) b B(b, a), the ratio outside the exponential, whose log(a/b) of some 200 nats
+        // carried 16 ulps into FisherSnedecorCdf(1e-300, 2^-700, 2^-1021) (#1729's Review A).
+        return b < a
+            ? SmallSecondShape(a, b, x, y, logs.ScaledSecond)
+            : ScaledFront(a, b, x, y, CachedOrScaled(logs.ScaledFirst, a, b)) / ContinuedFraction(a, b, x);
+#pragma warning restore S2234
+    }
+
+    /// <summary>I_x(a, b) by the fraction at b below SmallShape beside a past it.</summary>
+    /// <remarks>
+    /// 1/B as b e^(−log b B), and x^a by Math.Pow up to x = 1/2 past a log x of Gamma.LongPower, else in the exponential:
+    /// e^(a log x − log B) read FisherSnedecorCdf(5e-324, 0.5, 1e-300) 1.6e-14 off, and (1e-300, 1, 1e-10) 4.4e-14. A
+    /// subnormal b times the front, at a b near 2^-1022, is taken as one quotient: it dropped bits the division by a
+    /// brought back, FisherSnedecorCdf(5e-324, 0.15, 4.450147717014403e-308) 7 granules off.
+    /// </remarks>
+    // Out of line, as SmallFirstShape, so the fraction at ordinary shapes keeps ByFraction's size.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static double SmallSecondShape(double a, double b, double x, double y, double scaledSecond)
+    {
+        double front = ScaledFront(a, b, x, y, CachedOrScaled(scaledSecond, b, a));
+        double fraction = ContinuedFraction(a, b, x);
+        double numerator = b * front;
+        return numerator >= NearZero.SmallestNormal
+            ? numerator / (a * fraction)
+            : PowerOfTwo.Quotient(stackalloc double[] { b, front }, stackalloc double[] { a, fraction }, 0);
     }
 
     /// <summary>Whether <see cref="LargeShapeExpansion"/> holds I_x(a, b), a being the large shape.</summary>
@@ -260,7 +312,10 @@ internal static class Beta
             }
             coefficients[k] = halfExponent * convolution / k;
 
-            pochhammer *= (shape - 2.0) * (shape - 1.0) * inverseN2;
+            // (b + 2k - 2)(b + 2k - 1) from b and the integers, not from shape, which holds b to an ulp of 2k: the first
+            // factor, b itself, took up to 2.2e-16/b of it and read zero below 1.1e-16, FisherSnedecorSf(2e20, 1e-20, 2000) 1.4e-7 off.
+            double offset = 2.0 * k;
+            pochhammer *= (b + (offset - 2.0)) * (b + (offset - 1.0)) * inverseN2;
             double term = coefficients[k] * pochhammer * r;
             sum += term;
             if (Math.Abs(term) <= Epsilon * Math.Abs(sum))
@@ -369,44 +424,65 @@ internal static class Beta
         return ratios;
     }
 
-    /// <summary>x^a (1 - x)^b / B(a, b), the factor both branches of the fraction share.</summary>
+    /// <summary><c>x^a y^b / B(a, b)</c>, the factor both branches of the fraction share, <paramref name="logBeta"/> being an
+    /// inversion's cached <c>log B</c>, or NaN.</summary>
     /// <remarks>
     /// Past both shapes of 10, ShapeExponent's a log(x / p) + b log(y / q) against the mean p = a / (a + b), whose linear
-    /// terms cancel, so only log(1 + t) - t is formed, and
-    /// Stirling leaves sqrt(x0 b / 2 pi) Gamma*(a + b) / (Gamma*(a) Gamma*(b)). The Lanczos form
-    /// subtracts log-gammas of 1.7e9 at a = b = 1e8. d = x - x0 is taken from the smaller of x and
-    /// 1 - x, so the two t share one d instead of two rounded ones.
+    /// terms cancel, so only log(1 + t) - t is formed, and Stirling leaves sqrt(x0 b / 2 pi) Gamma*(a + b) / (Gamma*(a)
+    /// Gamma*(b)), its own B, which the cached one equals. The Lanczos form subtracts log-gammas of 1.7e9 at a = b = 1e8.
+    /// d = x - x0 is taken from the smaller of x and 1 - x, so the two t share one d instead of two rounded ones;
+    /// <see cref="ScaledFront"/> takes <c>a B</c>.
     /// </remarks>
-    internal static double Front(double a, double b, double x, double y) => Front(a, b, x, y, double.NaN);
-
-    /// <summary><c>x^a y^b / B(a, b)</c>, <paramref name="logBeta"/> being an inversion's cached <c>log B</c>, or NaN.</summary>
-    /// <remarks>The Stirling branch forms its own <c>B</c>, which the cached one equals; <see cref="ScaledFront"/> takes <c>a B</c>.</remarks>
     internal static double Front(double a, double b, double x, double y, double logBeta) =>
         a < StirlingMinimumShape || b < StirlingMinimumShape
-            ? Math.Exp(SmallLogPower(a, b, x, y) - CachedOrLogBeta(logBeta, a, b))
+            ? SmallFront(a, b, x, y, CachedOrLogBeta(logBeta, a, b))
             : StirlingFront(a, b, x, y, double.NaN);
+
+    /// <summary><see cref="Front(double, double, double, double, double)"/> below a shape of 10: the smaller side's power by
+    /// Math.Pow past a log of LongFrontPower, where e^(a log x) took some 700 nats' rounding and FisherSnedecorCdf(2.5e-305,
+    /// 2, 5) read 5.5e-14 off (#1729's Review A).</summary>
+    private static double SmallFront(double a, double b, double x, double y, double logBeta)
+    {
+        double lower = LogPower(a, x, y);
+        double upper = LogPower(b, y, x);
+        double rest = upper - logBeta;
+        // Only where x^a is normal and e^rest finite: past them 0 times +∞ read FisherSnedecorSf(1e300, 3.7, 1e300) NaN.
+        if (x <= y && lower < -LongFrontPower && lower > LogSmallestNormal && rest < MaxExpArgument)
+        {
+            return Math.Pow(x, a) * Math.Exp(rest);
+        }
+        return Math.Exp((lower + upper) - logBeta);
+    }
 
     /// <summary><c>x^a y^b / (a B(a, b))</c> below SmallShape, <paramref name="logScaledBeta"/> being <c>log(a B)</c>.</summary>
     /// <remarks>
     /// Its own method, so the shape inside the divisor cannot meet the Stirling branch, which forms <c>B</c> alone: through
-    /// Front's divisor a <c>log(a B)</c> at a shape of 10 would have read <c>a</c> times off (#1690's review).
+    /// Front's divisor a <c>log(a B)</c> at a shape of 10 would have read <c>a</c> times off (#1690's review). x^a by
+    /// Math.Pow up to x = 1/2 past a log x of Gamma.LongPower, where e^(a log x) took some 40 nats' rounding: FisherSnedecorSf(
+    /// 1.14e305, 0.0254, 0.118) read 2.4e-15 off (#1729's Review A); within it one exponential rounds less.
     /// </remarks>
-    private static double ScaledFront(double a, double b, double x, double y, double logScaledBeta) =>
-        Math.Exp(SmallLogPower(a, b, x, y) - logScaledBeta);
+    private static double ScaledFront(double a, double b, double x, double y, double logScaledBeta)
+    {
+        double power = LogPower(a, x, y);
+        double rest = LogPower(b, y, x) - logScaledBeta;
+        return x <= 0.5 ? Gamma.PowerTimesExp(x, a, power, rest) : Math.Exp(power + rest);
+    }
 
-    /// <summary><c>a log x + b log y</c>, each logarithm on the side where its argument is small.</summary>
+    /// <summary><c>a log x + b log y</c>, each logarithm on the side where its argument is small: Front's and LogFront's one
+    /// numerator.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static double SidesLogPower(double a, double b, double x, double y) => LogPower(a, x, y) + LogPower(b, y, x);
+
+    /// <summary><c>exponent · log side</c>, the logarithm taken on whichever of <c>side + other = 1</c> is small.</summary>
     /// <remarks>A y of 1e-16 is not lost to the x = 1 - y it rounds: #1158's review measured 6e-7 at shapes (5e9, 0.5).</remarks>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static double SmallLogPower(double a, double b, double x, double y)
-    {
-        return (a * LogComplement(y, x)) + (b * LogComplement(x, y));
-    }
+    private static double LogPower(double exponent, double side, double other) => exponent * LogComplement(other, side);
 
     /// <summary>Front past both shapes of 10, at <paramref name="deviation"/> from the exact mean, or NaN to take it from x.</summary>
     internal static double StirlingFront(double a, double b, double x, double y, double deviation) =>
         Math.Exp(StirlingExponent(a, b, x, y, deviation)) * Math.Sqrt(a / (a + b) * b / (2.0 * Math.PI));
 
-    /// <summary>The logarithm of <see cref="Front(double, double, double, double)"/> past a shape of 10 on both sides.</summary>
+    /// <summary>The logarithm of <see cref="Front(double, double, double, double, double)"/> past a shape of 10 on both sides.</summary>
     /// <remarks>
     /// <c>a log x + b log y − log B</c> cancels terms of order <c>a log a</c>: at shapes 1e15 it lost 5 nats, and the beta
     /// inversion's Newton steps, 150 times short, stopped 14 standard deviations from the root (#1690's review).
@@ -421,7 +497,7 @@ internal static class Beta
     /// <remarks>For a density whose front underflows before its division by the argument, as F's did at 1e-33 and shapes 20 (#1708).</remarks>
     internal static double LogFront(double a, double b, double x, double y, double deviation) =>
         a < StirlingMinimumShape || b < StirlingMinimumShape
-            ? SmallLogPower(a, b, x, y) - LogBeta(a, b)
+            ? SidesLogPower(a, b, x, y) - LogBeta(a, b)
             : LogStirlingFront(a, b, x, y, deviation);
 
     /// <summary><c>log(1 − value)</c> given both <paramref name="value"/> and its <paramref name="complement"/>, on the side where it keeps its digits.</summary>
@@ -607,11 +683,7 @@ internal static class Beta
             return 0.0;
         }
 
-        // Both halves by division, as in StudentSf.
-        (double lower, double upper) = FisherSplit(f, dfn, dfd);
-        return TakesLimit(lower, upper)
-            ? FisherTailFromLimit(f, dfn, dfd, lower, upperTail: true)
-            : RegularizedIncomplete(dfd / 2.0, dfn / 2.0, upper, lower, ShapeLogs.None, -FisherDeviation(f, dfn, dfd, lower));
+        return FisherTailAt(f, dfn, dfd, upperTail: true);
     }
 
     /// <summary>The lower tail of the F distribution: P(F &lt;= f).</summary>
@@ -629,12 +701,49 @@ internal static class Beta
         {
             return 1.0;
         }
-        // Both halves exact: y can round to one while 1 - y still holds its digits, as at shapes
-        // (1e10, 1), and the incomplete beta reads the side that keeps them.
+        return FisherTailAt(f, dfn, dfd, upperTail: false);
+    }
+
+    /// <summary>An F tail at a positive finite f: lifted where a df's half is not a double, at the halves otherwise.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static double FisherTailAt(double f, double dfn, double dfd, bool upperTail) =>
+        ExactHalf.EitherBelow(dfn, dfd)
+            ? LiftedFisherTail(f, dfn, dfd, upperTail)
+            : FisherTail(f, dfn, dfd, dfn / 2.0, dfd / 2.0, upperTail);
+
+    /// <summary>An F tail at shapes <paramref name="a"/> and <paramref name="b"/>, its point <c>y</c> from the dfs.</summary>
+    /// <remarks>
+    /// Both halves by division, as in StudentSf: y can round to one while 1 - y still holds its digits, as at shapes
+    /// (1e10, 1), and the incomplete beta reads the side that keeps them. The shapes are the dfs' halves but where
+    /// <see cref="LiftedFisherTail"/> lifts them.
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static double FisherTail(double f, double dfn, double dfd, double a, double b, bool upperTail)
+    {
         (double lower, double upper) = FisherSplit(f, dfn, dfd);
-        return TakesLimit(lower, upper)
-            ? FisherTailFromLimit(f, dfn, dfd, lower, upperTail: false)
-            : RegularizedIncomplete(dfn / 2.0, dfd / 2.0, lower, upper, ShapeLogs.None, FisherDeviation(f, dfn, dfd, lower));
+        if (TakesLimit(lower, upper))
+        {
+            return FisherTailFromLimit(f, dfn, dfd, a, b, lower, upperTail);
+        }
+        // From the dfs y is formed from, NaN where a df is lifted: UniformBeta, the deviation's one reader, holds no such shape.
+        double deviation = FisherDeviation(f, dfn, dfd, lower);
+        // S2234: the upper tail is the reflection I_(1-y)(b, a), its arguments swapped on purpose.
+#pragma warning disable S2234
+        return upperTail
+            ? RegularizedIncomplete(b, a, upper, lower, ShapeLogs.None, -deviation)
+            : RegularizedIncomplete(a, b, lower, upper, ShapeLogs.None, deviation);
+#pragma warning restore S2234
+    }
+
+    /// <summary>An F tail at a df below ExactHalf.Threshold, from the lifted shapes, dropped once where of degree one.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static double LiftedFisherTail(double f, double dfn, double dfd, bool upperTail)
+    {
+        (double a, double b, bool lone, bool smallUpper) = ExactHalf.FisherShapes(dfn, dfd);
+        // One lifted: its small tail scales with it.
+        return lone
+            ? ExactHalf.FromLiftedTail(FisherTail(f, dfn, dfd, a, b, upperTail: smallUpper), upperTail == smallUpper)
+            : FisherTail(f, dfn, dfd, a, b, upperTail);
     }
 
     /// <summary>Whether a half of FisherSplit is below the smallest normal double, where it keeps too few digits.</summary>
@@ -649,24 +758,120 @@ internal static class Beta
     /// zero half read as the support's end, a subnormal one kept too few digits, and the first form alone read
     /// <c>FisherSnedecorSf(1, 1, 1e308)</c> 0.202 for 0.317 and <c>FisherSnedecorCdf(1e-16, 1, 1e308)</c> 0 (#1690's review).
     /// </remarks>
-    internal static double FisherTailFromLimit(double f, double dfn, double dfd, double lower, bool upperTail)
+    internal static double FisherTailFromLimit(double f, double dfn, double dfd, double a, double b, double lower, bool upperTail)
     {
-        (double s, double other, double logY, double z, bool isLower) = SmallHalf(f, dfn, dfd, lower);
+        (double s, double other, double logY, double z, bool isLower) = SmallHalf(f, dfn, dfd, a, b, lower);
         if (z < LimitBound)
         {
-            double logHalfTail = (s * logY) - LogShapeBeta(s, other);
-            return upperTail == isLower ? -NearZero.Expm1(logHalfTail) : Math.Exp(logHalfTail);
+            if (upperTail == isLower)
+            {
+                // One less the half's tail, which is near one only where s log y is small, so its log loses nothing.
+                (double logScaled, double ratio) = HalfBeta(s, other);
+                return -NearZero.Expm1((s * logY) - logScaled + Math.Log(ratio));
+            }
+            (double value, int exponent) = HalfTailParts(f, dfn, dfd, (s, other), logY, isLower);
+            return PowerOfTwo.Scale(value, exponent);
         }
         return upperTail == isLower ? Gamma.RegularizedQ(s, z) : Gamma.RegularizedP(s, z);
     }
 
-    /// <summary>The F density where <see cref="TakesLimit"/> holds, from the same two limits as the tail.</summary>
-    internal static double FisherDensityFromLimit(double f, double dfn, double dfd, double lower)
+    /// <summary><c>y^s / (s B(s, o))</c>, the small half's tail where FisherTailFromLimit's first form holds, as <c>v 2^k</c>.</summary>
+    /// <remarks>
+    /// Past an s log y of Gamma.LongPower, y^s from y's mantissa and exponent, not <c>e^(s log y)</c>, which took that exponent's
+    /// rounding: FisherSnedecorCdf(1e-310, 1, 3) read 3.4e-14 off (#1729's Review A). Past a shape of 10 the other side's
+    /// <c>o^s</c> goes with it, <c>(o y)^s</c>, and <c>log(s B o^s)</c> is formed with no <c>s log o</c> to cancel. The
+    /// other shape below s and SmallShape: <c>s B(s, o)</c> is <c>(s/o) o B(o, s)</c>, the ratio out of the exponential.
+    /// </remarks>
+    private static (double Value, int Exponent) HalfTailParts(
+        double f, double dfn, double dfd, (double S, double Other) shapes, double logY, bool isLower)
     {
-        (double s, double other, double logY, double z, _) = SmallHalf(f, dfn, dfd, lower);
-        return z < LimitBound
-            ? Math.Exp((s * logY) + Math.Log(s) - LogShapeBeta(s, other) - Math.Log(f))
-            : Gamma.Prefactor(s, z) / f;
+        (double s, double other) = shapes;
+        // Within LongPower one exponential of s log y rounds less than the power's parts.
+        if (s * logY >= -Gamma.LongPower)
+        {
+            (double logScaled, double ratio) = HalfBeta(s, other);
+            return (ratio * Math.Exp((s * logY) - logScaled), 0);
+        }
+        (double mantissa, int exponent) = OddsParts(f, dfn, dfd, isLower);
+        double factor;
+        if (OtherScales(s, other))
+        {
+            (double logScaled, double ratio) = HalfBeta(s, other);
+            factor = ratio * Math.Exp(-logScaled);
+        }
+        else if (other >= StirlingMinimumShape)
+        {
+            (double otherMantissa, int otherExponent) = PowerOfTwo.Split(other);
+            mantissa *= otherMantissa;
+            exponent += otherExponent;
+            factor = Math.Exp(-LogShapeBetaTimesPower(s, other));
+        }
+        else
+        {
+            factor = ReciprocalShapeBeta(s, other);
+        }
+        (double value, int powerExponent) = PowerOfTwo.Power(mantissa, exponent, s);
+        return (value * factor, powerExponent);
+    }
+
+    /// <summary>Whether the other shape takes the scaling of <c>s B(s, o)</c>: below SmallShape and s, where
+    /// <c>log(o B(o, s))</c> holds to <c>o ε</c>; HalfBeta and HalfTailParts read the one rule.</summary>
+    private static bool OtherScales(double s, double other) => other < SmallShape && other < s;
+
+    /// <summary><c>log(s B(s, o))</c> and the ratio kept outside it: below SmallShape and s, the other shape takes the
+    /// scaling, <c>s B(s, o) = (s/o) o B(o, s)</c>, <c>log(o B(o, s))</c> holding to <c>o ε</c>; else the ratio is one.</summary>
+    /// <remarks>The limit's complement, its short tail and its root read it; its long tail reads the forms of HalfTailParts.</remarks>
+    private static (double LogScaled, double Ratio) HalfBeta(double s, double other)
+    {
+        // S2234: log(o B(o, s)), the smaller shape first on purpose.
+#pragma warning disable S2234
+        return OtherScales(s, other) ? (LogScaledBeta(other, s), other / s) : (LogShapeBeta(s, other), 1.0);
+#pragma warning restore S2234
+    }
+
+    /// <summary><c>1/(s B(s, o))</c>: from the table of <c>1/Γ(1 + k/2)</c> where both shapes are half-integers, else
+    /// <c>e^(−log s B)</c>, whose Lanczos log-gammas hold 1e-15: FisherSnedecorPdf(5e-324, 2, 1) read 1.0000000000000018.</summary>
+    private static double ReciprocalShapeBeta(double s, double other) =>
+        Gamma.IsHalfIntegerShape(s) && Gamma.IsHalfIntegerShape(other) && Gamma.IsHalfIntegerShape(s + other)
+            ? other * Gamma.ReciprocalGammaOnePlus(s) * Gamma.ReciprocalGammaOnePlus(other)
+                / ((s + other) * Gamma.ReciprocalGammaOnePlus(s + other))
+            : Math.Exp(-LogShapeBeta(s, other));
+
+    /// <summary>The F odds <c>d₁f/d₂</c>, or their inverse where <paramref name="isLower"/> is false, as <c>m 2^e</c>.</summary>
+    /// <remarks>Two roundings in the mantissa, none in the exponent: the odds themselves are below the doubles here.</remarks>
+    internal static (double Mantissa, int Exponent) OddsParts(double f, double dfn, double dfd, bool isLower)
+    {
+        (double mn, int en) = PowerOfTwo.Split(dfn);
+        (double mf, int ef) = PowerOfTwo.Split(f);
+        (double md, int ed) = PowerOfTwo.Split(dfd);
+        return isLower ? (mn * mf / md, en + ef - ed) : (md / (mn * mf), ed - en - ef);
+    }
+
+    /// <summary><c>log(s B(s, o) o^s)</c> for <c>o</c> from a shape of 10, with no <c>s log o</c> formed.</summary>
+    /// <remarks>
+    /// <c>log Γ(1 + s)</c> less <c>log Γ(o + s) − log Γ(o) − s log o</c>, which Stirling gives as
+    /// <c>(o − ½)(log1p(r) − r) − r/2 + s log1p(r)</c> plus the corrections' difference, <c>r = s/o</c>.
+    /// </remarks>
+    private static double LogShapeBetaTimesPower(double s, double other)
+    {
+        double ratio = s / other;
+        double increment = StirlingShift(other, ratio)
+            + (s * NearZero.Log1P(ratio))
+            + Gamma.LogStirlingCorrection(other + s) - Gamma.LogStirlingCorrection(other);
+        return Gamma.LogGammaOnePlusAnyShape(s) - increment;
+    }
+
+    /// <summary>The F density where <see cref="TakesLimit"/> holds, from the same two limits as the tail.</summary>
+    internal static double FisherDensityFromLimit(double f, double dfn, double dfd, double a, double b, double lower)
+    {
+        (double s, double other, double logY, double z, bool isLower) = SmallHalf(f, dfn, dfd, a, b, lower);
+        if (z < LimitBound)
+        {
+            // s times the half's tail over f, s's and f's exponents taken with the power's: nothing leaves the doubles before the end.
+            (double value, int exponent) = HalfTailParts(f, dfn, dfd, (s, other), logY, isLower);
+            return PowerOfTwo.Quotient(stackalloc double[] { s, value }, stackalloc double[] { f }, exponent);
+        }
+        return Gamma.Prefactor(s, z) / f;
     }
 
     /// <summary>The F root whose small half of FisherSplit is below the smallest normal double, by its limit; NaN otherwise.</summary>
@@ -674,35 +879,40 @@ internal static class Beta
     /// The beta inversion read a subnormal <c>y</c> with too few digits, 2e-5 off at f = 1e-318 (#1690's review).
     /// <paramref name="lower"/> and <paramref name="upper"/> are the target's two tails, the smaller of each pair read directly.
     /// </remarks>
-    internal static double FisherRootFromLimit(double lower, double upper, double dfn, double dfd)
+    internal static double FisherRootFromLimit(double lower, double upper, double dfn, double dfd, double a, double b)
     {
-        double low = HalfRoot(lower, upper, dfn, dfd, isLower: true);
-        return double.IsNaN(low) ? HalfRoot(upper, lower, dfn, dfd, isLower: false) : low;
+        double low = HalfRoot(lower, upper, dfn, dfd, a, b, isLower: true);
+        return double.IsNaN(low) ? HalfRoot(upper, lower, dfn, dfd, a, b, isLower: false) : low;
     }
 
     /// <summary>The small half, as its shape, the other shape, <c>log y</c> and <c>z = o y</c>, from the degrees of freedom and f.</summary>
+    /// <remarks>z takes the other shape as given, lifted or not: <c>2o / df</c> is one or 2^200, exact.</remarks>
     private static (double S, double Other, double LogY, double Z, bool IsLower) SmallHalf(
-        double f, double dfn, double dfd, double lower) =>
+        double f, double dfn, double dfd, double a, double b, double lower) =>
         lower < NearZero.SmallestNormal
-            ? (dfn / 2.0, dfd / 2.0, Math.Log(dfn) + Math.Log(f) - Math.Log(dfd), dfn * f / 2.0, true)
-            : (dfd / 2.0, dfn / 2.0, Math.Log(dfd) - Math.Log(dfn) - Math.Log(f), dfd / f / 2.0, false);
+            ? (a, b, Math.Log(dfn) + Math.Log(f) - Math.Log(dfd), dfn * f / 2.0 * (2.0 * b / dfd), true)
+            : (b, a, Math.Log(dfd) - Math.Log(dfn) - Math.Log(f), dfd / f / 2.0 * (2.0 * a / dfn), false);
 
     /// <summary>The f at which the half <paramref name="isLower"/> names has tail <paramref name="own"/>, if that half is then below the smallest normal; NaN otherwise.</summary>
-    private static double HalfRoot(double own, double complement, double dfn, double dfd, bool isLower)
+    private static double HalfRoot(double own, double complement, double dfn, double dfd, double a, double b, bool isLower)
     {
-        double s = isLower ? dfn / 2.0 : dfd / 2.0;
-        double other = isLower ? dfd / 2.0 : dfn / 2.0;
+        double s = isLower ? a : b;
+        double other = isLower ? b : a;
         double logOwn = own <= complement ? Math.Log(own) : NearZero.Log1P(-complement);
-        double logY = (logOwn + LogShapeBeta(s, other)) / s;
+        // HalfBeta, the tail's normalizer within LongPower; past it the tail's other forms agree with it to Lanczos' 1e-15.
+        (double logScaled, double ratio) = HalfBeta(s, other);
+        double logY = (logOwn - Math.Log(ratio) + logScaled) / s;
 
         // f from the logs, not from z = o y, which is smaller still and kept fewer digits as a subnormal.
         double logRatio = Math.Log(dfd) - Math.Log(dfn);
         double f = Math.Exp(isLower ? logY + logRatio : logRatio - logY);
-        double z = isLower ? dfn * f / 2.0 : dfd / f / 2.0;
+        // z = o y as SmallHalf forms it, the other shape lifted or not: 2o/df is one or 2^200, exact.
+        double lift = isLower ? 2.0 * other / dfd : 2.0 * other / dfn;
+        double z = (isLower ? dfn * f / 2.0 : dfd / f / 2.0) * lift;
         if (z >= LimitBound)
         {
             z = own <= complement ? GammaQuantile.Invert(own, s, upper: false) : GammaQuantile.Invert(complement, s, upper: true);
-            f = isLower ? 2.0 * z / dfn : dfd / (2.0 * z);
+            f = isLower ? 2.0 * z / lift / dfn : dfd * lift / (2.0 * z);
         }
         // An f that over- or underflowed is no root: at dfs (9.98e188, 4.56e-207) the lower half's f underflowed to 0, whose
         // half is 0 too, and the F quantile read 9e-73, a tail of 7e-205, for a root of 1.17e44 (#1690's review).
@@ -737,17 +947,18 @@ internal static class Beta
     /// <c>log s + log B</c> cancels, about <c>−log s</c> each, and the log-gammas behind it hold only 1e-15
     /// absolute near one, more than a tail of order <c>s</c> can lose (#1690's review).
     /// </remarks>
-    private static double LogScaledBeta(double s, double other) => Gamma.LogGammaOnePlus(s) - LogGammaIncrement(other, s);
+    internal static double LogScaledBeta(double s, double other) => Gamma.LogGammaOnePlus(s) - LogGammaIncrement(other, s);
 
     /// <summary><c>log(s B(s, ½))</c>, Student's, by three log-gammas: its every reader exponentiates it.</summary>
     /// <remarks>
     /// There 1e-15 absolute is 1e-15 relative, and with the other shape ½, where <c>log Γ</c> is 0.57, three log-gammas
     /// hold it and form no <c>log s</c>; LogScaledBeta's ten-step increment cost StudentSf(2, 0.05) 1.8 times 724c7912's
     /// 126 ns (#1690's review). Student's tail, quantile, far tail and density all take this one, so each inverts the
-    /// others' function; F keeps LogScaledBeta, which SmallShapeLowerTail needs to <c>s ε</c>.
+    /// others' function. Below TinyShape it is LogScaledBeta, to <c>s ε</c>, which SmallShapeLowerTail needs there: the
+    /// three log-gammas read StudentSf(0.00486, 7.5e-12) 12 ulps off one half, and past |t| = 1e50 the far tail as far.
     /// </remarks>
     internal static double StudentLogScaledBeta(double s) =>
-        Gamma.LogGammaOnePlus(s) + LogSqrtPi - Gamma.LogGamma(0.5 + s);
+        s < TinyShape ? LogScaledBeta(s, 0.5) : Gamma.LogGammaOnePlus(s) + LogSqrtPi - Gamma.LogGamma(0.5 + s);
 
     /// <summary>An inversion's cached <c>log(s B(s, other))</c>, or NaN to take it here.</summary>
     private static double CachedOrScaled(double cached, double s, double other) =>
@@ -833,8 +1044,13 @@ internal static class Beta
     private static double StirlingIncrementBody(double large, double small)
     {
         double ratio = small / large;
-        return ((large - 0.5) * Gamma.LogOnePlusMinus(ratio, 1.0 + ratio)) - (0.5 * ratio) + (small * Math.Log(large + small));
+        return StirlingShift(large, ratio) + (small * Math.Log(large + small));
     }
+
+    /// <summary><c>(large − ½)(log(1 + r) − r) − r/2</c>, r the small shape over the large: the part of Stirling's
+    /// increment StirlingIncrementBody and LogShapeBetaTimesPower share, before each one's own last log.</summary>
+    private static double StirlingShift(double large, double ratio) =>
+        ((large - 0.5) * Gamma.LogOnePlusMinus(ratio, 1.0 + ratio)) - (0.5 * ratio);
 
     /// <summary><c>d₁f/(d₁f + d₂) − d₁/(d₁ + d₂)</c>, the lower half's distance from its mean, from <c>f − 1</c> exactly.</summary>
     /// <remarks>
@@ -849,18 +1065,19 @@ internal static class Beta
     /// <remarks>
     /// Where <c>d₁f</c> or the sum overflows, both come from <c>r = (d₂/d₁)/f</c> as <c>1/(1 + r)</c> and
     /// <c>r/(1 + r)</c>, which is <c>(1, 0)</c> at <c>f = +∞</c>: forming <c>∞/∞</c> there made the lower
-    /// tail throw and the density NaN (#1158's review).
+    /// tail throw and the density NaN (#1158's review). Where <c>d₁f</c> is subnormal, both come from the odds
+    /// <c>d₁f/d₂</c> when those are normal, since <c>d₁f</c> itself keeps too few digits (#1725).
     /// </remarks>
     internal static (double Lower, double Upper) FisherSplit(double f, double dfn, double dfd)
     {
         double scaled = dfn * f;
-        // A subnormal d1 f quantises y: the density read 6.9% off at (5e-324, 3.7, 1e-300) and the lower tail 8% at (1e-323, 0.3,
-        // 1e-300). y/(1 − y) = d1 f/d2 instead, where it is normal; a d1 f underflowed to zero keeps y = 0 (#1725).
-        if (scaled < NearZero.SmallestNormal && scaled > 0.0)
+        // A subnormal or underflowed d1 f quantises y, 6.9% off at (5e-324, 3.7, 1e-300) and 0 for 7.8e-9 at (8.4e-323, 0.0036,
+        // 3.8e-317): y/(1 − y) = d1 f/d2 instead, where it is normal (#1725, #1729).
+        if (scaled < NearZero.SmallestNormal)
         {
-            // f/d2 can itself be subnormal and lose digits; there d1/d2 is far from overflowing (#1725's Review A).
+            // f/d2 can itself be subnormal and lose digits, or overflow at a tiny d2; d1/d2 is a number in both (#1725, #1729).
             double quotient = f / dfd;
-            double odds = quotient >= NearZero.SmallestNormal ? dfn * quotient : dfn / dfd * f;
+            double odds = quotient >= NearZero.SmallestNormal && quotient < double.PositiveInfinity ? dfn * quotient : dfn / dfd * f;
             if (odds >= NearZero.SmallestNormal && odds < double.PositiveInfinity)
             {
                 return (odds / (1.0 + odds), 1.0 / (1.0 + odds));
@@ -1052,11 +1269,26 @@ internal static class Beta
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static double Lentz(double scaledA, double scaledB, double x, double scale)
     {
-        double c = 1.0;
-        double d = 0.0;
-        double h = 1.0;
+        // The first iteration from c = 1, d = 0. Its term at m = 0 cancels a where a (a + b) x is subnormal: it quantised,
+        // and FisherSnedecorSf(1e-318, 20, 1e-320) read 5.7e-5 off (#1729). a (a + 1) is the larger below the mode.
+        double head = -scaledA * (scaledA + scaledB) * x;
+        // Elsewhere as the loop forms it: cancelling everywhere moved 811 of 139,000 random F and t values by up to 1e-13,
+        // and of 60 such F tails 38 came nearer a 1000-digit sum and 22 went further, rounding rather than digits.
+        double c = 1.0 + (head <= -NearZero.SmallestNormal
+            ? head / (scaledA * (scaledA + scale))
+            : -(scaledA + scaledB) * x / (scaledA + scale));
+        if (Math.Abs(c) < Tiny)
+        {
+            c = Tiny;
+        }
+        double d = 1.0;
+        double h = c;
+        if (Math.Abs(c - 1.0) < Epsilon)
+        {
+            return h;
+        }
 
-        for (int i = 1; i <= MaxIterations; i++)
+        for (int i = 2; i <= MaxIterations; i++)
         {
             double m = (i / 2) * scale;
 

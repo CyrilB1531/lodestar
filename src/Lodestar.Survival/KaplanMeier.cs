@@ -49,7 +49,9 @@ public static class KaplanMeier
         // Greenwood's sum, accumulated alongside the product: the variance of the
         // estimate is S² times this, and the log-log interval needs the sum alone.
         double greenwood = 0.0;
-        double z = Critical(confidenceLevel);
+        // The normal quantile, not Student's at a large df, which held 1e-8 and the log-log transform carried into a
+        // bound's seventh digit (records 0098 and 0121, read at 6f7e26d5, before #1103 renumbered them).
+        double z = CriticalValue.TwoSided(confidenceLevel);
 
         for (int i = 0; i < steps.Length; i++)
         {
@@ -108,7 +110,7 @@ public static class KaplanMeier
         double[] survival = new double[count];
         double[] lower = new double[count];
         double[] upper = new double[count];
-        double z = Critical(confidenceLevel);
+        double z = CriticalValue.TwoSided(confidenceLevel);
 
         // Walking back, n counts the subjects whose duration is at most this step's time; a step's own term is
         // added only once every step at its time has read the sums of the later ones.
@@ -235,17 +237,6 @@ public static class KaplanMeier
         double variance = double.IsInfinity(mean) ? double.PositiveInfinity : second - (mean * mean);
         return new RestrictedMeanResult(mean, variance);
     }
-
-    /// <summary>The two-sided normal critical value for a level.</summary>
-    /// <remarks>
-    /// The published normal quantile, not a Student one at a large degrees of freedom.
-    /// That substitute was tried and measured: its accuracy peaks near 1e8 degrees of
-    /// freedom at about 1e-8 and worsens on either side, which the log-log transform
-    /// below amplifies into the seventh digit of a bound — decisions 0003 and 0121 have
-    /// the table, and this corpus is what caught it.
-    /// </remarks>
-    private static double Critical(double level) =>
-        Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));
 
     /// <summary>The interval lifelines reports: built on <c>log(-log S)</c>, not on <c>S</c>.</summary>
     /// <remarks>

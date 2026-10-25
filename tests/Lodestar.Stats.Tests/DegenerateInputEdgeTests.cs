@@ -310,4 +310,309 @@ public sealed class DegenerateInputEdgeTests
         // The tail read the same quantised y, 8% off a 120-digit series (#1725's Review A).
         Assert.Equal(9.855283716302596e-304, Distributions.FisherSnedecorCdf(1e-323, 0.3, 1e-300), 1e-12 * 9.855283716302596e-304);
     }
+
+    [Fact]
+    public void The_F_density_at_two_subnormal_dfs_underflows_where_its_last_factor_does()
+    {
+        // Exactly 3.7e-329 and 7.4e-329, under the smallest double: the last factor of the lifted product, underflowing,
+        // was skipped and both read Drop / f, 6.2e-66 (#1729's Review A).
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(1e5, 1.5e-323, 1.5e-323));
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(1e5, 0.3, 1.5e-323));
+    }
+
+    [Theory]
+    [InlineData(1e-300, 3.8613505209794197e-25, 8.425811011254576e-47, 4.2129055056272877e253)]
+    [InlineData(0.5, 1e-25, 1e-47, 1e-47)]
+    public void The_F_density_at_a_tiny_shape_keeps_its_digits(double f, double dfn, double dfd, double expected)
+    {
+        // e^(−log B), log B some 100 nats, read these 4.2e-14 and 7.7e-15 off 1000-digit sums (#1729's Review A).
+        Assert.Equal(expected, Distributions.FisherSnedecorPdf(f, dfn, dfd), 1e-15 * expected);
+    }
+
+    [Fact]
+    public void The_F_density_past_a_long_exponent_keeps_its_digits_beside_the_product_shape()
+    {
+        // Front's exponential of 200 nats read it 4.2e-14 off its 700-digit value, where a df of 0.0019 took products.
+        Assert.Equal(4.3930981577872537e-101, Distributions.FisherSnedecorPdf(1e10, 0.002, 30), 1e-15 * 4.3930981577872537e-101);
+    }
+
+    [Theory]
+    [InlineData(1e-300, 4.46e-308, 3.0, 2.23e-8)]
+    [InlineData(1e-310, 4.46e-308, 3.0, 223.00000000000068)]
+    public void The_F_density_at_a_shape_beside_the_lift_takes_its_exponent_with_the_power(double f, double dfn, double dfd, double expected)
+    {
+        // s · value / f formed with s near 2^-1022 went subnormal before the scale: 6.6e-14 and 5.1e-14 off (#1729's Review A).
+        Assert.Equal(expected, Distributions.FisherSnedecorPdf(f, dfn, dfd), 1e-15 * expected);
+    }
+
+    [Theory]
+    [InlineData(1e-310, 1.0, 4.450147717014403e-308, 10.535855610481399)]
+    [InlineData(5e-324, 1.0, 4.450147717014403e-308, 47453132.81212577)]
+    [InlineData(1.340074e-318, 1.8375865931634674, 5.264668010984388e-308, 6.339902933979412)]
+    public void The_F_density_beside_the_lift_threshold_stays_finite(double f, double dfn, double dfd, double expected)
+    {
+        // Its factors ordered by their logs pushed the product past the largest double: +∞ (#1729's Review A).
+        Assert.Equal(expected, Distributions.FisherSnedecorPdf(f, dfn, dfd), 1e-15 * expected);
+    }
+
+    [Fact]
+    public void An_F_quantile_beside_a_subnormal_complement_comes_back_to_its_tail()
+    {
+        double root = Distributions.FisherSnedecorQuantile(3.5e-318, 1, 1e-320);
+
+        Assert.Equal(3.5e-318, Distributions.FisherSnedecorCdf(root, 1, 1e-320), 1e-9 * 3.5e-318);
+    }
+
+    [Fact]
+    public void A_negative_value_scales_by_a_power_of_two_on_both_frameworks()
+    {
+        // Math.ScaleB scales a negative; the netstandard2.0 steps returned it unscaled (#1729's Review A).
+        Assert.Equal(-3.0 / 1024.0, PowerOfTwo.Scale(-3.0, -10));
+    }
+
+    [Theory]
+    [InlineData(1.002, 0, 1e6, 1.4226030101936747, 2882)]
+    [InlineData(0.75, 1, 4818.6, 1.6248493634592563, 2818)]
+    public void A_power_whose_mantissa_part_alone_leaves_the_doubles_keeps_its_digits(
+        double mantissa, int exponent, double s, double expected, int expectedExponent)
+    {
+        // m^s by Math.Pow overflowed or underflowed though the whole power, some 2^2880, is a double times 2^k; 2 to the
+        // rounded log2 then read it 3e-13 off; squared from m^(s/4) it holds a few ulps (#1729's Review A).
+        (double value, int k) = PowerOfTwo.Power(mantissa, exponent, s);
+        double scaled = value * Math.Pow(2.0, k - expectedExponent);
+        Assert.Equal(expected, scaled, 1e-15 * expected);
+    }
+
+    [Theory]
+    [InlineData(0.004855995613680737, 7.543351270323165e-12, 0.49999999996918245)]
+    [InlineData(401.83943424247514, 7.73728374717664e-12, 0.49999999992463234)]
+    public void A_Student_tail_below_the_tiny_shape_takes_the_normalizer_to_its_shape(double t, double df, double expected)
+    {
+        // Student's cached log(s B) holds 1e-15 only, and read these 12 and 10 ulps off (#1729's Review A).
+        Assert.Equal(expected, Distributions.StudentSf(t, df), 3.3e-16);
+    }
+
+    [Theory]
+    [InlineData(0.11059961137646561, 19.0)]
+    [InlineData(0.034145041613094756, 19.0)]
+    [InlineData(0.12190963100581795, 39.0)]
+    [InlineData(0.11, 99.0)]
+    public void A_chi_squared_upper_tail_far_below_its_shape_rounds_to_one(double x, double df)
+    {
+        // The closed form's sum near one read 0.9999999999999986 and 1.0000000000000007 (#1729's Review A).
+        Assert.Equal(1.0, Distributions.ChiSquaredSf(x, df), 3.3e-16);
+    }
+
+    [Fact]
+    public void A_power_of_two_past_the_doubles_is_zero_or_infinite_and_a_split_of_none_is_NaN()
+    {
+        // A negative shift is masked to six bits: 2^-1075 read -0, the sign bit (#1729's Review A).
+        Assert.Equal(0.0, PowerOfTwo.Of(-1075));
+        Assert.Equal(0.0, PowerOfTwo.Of(-1100));
+        Assert.Equal(double.PositiveInfinity, PowerOfTwo.Of(1024));
+        Assert.True(double.IsNaN(PowerOfTwo.Split(0.0).Mantissa));
+        Assert.True(double.IsNaN(PowerOfTwo.Split(double.PositiveInfinity).Mantissa));
+    }
+
+    [Fact]
+    public void A_scale_into_the_subnormals_rounds_once()
+    {
+        // 11/8 of the smallest double rounds to one granule; halved a step at a time it rounded 5.5 to 6, then 1.5 to 2,
+        // as Kolmogorov's own loop did before it took this helper (#1729's Review A).
+        Assert.Equal(double.Epsilon, PowerOfTwo.Scale(1.375, -1074));
+    }
+
+    [Fact]
+    public void The_F_law_at_a_subnormal_f_beside_a_tiny_df_keeps_its_digits()
+    {
+        // 1/f past the largest double, and 1/B through e^(−log B) of some 690 nats: the density read +inf and the lower tail
+        // 1.6e-14 off 60-digit sums, the factors once ordered nearest one and the tail exponentiated whole (#1729's Review A).
+        Assert.Equal(224945689727.15982, Distributions.FisherSnedecorPdf(5e-324, 1.0, 1e-300), 1e-15 * 224945689727.15982);
+        Assert.Equal(2.507371360371358e-306, Distributions.FisherSnedecorCdf(5e-324, 0.5, 1e-300), 1e-15 * 2.507371360371358e-306);
+    }
+
+    [Fact]
+    public void The_F_law_at_a_subnormal_small_half_takes_its_power_from_the_odds_mantissa()
+    {
+        // e^(s log y), s log y of hundreds of nats, read these 2.7e-14 to 6.6e-14 off 1000-digit sums (#1729's Review A).
+        Assert.Equal(2.2250738585072014e-308, Distributions.FisherSnedecorPdf(1.0, 4.450147717014403e-308, 3.0), 1e-15 * 2.2250738585072014e-308);
+        Assert.Equal(7.351051938957217e-156, Distributions.FisherSnedecorCdf(1e-310, 1.0, 3.0), 1e-15 * 7.351051938957217e-156);
+        Assert.Equal(6.366197723670929e-157, Distributions.FisherSnedecorCdf(1e-312, 1.0, 1.0), 1e-15 * 6.366197723670929e-157);
+        Assert.Equal(1.046073029638586e-154, Distributions.FisherSnedecorPdf(1e-309, 3.0, 1.0), 1e-15 * 1.046073029638586e-154);
+    }
+
+    [Fact]
+    public void An_F_quantile_whose_target_the_flat_tail_meets_at_the_smallest_double_is_a_root()
+    {
+        // At two tiny dfs the lower tail is flat to its last ulp and falls by one; read strictly, the end check answered +∞
+        // for a target it met at the smallest double (#1729's Review A).
+        double p = Distributions.FisherSnedecorCdf(1.44e-190, 1e-300, 3.395841653944e-312);
+        double root = Distributions.FisherSnedecorQuantile(p, 1e-300, 3.395841653944e-312);
+        Assert.True(root == 0.0 || Math.Abs(Distributions.FisherSnedecorCdf(root, 1e-300, 3.395841653944e-312) - p) <= 1e-9 * p, $"root {root}");
+
+        // Past the plateau the tail never reaches the target, so the root lies past every double.
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(3.395841654271607e-12, 1e-300, 3.395841653944e-312));
+    }
+
+    [Fact]
+    public void The_F_law_at_a_huge_df_beside_thousands_reads_zero_not_NaN()
+    {
+        // The power's mantissa overflowed to +∞ beside a factor already 0, and inf · 0 read NaN (#1729's Review A).
+        Assert.Equal(0.0, Distributions.FisherSnedecorSf(1e40, 1e300, 5000.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorPdf(1e40, 1e300, 5000.0));
+        Assert.Equal(0.0, Distributions.FisherSnedecorCdf(1e-40, 5000.0, 1e300));
+    }
+
+    [Fact]
+    public void A_chi_squared_tail_at_a_df_of_zero_is_refused_not_lifted()
+    {
+        // Lifted, zero stays zero and the lift recursed without end (#1729's Review A).
+        Assert.Throws<ArgumentOutOfRangeException>(() => Gamma.ChiSquaredTail(0.0, 1.0, upper: true));
+    }
+
+    [Fact]
+    public void The_lifted_chi_squared_tails_at_zero_are_one_and_zero()
+    {
+        // A df of 5e-324 halves to zero, and at x = 0 the tail took that half and the shape refused it (#1729's Review A).
+        Assert.Equal(1.0, Gamma.ChiSquaredTail(5e-324, 0.0, upper: true));
+        Assert.Equal(0.0, Gamma.ChiSquaredTail(5e-324, 0.0, upper: false));
+        var lead = new Gamma.UnhalvedLead(1.5e-323);
+        Assert.Equal(1.0 - Gamma.ChiSquaredTailBetween(lead, 0.0, 5e-324, upper: true), Gamma.ChiSquaredTailBetween(lead, 0.0, 5e-324, upper: false));
+    }
+
+    [Theory]
+    [InlineData(3.846241e-317, 221477.18672150362)]
+    [InlineData(1e-300, 5.383368601372556e21)]
+    public void The_F_density_where_the_scaled_f_underflows_takes_y_from_the_odds(double dfd, double expected)
+    {
+        // d1 f, 3e-325, underflowed to zero and y read 0 for 7.8e-9: 1.4e-11 and 2.2e-13 off 60-digit values (#1729).
+        Assert.Equal(expected, Distributions.FisherSnedecorPdf(8.4e-323, 0.003562409783441407, dfd), 1e-15 * expected);
+    }
+
+    [Theory]
+    [InlineData(1e-10, 0.49999999942435375)]
+    [InlineData(0.5, 0.4999999999826713)]
+    public void The_F_lower_tail_at_two_equal_tiny_dfs_is_the_nearest_double(double f, double expected)
+    {
+        // One less the other side's series, near a half here, read these 2.5 ulps off 1000-digit sums (#1729's Review A).
+        Assert.Equal(expected, Distributions.FisherSnedecorCdf(f, 1e-10, 1e-10));
+    }
+
+    [Theory]
+    [InlineData(1e-318, 20, 1e-320)]
+    [InlineData(1.05e-321, 44.5618638639256, 1e-322)]
+    [InlineData(5.81995e-319, 19.84684195238273, 4.3023e-320)]
+    public void The_F_upper_tail_at_a_subnormal_denominator_df_keeps_its_digits(double f, double dfn, double dfd)
+    {
+        // The fraction's first term quantised so small a d2/2: the upper tail read 0.99994, 0.954 and 0.99992 where the
+        // exact one rounds to one, which this holds to two ulps (#1729).
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(f, dfn, dfd), 3.3e-16);
+    }
+
+    [Fact]
+    public void A_df_whose_half_is_not_a_double_enters_at_its_exact_half()
+    {
+        // 1.5e-323 is three of the smallest doubles, and its half rounds to two: each of these is proportional to that half
+        // and read a third off 1000-digit sums, or for chi-squared its exact a e^(-x/2) / x at so small an a (#1729's Review A).
+        Assert.Equal(1.4821969375235244e-13, Distributions.FisherSnedecorCdf(1e-5, 1e-310, 1.5e-323), 1e-12 * 1.4821969375235244e-13);
+        Assert.Equal(7.410984687618699e-24, Distributions.FisherSnedecorPdf(1e-300, 1.5e-323, 3.7), 1e-12 * 7.410984687618699e-24);
+        Assert.Equal(7.410984687618699e-24, Distributions.ChiSquaredPdf(1e-300, 1.5e-323), 1e-12 * 7.410984687618699e-24);
+
+        // That lower tail is 1.48e-13 at every f, so a target above it has its root at the end of the support.
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(1.6e-13, 1e-310, 1.5e-323));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorIsf(0.99999999999985, 1e-310, 1.5e-323));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(0.8, 1e-310, 1.5e-323));
+
+        // At a denominator df of 1e-322 the lower tail stays of that order at every f, under 1e-300, so the root is +∞,
+        // and 1 - p rounding to one there must not read as the upper tail's root at f = 0.
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(1e-300, 0.3, 1e-322));
+
+        // A numerator df that small makes the lower tail one less a·G at every f, so a target of 1e-3 has its root at 0.
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(1e-3, 1.5e-323, 3.7));
+
+        // Both shapes that small, the upper tail is a/(a + b), 1.5/4 in units of the smallest double.
+        Assert.Equal(0.375, Distributions.FisherSnedecorSf(1.0, 1.5e-323, 2.5e-323), 1e-15);
+
+        // The chi-squared upper tail is a E1(x/2), a subnormal read to its own granularity, and its inverse returns it.
+        Assert.Equal(5.52e-321, Distributions.ChiSquaredSf(5e-324, 1.5e-323), 5e-324);
+        Assert.Equal(1e-321, Distributions.ChiSquaredSf(Distributions.ChiSquaredIsf(1e-321, 1.5e-323), 1.5e-323), 1e-323);
+        // The root is judged against p itself, not the rounded half's target: it read 9.04e-321 back, 12 granules off.
+        Assert.Equal(9.1e-321, Distributions.ChiSquaredSf(Distributions.ChiSquaredIsf(9.1e-321, 2.5e-323), 2.5e-323));
+    }
+
+    [Theory]
+    [InlineData(2e20, 1e-20, 2000.0, 1.0987596822392125e-21)]
+    [InlineData(1e3, 1e-20, 2000.0, 1.9630189089945256e-19)]
+    public void A_shape_below_the_ulp_of_one_keeps_the_large_shape_expansion_terms(double f, double dfn, double dfd, double tail)
+    {
+        // 1000-digit sums: b + 1 rounded to one and every term past the first read zero, the first 1.4e-7 off.
+        Assert.Equal(tail, Distributions.FisherSnedecorSf(f, dfn, dfd), 1e-14 * tail);
+    }
+
+    [Theory]
+    [InlineData(2.0, 1e-12, 0.4999999999923991)]
+    [InlineData(0.5, 1e-9, 0.49999999481918356)]
+    [InlineData(1000.0, 1e-9, 0.4999999910187324)]
+    public void A_student_tail_below_the_tiny_shape_is_one_less_the_other_series(double t, double df, double tail)
+    {
+        // A half-df under 1e-8 takes 1 - SmallShapeLowerTail(1/2, df/2, ...) with LogScaledBeta's normalizer; 1000-digit
+        // sums, within three ulps of one half.
+        Assert.Equal(tail, Distributions.StudentSf(t, df), 3.3e-16);
+    }
+
+    [Fact]
+    public void A_half_integer_chi_squared_shape_takes_one_gamma_on_both_sides_of_the_power_switch()
+    {
+        // The two doubles straddle a log x = -4 at five degrees of freedom; 60-digit series, each within two ulps, and
+        // the lower x no higher: Lanczos' log Γ on one side stepped the tail down 10 ulps as x rose.
+        double below = Distributions.ChiSquaredCdf(0.4037930359893107, 5);
+        double above = Distributions.ChiSquaredCdf(0.40379303598931077, 5);
+        Assert.Equal(0.004775524675233816, below, 2e-18);
+        Assert.Equal(0.004775524675233817, above, 2e-18);
+        Assert.True(below <= above);
+    }
+
+    [Fact]
+    public void A_tiny_probability_keeps_the_binomial_p_value_digits()
+    {
+        // 1 − (1 − 1e-300)^1000 is 1e-297 to 5e-298 of itself; e^(a log x) read it 4.9e-15 off.
+        Assert.Equal(1e-297, Binomial.Test(1, 1000, 1e-300).PValue, 1e-310);
+    }
+
+    [Fact]
+    public void A_tiny_shape_tail_takes_one_less_the_other_side_only_when_it_is_past_one_half()
+    {
+        // I_x(a, b) is past one half with b at least a, and near b/(a + b) below it; 1000-digit reference, 13 digits held.
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(1e-300, 3.7, 1e-300), 3.3e-16);
+        Assert.Equal(9.999999988486215e-291, Distributions.FisherSnedecorSf(1e300, 1e-300, 1e-10), 1e-303);
+    }
+
+    [Theory]
+    [InlineData(0.41, 5, 3)]
+    [InlineData(1e-3, 5, 18)]
+    [InlineData(2.0, 3, 0)]
+    public void A_subnormal_df_tail_rounds_once_to_the_nearest_double(double x, int dfGranules, int tailGranules)
+    {
+        // Q is (df/2) E1(x/2) at so small a df, by a 40-digit series: 3.006, 17.56 and 0.329 granules. A factor on the
+        // rounded half's tail rounded twice, the first 2 granules for 3 (#1729's Review A).
+        Assert.Equal(tailGranules * double.Epsilon, Distributions.ChiSquaredSf(x, dfGranules * double.Epsilon));
+    }
+
+    [Fact]
+    public void A_subnormal_chi_squared_statistic_is_not_halved_before_its_tails()
+    {
+        // e^(-x/2)/2 at two degrees of freedom; Lanczos' log Γ(1) read it 4e-16 high.
+        Assert.Equal(0.5, Distributions.ChiSquaredPdf(1e-300, 2));
+        // The root is the double nearest it, decided at the midpoint: 4e-324 rounds up, 2.3e-324 down to zero.
+        Assert.Equal(5e-324, Distributions.ChiSquaredQuantile(1.6e-162, 1));
+        Assert.Equal(0.0, Distributions.ChiSquaredQuantile(1.2e-162, 1));
+        // x/2 rounded 1.5e-323 up a third, and P(1/2, x/2) = sqrt(x/2) / Γ(3/2) read 15% high; 5e-324 halved to zero, whose
+        // lower tail read 0 and upper 1 at a shape of 1e-300, for one less 7.4e-298 and 7.4e-298 (#1729's Review A).
+        Assert.Equal(3.0718005745332645e-162, Distributions.ChiSquaredCdf(1.5e-323, 1.0), 1e-13 * 3.0718005745332645e-162);
+        Assert.Equal(7.445560034370397e-298, Distributions.ChiSquaredSf(5e-324, 2e-300), 1e-13 * 7.445560034370397e-298);
+        Assert.Equal(1.0, Distributions.ChiSquaredCdf(5e-324, 2e-300));
+
+        // The inversion solves for x/2 and so answered only even multiples of the smallest double there.
+        Assert.Equal(1.5e-323, Distributions.ChiSquaredQuantile(3.0718005745332645e-162, 1.0));
+    }
 }

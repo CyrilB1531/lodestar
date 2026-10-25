@@ -167,7 +167,7 @@ public static class SerialCorrelation
 
     /// <summary>The z-score for a two-sided band at the given confidence level.</summary>
     private static double TwoSidedMultiplier(double confidenceLevel) =>
-        Distributions.NormalQuantile(1.0 - ((1.0 - confidenceLevel) / 2.0));
+        CriticalValue.TwoSided(confidenceLevel);
 
     /// <summary>Bartlett's widening variance, or the flat one.</summary>
     /// <remarks>

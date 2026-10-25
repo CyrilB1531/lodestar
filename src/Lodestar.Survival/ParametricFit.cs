@@ -25,7 +25,7 @@ public sealed class ParametricFit
         // A read-only view of the array the predictions read, so a cast back cannot edit the fit (#1304).
         Parameters = Array.AsReadOnly(parameters);
         _covariance = Covariance(information, k);
-        _z = Distributions.NormalQuantile(1.0 - ((1.0 - level) / 2.0));
+        _z = CriticalValue.TwoSided(level);
         Model = model;
         ParameterNames = Array.AsReadOnly(shape.Names);
         ConfidenceLevel = level;

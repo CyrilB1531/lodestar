@@ -96,7 +96,7 @@ public static class ChiSquared
     /// can make it negative (#1709): RegularizedQ refused each under its own "x", where scipy's p-value is NaN.
     /// </remarks>
     private static double UpperTail(double statistic, int dof) =>
-        statistic >= 0.0 ? Gamma.RegularizedQ(dof / 2.0, statistic / 2.0) : double.NaN;
+        statistic >= 0.0 ? Gamma.ChiSquaredTail(dof, statistic, upper: true) : double.NaN;
 
     private static double[] UniformExpectation(int categories, double observedTotal)
     {

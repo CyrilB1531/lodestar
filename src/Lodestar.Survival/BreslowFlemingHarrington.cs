@@ -50,7 +50,7 @@ public static class BreslowFlemingHarrington
 
         double[] entered = Entries(entries, durations);
         List<(double Time, int Removed, int Events, int Entrants)> rows = Rows(durations, eventObserved, entered);
-        double z = Distributions.NormalQuantile(1.0 - ((1.0 - confidenceLevel) / 2.0));
+        double z = CriticalValue.TwoSided(confidenceLevel);
         var steps = new SurvivalStep[rows.Count];
         var survival = new double[rows.Count];
         var lower = new double[rows.Count];

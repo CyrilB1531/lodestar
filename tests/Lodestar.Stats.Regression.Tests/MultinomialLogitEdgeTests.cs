@@ -127,4 +127,15 @@ public sealed class MultinomialLogitEdgeTests
         Assert.Equal("design", error.ParamName);
         Assert.Contains("46342 parameters square to", error.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void An_interval_near_a_level_of_one_keeps_its_multiplier_digits()
+    {
+        // 1 − (1 − level)/2 rounded: at 1 − 1e-12 the multiplier kept about four digits, and read +∞ at 1 − 2^-53.
+        double level = 1.0 - 1e-12;
+        MultinomialLogitSummary fit = MultinomialLogit.Fit(Design, Three, 1, new MultinomialLogitOptions { ConfidenceLevel = level });
+        double expected = 7.1305098928792724 * fit.StandardErrors[0][1];
+
+        Assert.Equal(expected, (fit.ConfidenceUpper[0][1] - fit.ConfidenceLower[0][1]) / 2.0, 1e-13 * expected);
+    }
 }
