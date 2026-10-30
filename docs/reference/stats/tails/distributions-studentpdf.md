@@ -10,7 +10,7 @@ public static double StudentPdf(double t, double df)
 
 **Parameters** — `t` is the point; `NaN` answers `NaN`. `df` is the degrees of freedom, which must be positive; `+∞` is the standard normal law, as scipy's is.
 
-**Returns** — `scipy.stats.t.pdf(t, df)`; from df `1e20` the normal density, as the tail is, and past `t²/df = 1e308`, where scipy's overflows to `0`, the density itself (`StudentPdf(1e140, 1e-30)` is `5e-171`) (#1690).
+**Returns** — `scipy.stats.t.pdf(t, df)`; from df `1e20` the normal density times `1 + (t⁴ − 2t² − 1)/(4 df)`, as the tail takes its own first term, and past `t²/df = 1e308`, where scipy's overflows to `0`, the density itself (`StudentPdf(1e140, 1e-30)` is `5e-171`) (#1690).
 
 **Exceptions** — `ArgumentOutOfRangeException` when `df` is not positive, `NaN` included.
 

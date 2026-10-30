@@ -26,6 +26,10 @@ internal abstract class AftShape
 
     public virtual Jet LogOneMinusSurvival(Jet primary, Jet ancillary, double t) => Jet.Log1mExp(CumulativeHazard(primary, ancillary, t));
 
+    /// <summary><c>log h − H</c>, an event's term; a shape whose two share a tail overrides it.</summary>
+    public virtual Jet LogDensity(Jet primary, Jet ancillary, double t) =>
+        LogHazard(primary, ancillary, t) - CumulativeHazard(primary, ancillary, t);
+
     /// <summary>The time by which a subject's survival falls to <paramref name="p"/>, lifelines' closed form.</summary>
     public abstract double Percentile(double primary, double ancillary, double p);
 
@@ -74,6 +78,9 @@ internal abstract class AftShape
             Jet z = (Math.Log(t) - primary) / Jet.Exp(ancillary);
             return Jet.NormalLogPdf(z) - ancillary - Math.Log(t) - Jet.NormalLogSf(z);
         }
+
+        public override Jet LogDensity(Jet primary, Jet ancillary, double t) =>
+            Jet.NormalLogPdf((Math.Log(t) - primary) / Jet.Exp(ancillary)) - ancillary - Math.Log(t);
 
         public override Jet LogOneMinusSurvival(Jet primary, Jet ancillary, double t) =>
             Jet.NormalLogCdf((Math.Log(t) - primary) / Jet.Exp(ancillary));

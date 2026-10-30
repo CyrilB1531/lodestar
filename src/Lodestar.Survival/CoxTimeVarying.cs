@@ -19,7 +19,8 @@ public static class CoxTimeVarying
     /// <returns>The coefficient table, the likelihood-ratio test and the baseline; there is no concordance, as lifelines computes none here.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
     /// <exception cref="ArgumentException">The spans disagree in length, an interval is not a finite, non-negative span with its stop after its start, a covariate is not finite or does not vary, no event is observed, a covariate is collinear with the others or separates the events, or <see cref="CoxOptions.Robust"/> is asked for, which lifelines does not implement here, or the covariates are too many for their square to fit in one array, or the design is more cells than one array holds.</exception>
-    /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
+    /// <exception cref="InvalidOperationException">The fit did not converge, or stalled where no halving of its step kept
+    /// the likelihood.</exception>
     public static CoxSummary Fit(
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> starts,
@@ -41,7 +42,8 @@ public static class CoxTimeVarying
     /// <returns>The coefficient table, the likelihood-ratio test and the baseline.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
     /// <exception cref="ArgumentException">As the unweighted overload, or a weight or stratum span is neither empty nor one value per interval.</exception>
-    /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
+    /// <exception cref="InvalidOperationException">The fit did not converge, or stalled where no halving of its step kept
+    /// the likelihood.</exception>
     /// <remarks>
     /// The baseline is lifelines': Breslow's cumulative hazard at every distinct event time, pooled over the strata,
     /// with the weighted events over the unweighted partial hazards of the intervals at risk, as lifelines divides.

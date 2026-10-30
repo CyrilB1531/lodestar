@@ -21,17 +21,17 @@ public static class SurvivalParametricCrossLang
             (double[] x, double[] t, bool[] e, _, _) = CoxExtendedCrossLang.Subjects(n);
             double[] lower = [.. t];
             double[] upper = [.. t.Select((d, i) => Upper(d, e[i], i))];
-            results.Add(Harness.Measure($"weibull_{n}", () => ParametricSurvival.Fit(ParametricModel.Weibull, t, e)));
-            results.Add(Harness.Measure($"loglogistic_left_{n}", () => ParametricSurvival.FitLeftCensored(ParametricModel.LogLogistic, t, e)));
+            results.Add(Harness.Measure($"weibull_{n}", () => ParametricSurvival.Fit(t, e, ParametricModel.Weibull)));
+            results.Add(Harness.Measure($"loglogistic_left_{n}", () => ParametricSurvival.FitLeftCensored(t, e, ParametricModel.LogLogistic)));
             results.Add(Harness.Measure(
-                $"lognormal_interval_{n}", () => ParametricSurvival.FitIntervalCensored(ParametricModel.LogNormal, lower, upper)));
-            results.Add(Harness.Measure($"generalized_gamma_{n}", () => ParametricSurvival.Fit(ParametricModel.GeneralizedGamma, t, e)));
-            results.Add(Harness.Measure($"weibull_aft_{n}", () => AcceleratedFailureTime.Fit(AftModel.Weibull, x, t, e, Features)));
+                $"lognormal_interval_{n}", () => ParametricSurvival.FitIntervalCensored(lower, upper, ParametricModel.LogNormal)));
+            results.Add(Harness.Measure($"generalized_gamma_{n}", () => ParametricSurvival.Fit(t, e, ParametricModel.GeneralizedGamma)));
+            results.Add(Harness.Measure($"weibull_aft_{n}", () => AcceleratedFailureTime.Fit(x, t, e, Features, AftModel.Weibull)));
             results.Add(Harness.Measure(
-                $"lognormal_aft_ridge_robust_{n}", () => AcceleratedFailureTime.Fit(AftModel.LogNormal, x, t, e, Features, ridge)));
+                $"lognormal_aft_ridge_robust_{n}", () => AcceleratedFailureTime.Fit(x, t, e, Features, AftModel.LogNormal, ridge)));
             results.Add(Harness.Measure(
                 $"loglogistic_aft_interval_{n}",
-                () => AcceleratedFailureTime.FitIntervalCensored(AftModel.LogLogistic, x, lower, upper, Features)));
+                () => AcceleratedFailureTime.FitIntervalCensored(x, lower, upper, Features, AftModel.LogLogistic)));
             results.Add(Harness.Measure($"breslow_fleming_harrington_{n}", () => BreslowFlemingHarrington.Estimate(t, e)));
             results.Add(Harness.Measure($"kaplan_meier_left_{n}", () => KaplanMeier.EstimateLeftCensored(t, e)));
         }

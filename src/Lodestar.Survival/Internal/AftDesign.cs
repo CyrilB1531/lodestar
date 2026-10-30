@@ -75,6 +75,34 @@ internal sealed class AftDesign
         return design.ToArray();
     }
 
+    /// <summary>Each coefficient's column mean, and the index of its block's intercept, −1 for an intercept itself or a
+    /// block without one.</summary>
+    public (double[] Means, int[] Intercepts) Centres(ReadOnlySpan<double> design, int rows)
+    {
+        var means = new double[Size];
+        var intercepts = new int[Size];
+        for (int j = 0; j < Size; j++)
+        {
+            bool primary = j < PrimaryColumns.Length;
+            int[] block = primary ? PrimaryColumns : AncillaryColumns;
+            int offset = primary ? 0 : PrimaryColumns.Length;
+            int column = block[j - offset];
+            int intercept = Array.IndexOf(block, Intercept);
+            intercepts[j] = column == Intercept || intercept < 0 ? -1 : offset + intercept;
+            if (intercepts[j] >= 0)
+            {
+                double sum = 0.0;
+                for (int i = 0; i < rows; i++)
+                {
+                    sum += design[(i * FeatureCount) + column];
+                }
+                means[j] = sum / rows;
+            }
+        }
+
+        return (means, intercepts);
+    }
+
     /// <summary>A row's value in design column <paramref name="column"/>, one for the intercept.</summary>
     public double Value(ReadOnlySpan<double> design, int row, int column) =>
         column == Intercept ? 1.0 : design[(row * FeatureCount) + column];

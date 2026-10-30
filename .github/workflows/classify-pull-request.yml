@@ -70,6 +70,7 @@ jobs:
           if [ -n "$ASKED" ]; then
             case "$ASKED" in
               ''|*[!0-9]*) echo "::error::'$ASKED' is not a pull request number."; exit 1 ;;
+              *) ;;
             esac
             pr="$ASKED"
             gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json author > author.json

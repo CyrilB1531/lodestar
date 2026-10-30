@@ -5,13 +5,13 @@ Fits a parametric model to left-censored durations: lifelines' `fit_left_censori
 <!-- docs-declaration -->
 
 ```csharp
-public static ParametricFit FitLeftCensored(ParametricModel model, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ParametricOptions options = null)
+public static ParametricSummary FitLeftCensored(ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ParametricModel model, ParametricOptions options = null)
 ```
 
 <!-- docs-declaration -->
 
 ```csharp
-public static ParametricFit FitLeftCensored(ParametricModel model, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, ParametricOptions options = null)
+public static ParametricSummary FitLeftCensored(ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, ParametricModel model, ParametricOptions options = null)
 ```
 
 The second overload takes lifelines' `weights` and `entry`.
@@ -23,7 +23,7 @@ weight per subject, or is empty for ones; `entries` each subject's entry time, n
 empty for none. `options` sets the interval level, the iteration budget and the piecewise
 breakpoints; `null` takes the defaults.
 
-**Returns** — a [`ParametricFit`](parametricfit.md), as [`Fit`](parametricsurvival-fit.md) returns.
+**Returns** — a [`ParametricSummary`](parametricsummary.md), as [`Fit`](parametricsurvival-fit.md) returns.
 
 **Exceptions** — `ArgumentException` when the spans differ in length or are empty, a duration is not
 positive and finite, a weight or entry span is neither empty nor one valid value per subject, or the
@@ -39,7 +39,7 @@ using Lodestar.Survival;
 double[] readings = [3, 5, 2, 8, 4, 6, 1, 7, 5, 9];
 bool[] exact = [true, false, true, true, false, true, false, true, true, true];
 
-ParametricFit fit = ParametricSurvival.FitLeftCensored(ParametricModel.Weibull, readings, exact);
+ParametricSummary fit = ParametricSurvival.FitLeftCensored(readings, exact, ParametricModel.Weibull);
 
 double scale = Math.Round(fit.Parameters[0], 6);        // => 5.050534
 double median = Math.Round(fit.MedianSurvivalTime, 6);  // => 4.014061

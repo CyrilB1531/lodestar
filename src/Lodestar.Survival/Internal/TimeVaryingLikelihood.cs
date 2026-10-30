@@ -15,8 +15,12 @@ internal sealed class TimeVaryingLikelihood : IPartialLikelihood
     private readonly double[] _weights;
     private readonly int _p;
 
-    /// <summary>Each stratum's rows, as index lists, labels ascending.</summary>
+    /// <summary>Each stratum's rows, latest stop first, so an event time's risk set lies within a prefix of them: those
+    /// of the prefix that started before it.</summary>
     private readonly int[][] _strata;
+
+    /// <summary>Each stratum's distinct event times, ascending.</summary>
+    private readonly double[][] _eventTimes;
 
     internal TimeVaryingLikelihood(
         double[] design, double[] starts, double[] stops, bool[] events, double[] weights, int[][] strata, int featureCount)
@@ -26,33 +30,40 @@ internal sealed class TimeVaryingLikelihood : IPartialLikelihood
         _stops = stops;
         _events = events;
         _weights = weights;
-        _strata = strata;
         _p = featureCount;
+        _strata = [.. strata.Select(rows => rows.OrderByDescending(i => stops[i]).ToArray())];
+        _eventTimes = [.. strata.Select(rows => rows.Where(i => events[i]).Select(i => stops[i]).Distinct().OrderBy(t => t).ToArray())];
     }
 
     public double Evaluate(ReadOnlySpan<double> coefficients, Span<double> score, Span<double> information)
     {
         score.Clear();
         information.Clear();
-        double logLikelihood = 0.0;
-        foreach (int[] rows in _strata)
+        // Each row's linear predictor, read once per row, not per event time; local, so that the likelihood stays
+        // re-entrant.
+        var eta = new double[_stops.Length];
+        for (int i = 0; i < eta.Length; i++)
         {
-            foreach (double time in EventTimes(rows))
+            eta[i] = Eta(_design.AsSpan(i * _p, _p), coefficients);
+        }
+
+        double logLikelihood = 0.0;
+        for (int s = 0; s < _strata.Length; s++)
+        {
+            foreach (double time in _eventTimes[s])
             {
-                logLikelihood += AtTime(rows, time, coefficients, score, information);
+                logLikelihood += AtTime(_strata[s], time, eta, score, information);
             }
         }
 
         return logLikelihood;
     }
 
-    private double[] EventTimes(int[] rows) =>
-        [.. rows.Where(i => _events[i]).Select(i => _stops[i]).Distinct().OrderBy(t => t)];
-
     /// <summary>One event time's terms: the risk set at <paramref name="time"/> and the events stopping there.</summary>
-    private double AtTime(int[] rows, double time, ReadOnlySpan<double> beta, Span<double> score, Span<double> information)
+    private double AtTime(int[] rows, double time, double[] etas, Span<double> score, Span<double> information)
     {
         int p = _p;
+        double shift = Shift(rows, time, etas);
         var risk = new Moments(p);
         var tied = new Moments(p);
         var deathSum = new double[p];
@@ -61,14 +72,19 @@ internal sealed class TimeVaryingLikelihood : IPartialLikelihood
         double eventTerm = 0.0;
         foreach (int i in rows)
         {
-            if (!(_starts[i] < time && time <= _stops[i]))
+            if (!(time <= _stops[i]))
+            {
+                break;
+            }
+
+            if (!(_starts[i] < time))
             {
                 continue;
             }
 
             ReadOnlySpan<double> row = _design.AsSpan(i * p, p);
-            double eta = Eta(row, beta);
-            double phi = _weights[i] * Math.Exp(eta);
+            double eta = etas[i];
+            double phi = _weights[i] * Math.Exp(eta - shift);
             risk.Add(phi, row);
             if (DiesAt(i, time))
             {
@@ -93,10 +109,29 @@ internal sealed class TimeVaryingLikelihood : IPartialLikelihood
         for (int l = 0; l < deaths; l++)
         {
             double fraction = deaths > 1 ? (double)l / deaths : 0.0;
-            logLikelihood -= mean * Tied(risk, tied, fraction, mean, score, information);
+            logLikelihood -= mean * (Tied(risk, tied, fraction, mean, score, information) + shift);
         }
 
         return logLikelihood;
+    }
+
+    /// <summary>The largest η at risk at <paramref name="time"/>: every weight is exp(η − shift), added back to the
+    /// logarithm, where unshifted a row at η = −1274 alone at risk read its sum as zero and a design with a maximum as
+    /// separated (#1756).</summary>
+    private double Shift(int[] rows, double time, double[] etas)
+    {
+        double shift = double.NegativeInfinity;
+        foreach (int i in rows)
+        {
+            if (!(time <= _stops[i]))
+            {
+                break;
+            }
+
+            shift = _starts[i] < time ? Math.Max(shift, etas[i]) : shift;
+        }
+
+        return shift;
     }
 
     private static double Eta(ReadOnlySpan<double> row, ReadOnlySpan<double> beta)
@@ -133,7 +168,7 @@ internal sealed class TimeVaryingLikelihood : IPartialLikelihood
             for (int b = 0; b < p; b++)
             {
                 double second = risk.Second[(a * p) + b] - (fraction * tied.Second[(a * p) + b]);
-                information[(a * p) + b] += mean * ((second / denominator) - (first[a] * first[b] / (denominator * denominator)));
+                information[(a * p) + b] += mean * ((second / denominator) - (first[a] / denominator * (first[b] / denominator)));
             }
         }
 

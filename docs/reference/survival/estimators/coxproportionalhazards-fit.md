@@ -42,7 +42,8 @@ likelihood, the likelihood-ratio test and the concordance index.
 - the design is more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 
 `InvalidOperationException` when the fit does not converge within `CoxOptions.MaximumIterations`,
-or lifelines' own loop, which an L1 penalty runs, gives up.
+stalls where no halving of its step keeps the likelihood, or lifelines' own loop, which an L1
+penalty runs, gives up.
 
 **Example** — a covariate the others already determine is refused rather than fitted.
 
@@ -69,9 +70,12 @@ catch (ArgumentException error)
 string parameter = refusal;  // => design
 ```
 
-**Remarks** — **Newton-Raphson from zero, undamped**, stopping when the largest step component falls
-below `1e-10`. Four or five iterations reach it on the reference's fixtures. A fit that exhausts its
-budget throws: a table built from where it stopped would carry standard errors of no meaning.
+**Remarks** — **Newton-Raphson from zero, its step halved while it lowers the likelihood**, stopping
+when the largest component of Newton's step falls below `1e-10` or Newton's decrement below `1e-20` of the
+log-likelihood. Four or five iterations reach it on
+the reference's random fixtures, seven on one whose steps are halved. A fit that exhausts its budget, or whose step no halving keeps from
+lowering the likelihood, throws: a table built from where it stopped would carry standard errors of
+no meaning.
 
 **Ties are handled by Efron's method**, the only one the reference offers. At a time carrying `m`
 events, the `l`-th divides by the risk set less `l/m` of the tied events' own share. With no tie that
@@ -95,8 +99,9 @@ The covariates are standardised before the Newton loop and the answer rescaled, 
   information collapsing to a vanishing fraction of its value at zero.
 
 **The frozen reference is lifelines fitted to its maximum**, at `precision=1e-20`. At its defaults it
-stops up to 8.6e-6 relative short of it, so a caller comparing against a default `CoxPHFitter` should
-expect the coefficients to differ in the sixth significant figure.
+stops short of it, so a caller comparing against a default `CoxPHFitter` should expect the coefficients
+to differ, by `1e-3` relative and more on a coefficient near zero; on heavy-tailed covariates it can
+stop far from the maximum even at `precision=1e-12`, its log-likelihood up to 26 below.
 
 **Applies to** — net10.0, netstandard2.0.
 

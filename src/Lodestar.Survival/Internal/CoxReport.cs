@@ -24,6 +24,10 @@ internal static class CoxReport
                 throw new InvalidOperationException(
                     $"The Cox fit did not converge within {maximumIterations} Newton-Raphson iterations; a table built "
                     + "from where it stopped would carry standard errors of no meaning.");
+            case CoxOutcome.Stalled:
+                throw new InvalidOperationException(
+                    "The Cox fit stalled: no halving of its Newton step kept the likelihood, where the step had not yet "
+                    + "vanished, so the point it stopped at is no maximum.");
             case CoxOutcome.GaveUp:
                 throw new InvalidOperationException(
                     "lifelines' own loop, which an L1 penalty runs, gave up within its step limit or at its smallest "

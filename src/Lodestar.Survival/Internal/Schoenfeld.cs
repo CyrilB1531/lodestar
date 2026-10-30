@@ -75,6 +75,7 @@ internal static class Schoenfeld
         foreach ((_, int start, int end) in data.Strata)
         {
             double risk = 0.0;
+            double shift = double.NegativeInfinity;
             Array.Clear(riskX, 0, p);
             int groupEnd = end;
             while (groupEnd > start)
@@ -88,7 +89,7 @@ internal static class Schoenfeld
                     groupStart--;
                 }
 
-                (double tie, int ties) = AddGroup(data, beta, (groupStart, groupEnd), ref risk, riskX, tieX);
+                (double tie, int ties) = AddGroup(data, beta, (groupStart, groupEnd), ref risk, ref shift, riskX, tieX);
                 WriteGroup(data, (groupStart, groupEnd), (risk, riskX), (tie, tieX, ties), residuals);
                 groupEnd = groupStart;
             }
@@ -97,17 +98,34 @@ internal static class Schoenfeld
         return residuals;
     }
 
-    /// <summary>Adds one time's rows to the risk sums and its events to the tied sums, walking backwards as lifelines does.</summary>
+    /// <summary>Adds one time's rows to the risk sums and its events to the tied sums, walking backwards as lifelines does,
+    /// every weight exp(η − shift), the risk set's largest η: unshifted, a row at η = −1274 read its sum as zero and the
+    /// proportional hazards test as NaN (#1756).</summary>
     private static (double Tie, int Ties) AddGroup(
-        CoxData data, double[] beta, (int Start, int End) group, ref double risk, double[] riskX, double[] tieX)
+        CoxData data, double[] beta, (int Start, int End) group, ref double risk, ref double shift, double[] riskX, double[] tieX)
     {
         int p = data.FeatureCount;
         double tie = 0.0;
         int ties = 0;
         Array.Clear(tieX, 0, p);
+        double largest = shift;
         for (int position = group.End - 1; position >= group.Start; position--)
         {
-            double phi = data.Weights[position] * Math.Exp(CoxReport.Eta(data, position, beta));
+            largest = Math.Max(largest, CoxReport.Eta(data, position, beta));
+        }
+
+        // Rescaled to a new largest η before the group adds to them; the ratios the residuals read do not move.
+        double carry = double.IsNegativeInfinity(shift) ? 0.0 : Math.Exp(shift - largest);
+        risk *= carry;
+        for (int a = 0; a < p; a++)
+        {
+            riskX[a] *= carry;
+        }
+
+        shift = largest;
+        for (int position = group.End - 1; position >= group.Start; position--)
+        {
+            double phi = data.Weights[position] * Math.Exp(CoxReport.Eta(data, position, beta) - shift);
             ReadOnlySpan<double> row = data.Row(position);
             risk += phi;
             bool observed = data.Events[position];

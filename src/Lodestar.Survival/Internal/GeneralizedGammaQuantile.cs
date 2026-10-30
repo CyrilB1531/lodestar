@@ -18,7 +18,7 @@ internal static class GeneralizedGammaQuantile
     private const double UniformShape = 0.05;
 
     // The |η| to which TemmeSeries' degree-60 rows hold 1e-13 and their sign: the roots reach 1.93, at 0.05 times 38.
-    private const double SeriesReach = 2.2;
+    internal const double SeriesReach = 2.2;
 
     // The rows of TemmeSeries read: past C6 a term falls under 1e-16 below UniformShape.
     private const int Rows = 7;
@@ -170,7 +170,7 @@ internal static class GeneralizedGammaQuantile
     private static (double Tail, double Slope) Tail(double lambda, double w, bool lower)
     {
         double t = lambda * w;
-        double root = Math.Sqrt(Ratio(t, 2));
+        double root = Math.Sqrt(GeneralizedGammaUniform.RatioValue(t));
         return TailAt(lambda, t, root, w * root, lower);
     }
 
@@ -189,7 +189,7 @@ internal static class GeneralizedGammaQuantile
         double tail = lower ? Distributions.NormalCdf(s) - correction : Distributions.NormalSf(s) + correction;
         // The correction's own slope as well: at λ = −0.049 and p = 1e-300 it is the size of Φ̄'s, and a step on Φ̄'s alone
         // overshot twice over and never settled (#1729's Review A).
-        return (tail, density * Ratio(t, 1) / root * (1.0 + (lambda * s * sum) - ((lambda * lambda) * sumSlope)));
+        return (tail, density * Growth(t) / root * (1.0 + (lambda * s * sum) - ((lambda * lambda) * sumSlope)));
     }
 
     /// <summary>The upper tail's log at w and the w a unit of it moves: past <see cref="MillsFrom"/> as
@@ -197,7 +197,7 @@ internal static class GeneralizedGammaQuantile
     private static (double LogTail, double Inverse) LogTail(double lambda, double w)
     {
         double t = lambda * w;
-        double root = Math.Sqrt(Ratio(t, 2));
+        double root = Math.Sqrt(GeneralizedGammaUniform.RatioValue(t));
         double s = w * root;
         if (!(s >= MillsFrom) || !(Math.Abs(t * root) <= SeriesReach))
         {
@@ -206,7 +206,7 @@ internal static class GeneralizedGammaQuantile
         }
         (double sum, double sumSlope) = Series(lambda, t * root);
         double ratio = Mills(s) + (lambda * sum);
-        double slopeFactor = Ratio(t, 1) / root * (1.0 + (lambda * s * sum) - ((lambda * lambda) * sumSlope));
+        double slopeFactor = Growth(t) / root * (1.0 + (lambda * s * sum) - ((lambda * lambda) * sumSlope));
         return (Special.NormalLogPdf(s) + Math.Log(ratio), ratio / slopeFactor);
     }
 
@@ -235,7 +235,7 @@ internal static class GeneralizedGammaQuantile
 
     /// <summary>The terms of each row an |η| needs: its series fall as (|η|/2√π)^j, so a quarter, a half and one leave
     /// under 1e-21 of them past 20, 28 and 40, where the whole row cost each Newton step 427 multiply-adds.</summary>
-    private static int Terms(double eta)
+    internal static int Terms(double eta)
     {
         double size = Math.Abs(eta);
         if (size <= 0.25)
@@ -252,25 +252,6 @@ internal static class GeneralizedGammaQuantile
     /// <summary>Mills' ratio Φ̄(s)/φ(s) for s past <see cref="MillsFrom"/>: <c>(1/s) Σ (−1)^k (2k−1)!! / s^(2k)</c>.</summary>
     private static double Mills(double s) => MillsSeries.Sum(1.0 / (s * s), Special.MillsTerms) / s;
 
-    /// <summary><c>(e^t − Σ_(n&lt;m) t^n/n!) m! / t^m</c>, for m of one, (e^t − 1)/t, by expm1, or two, 2(e^t − 1 − t)/t²:
-    /// its series below one, where the difference lost log2(2/t) bits, and the difference above.</summary>
-    private static double Ratio(double t, int m)
-    {
-        if (m == 1 && Math.Abs(t) > 0.0)
-        {
-            return NearZero.Expm1(t) / t;
-        }
-        if (Math.Abs(t) >= 1.0)
-        {
-            return 2.0 * (NearZero.Expm1(t) - t) / (t * t);
-        }
-        double term = 1.0;
-        double sum = 1.0;
-        for (int n = m + 1; n < m + 40 && Math.Abs(term) > 1e-17; n++)
-        {
-            term *= t / n;
-            sum += term;
-        }
-        return sum;
-    }
+    /// <summary><c>(e^t − 1)/t</c>, by expm1, and one at zero; NaN at NaN, so a NaN iterate is not hidden.</summary>
+    private static double Growth(double t) => Math.Abs(t) > 0.0 || double.IsNaN(t) ? NearZero.Expm1(t) / t : 1.0;
 }

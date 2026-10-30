@@ -26,8 +26,8 @@ internal static class Beta
     // Past this the fraction's products of two shapes near 1e154 overflow: ContinuedFraction scales them.
     private const double FractionScaleShape = 1e150;
 
-    // From here the laws' tails differ by (t^4 - 2t^2 - 1)/4df, under 6e-15 below t = 38.6; Normal.Sf's own rounding
-    // of z/sqrt 2 costs up to 1.1e-13 near t = 37 (#1690's review).
+    // From here the law is the normal one with its first term in 1/df, the next under 1e-36 relative: alone, the normal
+    // tail read StudentSf(37, 1e20) 40 ulps off, once the normal tail held 3 ulps (#1756).
     internal const double NormalLimitDf = 1e20;
 
     // To here the tail is 1/2 - (df/2) asinh(t / sqrt df) to O(df^2 log^2), 1.3e-19 at most (FirstOrderSf has why).
@@ -958,8 +958,8 @@ internal static class Beta
     }
 
     /// <summary>The upper tail of Student's t distribution: P(T &gt; t).</summary>
-    /// <remarks>The two limits in closed form (#1690's review): from <c>df = 1e20</c> the normal law, which an
-    /// infinite df is and Welch's df overflows to, as Normal.Sf computes it (NormalLimitDf); to <c>df = 1e-12</c>
+    /// <remarks>The two limits in closed form (#1690's review): from <c>df = 1e20</c> the normal law with its first term
+    /// in 1/df, the normal law itself at the infinite df Welch's df overflows to (NormalLimitDf); to <c>df = 1e-12</c>
     /// <see cref="FirstOrderSf"/>.</remarks>
     internal static double StudentSf(double t, double df) => StudentSf(t, df, exact: true);
 
@@ -972,7 +972,7 @@ internal static class Beta
     {
         if (df >= NormalLimitDf)
         {
-            return Normal.Sf(t);
+            return NormalLimitSf(t, df);
         }
         if (df > 0.0 && df <= FirstOrderDf)
         {
@@ -1848,6 +1848,14 @@ internal static class Beta
             throw new ArgumentOutOfRangeException(
                 nameof(df), df, "The degrees of freedom must be positive.");
         }
+    }
+
+    /// <summary>Student's upper tail from <see cref="NormalLimitDf"/>: <c>Φ̄(t) + φ(t)(t³ + t)/(4 df)</c>.</summary>
+    private static double NormalLimitSf(double t, double df)
+    {
+        double correction = Distributions.NormalPdf(t) * ((t * t * t) + t) / (4.0 * df);
+        // At an infinite t the density's zero times t³ is NaN; the correction is zero there, as at an infinite df.
+        return double.IsNaN(correction) ? Normal.Sf(t) : Normal.Sf(t) + correction;
     }
 
     /// <summary>The upper root in the two limits StudentSf takes in closed form, NaN between them: the normal law's inverse

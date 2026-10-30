@@ -14,33 +14,33 @@ public static class AcceleratedFailureTime
     private static readonly AftOptions Defaults = new();
 
     /// <summary>Fits a model to right-censored durations, lifelines' <c>fit</c>.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="design">The covariates, row-major, one row per subject; no intercept column, which <see cref="AftOptions.FitIntercept"/> adds.</param>
     /// <param name="durations">One positive, finite duration per subject.</param>
     /// <param name="eventObserved">Whether each duration ends in the event.</param>
     /// <param name="featureCount">The number of covariates, the design's row length.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the intercept, the ancillary model, the penalty and the robust errors; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions.</returns>
     /// <exception cref="ArgumentException">The spans do not match the subjects, a value is not finite, a duration is not positive, or the primary parameter has no column at all, or the design, the parameters or their square is more than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model, or <paramref name="featureCount"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge, or its parameters are not identified.</exception>
     public static AftSummary Fit(
-        AftModel model,
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         int featureCount,
+        AftModel model,
         AftOptions? options = null) =>
-        Fit(model, design, durations, eventObserved, [], [], featureCount, options);
+        Fit(design, durations, eventObserved, [], [], featureCount, model, options);
 
     /// <summary>Fits a model to weighted, possibly late-entering, right-censored durations: lifelines' <c>weights_col</c> and <c>entry_col</c>.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="design">The covariates, row-major, one row per subject.</param>
     /// <param name="durations">One positive, finite duration per subject.</param>
     /// <param name="eventObserved">Whether each duration ends in the event.</param>
     /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
     /// <param name="entries">Each subject's entry time, non-negative and at most its duration, or empty for none.</param>
     /// <param name="featureCount">The number of covariates.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The fit's settings; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions.</returns>
     /// <exception cref="ArgumentException">As the unweighted overload, or a weight or entry span is neither empty nor one valid value per subject.</exception>
@@ -49,45 +49,45 @@ public static class AcceleratedFailureTime
     // S107: lifelines' columns — covariates, times, events, weights and entries — with the design's width and the settings.
 #pragma warning disable S107
     public static AftSummary Fit(
-        AftModel model,
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         ReadOnlySpan<double> weights,
         ReadOnlySpan<double> entries,
         int featureCount,
+        AftModel model,
         AftOptions? options = null) =>
         Run(model, design, Samples.Build(Censoring.Right, durations, durations, eventObserved, weights, entries, nameof(durations)), featureCount, options);
 #pragma warning restore S107
 
     /// <summary>Fits a model to left-censored durations, lifelines' <c>fit_left_censoring</c>: a censored subject had the event by its time.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="design">The covariates, row-major, one row per subject.</param>
     /// <param name="durations">One positive, finite duration per subject.</param>
     /// <param name="eventObserved">Whether each duration is the event's own time rather than an upper bound on it.</param>
     /// <param name="featureCount">The number of covariates.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The fit's settings; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions.</returns>
-    /// <exception cref="ArgumentException">As <see cref="Fit(AftModel, ReadOnlySpan{double}, ReadOnlySpan{double}, ReadOnlySpan{bool}, int, AftOptions)"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, ReadOnlySpan{bool}, int, AftModel, AftOptions)"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model, or <paramref name="featureCount"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge, or its parameters are not identified.</exception>
     public static AftSummary FitLeftCensored(
-        AftModel model,
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         int featureCount,
+        AftModel model,
         AftOptions? options = null) =>
-        FitLeftCensored(model, design, durations, eventObserved, [], [], featureCount, options);
+        FitLeftCensored(design, durations, eventObserved, [], [], featureCount, model, options);
 
     /// <summary>Fits a model to weighted, possibly late-entering, left-censored durations.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="design">The covariates, row-major, one row per subject.</param>
     /// <param name="durations">One positive, finite duration per subject.</param>
     /// <param name="eventObserved">Whether each duration is the event's own time rather than an upper bound on it.</param>
     /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
     /// <param name="entries">Each subject's entry time, non-negative and at most its duration, or empty for none.</param>
     /// <param name="featureCount">The number of covariates.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The fit's settings; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions.</returns>
     /// <exception cref="ArgumentException">As the weighted right-censored overload.</exception>
@@ -96,45 +96,45 @@ public static class AcceleratedFailureTime
     // S107: as the weighted right-censored overload.
 #pragma warning disable S107
     public static AftSummary FitLeftCensored(
-        AftModel model,
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         ReadOnlySpan<double> weights,
         ReadOnlySpan<double> entries,
         int featureCount,
+        AftModel model,
         AftOptions? options = null) =>
         Run(model, design, Samples.Build(Censoring.Left, durations, durations, eventObserved, weights, entries, nameof(durations)), featureCount, options);
 #pragma warning restore S107
 
     /// <summary>Fits a model to interval-censored times, lifelines' <c>fit_interval_censoring</c>: each event somewhere in <c>[lower, upper]</c>.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="design">The covariates, row-major, one row per subject.</param>
     /// <param name="lower">Each interval's lower bound, non-negative.</param>
     /// <param name="upper">Each interval's upper bound, at least its lower bound; infinite for a right-censored time. Equal bounds are an observed event.</param>
     /// <param name="featureCount">The number of covariates.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The fit's settings; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions; no concordance, which lifelines does not compute here.</returns>
     /// <exception cref="ArgumentException">The spans do not match the subjects, a covariate is not finite, a bound is NaN or negative, an upper bound is below its lower one, or the primary parameter has no column at all, or the design, the parameters or their square is more than one array holds.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model, or <paramref name="featureCount"/> is negative.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge, or its parameters are not identified.</exception>
     public static AftSummary FitIntervalCensored(
-        AftModel model,
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> lower,
         ReadOnlySpan<double> upper,
         int featureCount,
+        AftModel model,
         AftOptions? options = null) =>
-        FitIntervalCensored(model, design, lower, upper, [], [], featureCount, options);
+        FitIntervalCensored(design, lower, upper, [], [], featureCount, model, options);
 
     /// <summary>Fits a model to weighted, possibly late-entering, interval-censored times.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="design">The covariates, row-major, one row per subject.</param>
     /// <param name="lower">Each interval's lower bound, non-negative.</param>
     /// <param name="upper">Each interval's upper bound, at least its lower bound; infinite for a right-censored time.</param>
     /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
     /// <param name="entries">Each subject's entry time, non-negative and at most its upper bound, or empty for none.</param>
     /// <param name="featureCount">The number of covariates.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The fit's settings; <see langword="null"/> for the defaults.</param>
     /// <returns>The coefficient table, the model's fit statistics, and its predictions.</returns>
     /// <exception cref="ArgumentException">As the unweighted overload, or a weight or entry span is neither empty nor one valid value per subject.</exception>
@@ -143,13 +143,13 @@ public static class AcceleratedFailureTime
     // S107: as the weighted right-censored overload.
 #pragma warning disable S107
     public static AftSummary FitIntervalCensored(
-        AftModel model,
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> lower,
         ReadOnlySpan<double> upper,
         ReadOnlySpan<double> weights,
         ReadOnlySpan<double> entries,
         int featureCount,
+        AftModel model,
         AftOptions? options = null) =>
         Run(model, design, Samples.Build(Censoring.Interval, lower, upper, [], weights, entries, nameof(upper)), featureCount, options);
 #pragma warning restore S107
@@ -169,7 +169,7 @@ public static class AcceleratedFailureTime
         var penalty = new Ridge(settings.Penalizer, deviations, unpenalised, sample.TotalWeight);
 
         // lifelines starts from the univariate fit, each parameter the intercept of its block; that fit is also the null model.
-        ParametricFit univariate = ParametricSurvival.Run(shape.Univariate, sample, null);
+        ParametricSummary univariate = ParametricSurvival.Run(shape.Univariate, sample, null);
         double[] start = new double[blocks.Size];
         int primaryIntercept = Array.IndexOf(blocks.PrimaryColumns, AftDesign.Intercept);
         int ancillaryIntercept = Array.IndexOf(blocks.AncillaryColumns, AftDesign.Intercept);
@@ -183,34 +183,129 @@ public static class AcceleratedFailureTime
             start[blocks.PrimaryColumns.Length + ancillaryIntercept] = AftShape.Transformed(univariate.Parameters[1]);
         }
 
-        (double[] theta, double logLikelihood, double[] information) = ParametricNewton.Maximize(
-            parameters => LogLikelihood(sample, shape, blocks, x, parameters) - penalty.Value(parameters),
-            start,
-            [.. Enumerable.Repeat(double.NegativeInfinity, blocks.Size)],
+        // On the design centred and scaled, θ = Aφ and its covariance A V Aᵀ (Centring): on raw columns a covariate at 1e5 ±
+        // 0.04 beside the intercept cancelled terms in x², and fits lifelines answers did not converge (#1756).
+        int k = blocks.Size;
+        (double[] means, int[] intercepts) = blocks.Centres(x, sample.Count);
+        double[] toCoefficients = Centring(deviations, means, intercepts, inverse: false);
+        double[] fromCoefficients = Transposed(toCoefficients, k);
+        double[] scaledDesign = Standardised(x, sample.Count, featureCount, blocks, deviations, means);
+        (double[] searched, double logLikelihood, double[] searchedInformation) = ParametricNewton.Maximize(
+            phi => penalty.Active
+                ? LogLikelihood(sample, shape, blocks, scaledDesign, phi)
+                    - Searched(penalty.Value(Apply(toCoefficients, phi, k)), toCoefficients, fromCoefficients, k)
+                : LogLikelihood(sample, shape, blocks, scaledDesign, phi),
+            Apply(Centring(deviations, means, intercepts, inverse: true), start, k),
+            [.. Enumerable.Repeat(double.NegativeInfinity, k)],
             settings.MaximumIterations);
-        int k = theta.Length;
-        double[] covariance = Cholesky.TryFactor(information, k, out double[] factor)
+        ParametricLikelihood.RequireMaximum(sample, logLikelihood);
+        double[] theta = Apply(toCoefficients, searched, k);
+        double[] searchedCovariance = Cholesky.TryFactor(searchedInformation, k, out double[] factor)
             ? Cholesky.Inverse(factor, k)
             : throw new InvalidOperationException("The observed information at the fit is not positive definite; the coefficients are not identified.");
         if (settings.Robust)
         {
-            covariance = Sandwich(sample, shape, blocks, x, theta, penalty, covariance);
+            double[] penaltyGradient = Apply(fromCoefficients, penalty.UnscaledGradient(theta), k);
+            searchedCovariance = Sandwich(sample, shape, blocks, scaledDesign, searched, penaltyGradient, searchedCovariance);
         }
+
+        double[] covariance = Multiply(Multiply(toCoefficients, searchedCovariance, k), fromCoefficients, k);
 
         double concordance = sample.Censoring == Censoring.Interval ? double.NaN : Concordance(sample, shape, blocks, x, theta);
         return AftSummary.Build(model, shape, blocks, (theta, covariance), (logLikelihood, univariate.LogLikelihood, concordance), settings);
     }
 
+    /// <summary>The design with each covariate less its mean, where its block has an intercept, over its deviation.</summary>
+    private static double[] Standardised(
+        double[] x, int rows, int featureCount, AftDesign blocks, double[] deviations, double[] means)
+    {
+        var centre = new double[featureCount];
+        var spread = Enumerable.Repeat(1.0, featureCount).ToArray();
+        for (int j = 0; j < blocks.PrimaryColumns.Length; j++)
+        {
+            int column = blocks.PrimaryColumns[j];
+            if (column != AftDesign.Intercept)
+            {
+                (centre[column], spread[column]) = (means[j], deviations[j]);
+            }
+        }
+
+        var scaled = new double[x.Length];
+        for (int i = 0; i < rows; i++)
+        {
+            for (int c = 0; c < featureCount; c++)
+            {
+                scaled[(i * featureCount) + c] = (x[(i * featureCount) + c] - centre[c]) / spread[c];
+            }
+        }
+
+        return scaled;
+    }
+
+    /// <summary>θ = Aφ, or its inverse B: a covariate's φ is its coefficient times its deviation, and its block's intercept
+    /// φ carries the coefficients times the means, so A takes θ_j = φ_j/d_j and θ_0 = φ_0 − Σ m_j φ_j/d_j, B the reverse.</summary>
+    private static double[] Centring(double[] deviations, double[] means, int[] intercepts, bool inverse)
+    {
+        int k = deviations.Length;
+        var matrix = new double[k * k];
+        for (int j = 0; j < k; j++)
+        {
+            matrix[(j * k) + j] = inverse ? deviations[j] : 1.0 / deviations[j];
+            if (intercepts[j] >= 0)
+            {
+                matrix[(intercepts[j] * k) + j] = inverse ? means[j] : -means[j] / deviations[j];
+            }
+        }
+
+        return matrix;
+    }
+
+    private static double[] Apply(double[] matrix, double[] vector, int k)
+    {
+        var result = new double[k];
+        for (int a = 0; a < k; a++)
+        {
+            for (int b = 0; b < k; b++)
+            {
+                result[a] += matrix[(a * k) + b] * vector[b];
+            }
+        }
+
+        return result;
+    }
+
+    private static double[] Transposed(double[] matrix, int k)
+    {
+        var result = new double[k * k];
+        for (int a = 0; a < k; a++)
+        {
+            for (int b = 0; b < k; b++)
+            {
+                result[(b * k) + a] = matrix[(a * k) + b];
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>A jet over θ as one over φ, θ = Aφ: its gradient Aᵀg, its Hessian AᵀHA.</summary>
+    private static Jet Searched(Jet over, double[] toCoefficients, double[] transposed, int k)
+    {
+        double[] gradient = Apply(transposed, over.Gradient, k);
+        double[] hessian = Multiply(Multiply(transposed, over.Hessian, k), toCoefficients, k);
+        return Jet.FromParts(over.Value, gradient, hessian);
+    }
+
     /// <summary>
     /// lifelines' Huber sandwich <c>V J V</c>: <c>J</c> sums the outer products of each subject's own score — the gradient
-    /// of its unweighted negative log-likelihood term plus the penalty's, at the unscaled coefficients.
+    /// of its unweighted negative log-likelihood term plus the penalty's, both over the coefficients and design given.
     /// </summary>
     private static double[] Sandwich(
-        CensoredSample sample, AftShape shape, AftDesign blocks, double[] x, double[] theta, Ridge penalty, double[] covariance)
+        CensoredSample sample, AftShape shape, AftDesign blocks, double[] x, double[] theta, double[] penaltyGradient,
+        double[] covariance)
     {
         int k = theta.Length;
         var observations = new Observations(shape, blocks, x, theta);
-        double[] penaltyGradient = penalty.UnscaledGradient(theta);
         var meat = new double[TableLength.Of(k, k, ResultTable.FeatureCount)];
         var score = new double[k];
         var scratch = new double[TableLength.Of(k, k, ResultTable.FeatureCount)];
@@ -291,6 +386,9 @@ public static class AcceleratedFailureTime
     /// </summary>
     private sealed class Ridge(double penalizer, double[] deviations, bool[] unpenalised, double totalWeight)
     {
+        /// <summary>Whether the penalty is other than zero, which the search then maps through the centring.</summary>
+        public bool Active => penalizer > 0.0;
+
         public Jet Value(double[] theta)
         {
             int k = theta.Length;
@@ -344,6 +442,12 @@ public static class AcceleratedFailureTime
         {
             (Jet primary, Jet ancillary) = Predictors(observation);
             return shape.LogHazard(primary, ancillary, t);
+        }
+
+        public Jet LogDensity(int observation, double t)
+        {
+            (Jet primary, Jet ancillary) = Predictors(observation);
+            return shape.LogDensity(primary, ancillary, t);
         }
 
         public Jet LogOneMinusSurvival(int observation, double t)

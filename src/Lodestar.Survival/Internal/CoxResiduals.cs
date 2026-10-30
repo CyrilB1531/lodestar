@@ -69,12 +69,20 @@ internal static class CoxResiduals
         var scores = new double[data.Count * p];
         foreach ((_, int start, int end) in data.Strata)
         {
-            (double[] phi, double[] risk, double[] riskX) = RiskSums(data, beta, start, end);
+            (double[] phi, double[] risk, double[] riskX, double[] shift) = RiskSums(data, beta, start, end);
             double weightSum = 0.0;
             var meanSum = new double[p];
             for (int i = 0; i < end - start; i++)
             {
                 int position = start + i;
+                // The sums carried forward are held in row i's shift, never larger than the earlier rows'.
+                double carry = i == 0 ? 1.0 : Math.Exp(shift[i] - shift[i - 1]);
+                weightSum *= carry;
+                for (int a = 0; a < p; a++)
+                {
+                    meanSum[a] *= carry;
+                }
+
                 bool observed = data.Events[position];
                 if (observed)
                 {
@@ -98,28 +106,34 @@ internal static class CoxResiduals
         return scores;
     }
 
-    /// <summary>Each row's hazard, and the weighted risk sums over it and the rows after it in its stratum.</summary>
-    private static (double[] Phi, double[] Risk, double[] RiskX) RiskSums(CoxData data, double[] beta, int start, int end)
+    /// <summary>Each row's hazard, and the weighted risk sums over it and the rows after it in its stratum, all in that
+    /// risk set's shift, its largest linear predictor: unshifted, a row at η = −1274 read its risk sum as zero and the
+    /// robust variance as NaN (#1756).</summary>
+    private static (double[] Phi, double[] Risk, double[] RiskX, double[] Shift) RiskSums(CoxData data, double[] beta, int start, int end)
     {
         int p = data.FeatureCount;
         int length = end - start;
         var phi = new double[length];
         var risk = new double[length];
+        var shift = new double[length];
         // No trailing zero row: a stratum as long as the design already fills one array, and one row more would not (#1614).
         var riskX = new double[length * p];
         for (int k = length - 1; k >= 0; k--)
         {
             ReadOnlySpan<double> row = data.Row(start + k);
-            phi[k] = Math.Exp(CoxReport.Eta(data, start + k, beta));
-            double weighted = data.Weights[start + k] * phi[k];
+            double eta = CoxReport.Eta(data, start + k, beta);
             bool last = k == length - 1;
-            risk[k] = weighted + (last ? 0.0 : risk[k + 1]);
+            shift[k] = last ? eta : Math.Max(eta, shift[k + 1]);
+            double carry = last ? 0.0 : Math.Exp(shift[k + 1] - shift[k]);
+            phi[k] = Math.Exp(eta - shift[k]);
+            double weighted = data.Weights[start + k] * phi[k];
+            risk[k] = weighted + (last ? 0.0 : carry * risk[k + 1]);
             for (int a = 0; a < p; a++)
             {
-                riskX[(k * p) + a] = (weighted * row[a]) + (last ? 0.0 : riskX[((k + 1) * p) + a]);
+                riskX[(k * p) + a] = (weighted * row[a]) + (last ? 0.0 : carry * riskX[((k + 1) * p) + a]);
             }
         }
 
-        return (phi, risk, riskX);
+        return (phi, risk, riskX, shift);
     }
 }

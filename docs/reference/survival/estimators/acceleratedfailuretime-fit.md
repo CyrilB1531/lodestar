@@ -5,13 +5,13 @@ Fits an accelerated failure time regression to right-censored durations: lifelin
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary Fit(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, AftOptions options = null)
+public static AftSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary Fit(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftOptions options = null)
+public static AftSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 The second overload takes lifelines' `weights_col` and `entry_col`.
@@ -51,7 +51,7 @@ string refusal;
 try
 {
     // Ten values read as rows of two are five subjects, not the ten durations.
-    AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, featureCount: 2);
+    AcceleratedFailureTime.Fit(dose, months, died, featureCount: 2, AftModel.Weibull);
     refusal = "fitted";
 }
 catch (ArgumentException error)
@@ -70,7 +70,7 @@ its intercept under [`AftOptions.Ancillary`](aftoptions.md).
 **Newton's method on exact derivatives**, from the univariate fit lifelines starts from, each
 parameter the intercept of its block; that univariate fit is also the null model of the
 likelihood-ratio test. lifelines' own optimiser stops short of the maximum this reaches, so a default
-lifelines fit differs in about the sixth significant figure.
+lifelines fit can differ from the third significant figure.
 
 **A design that does not identify the coefficients is refused** — a covariate that does not vary is
 collinear with the intercept, and the observed information is then singular.

@@ -49,6 +49,20 @@ internal static class ParametricLikelihood
         return total;
     }
 
+    /// <summary>Refuses a fit whose every term is a probability and whose likelihood has reached their supremum, zero, as
+    /// it does only in a limit: twenty intervals sharing [1.19, 1.5] took a Weibull ρ to 783 at a standard error of 6e7,
+    /// a point mass the doubles round to, read as a maximum (#1756).</summary>
+    public static void RequireMaximum(CensoredSample sample, double logLikelihood)
+    {
+        // Against the total weight, which scales the likelihood: weights of 1e-11 left a proper maximum within 1e-9 of one.
+        if (!sample.Events.Any(e => e) && logLikelihood > -1e-9 * sample.TotalWeight)
+        {
+            throw new InvalidOperationException(
+                "Every observation is a probability, and the likelihood reaches their supremum of one only in the limit of a "
+                + "point mass: the fit has no maximum on this sample.");
+        }
+    }
+
     /// <summary>Observation <paramref name="i"/>'s unweighted term, its delayed entry included: what lifelines' sandwich differentiates.</summary>
     public static Jet Term(CensoredSample sample, IObservationModel model, int i)
     {
@@ -62,26 +76,38 @@ internal static class ParametricLikelihood
         {
             case Censoring.Right:
                 double t = sample.Upper[i];
-                Jet cumulative = model.CumulativeHazard(i, t);
-                return sample.Events[i] ? model.LogHazard(i, t) - cumulative : -cumulative;
+                return sample.Events[i] ? model.LogDensity(i, t) : -model.CumulativeHazard(i, t);
             case Censoring.Left:
                 double time = sample.Upper[i];
-                Jet logCdf = model.LogOneMinusSurvival(i, time);
-                return sample.Events[i] ? model.LogHazard(i, time) - model.CumulativeHazard(i, time) : logCdf;
+                return sample.Events[i] ? model.LogDensity(i, time) : model.LogOneMinusSurvival(i, time);
             default:
                 if (sample.Events[i])
                 {
-                    return model.LogHazard(i, sample.Upper[i]) - model.CumulativeHazard(i, sample.Upper[i]);
+                    return model.LogDensity(i, sample.Upper[i]);
                 }
 
-                Jet difference = Jet.Exp(-model.CumulativeHazard(i, sample.Lower[i])) - Jet.Exp(-model.CumulativeHazard(i, sample.Upper[i]));
-                if (difference.Value < 1e-25)
-                {
-                    return Jet.Constant(Math.Log(1e-25), difference.Size);
-                }
-
-                return difference.Value > 1.0 - 1e-25 ? Jet.Constant(NearZero.Log1P(-1e-25), difference.Size) : Jet.Log(difference);
+                return IntervalTerm(model.CumulativeHazard(i, sample.Lower[i]), model.CumulativeHazard(i, sample.Upper[i]));
         }
+    }
+
+    /// <summary><c>log(S(L) − S(U))</c> as <c>−H(L) + log(1 − e^(H(L) − H(U)))</c>, clipped to <c>[1e-25, 1 − 1e-25]</c>
+    /// as lifelines clips the difference: taken as one, two survivals near one left 0.01 of rounding in an exponential
+    /// fit's log-likelihood, and Newton stalled where main and lifelines converge (Review A, pass 35).</summary>
+    private static Jet IntervalTerm(Jet lower, Jet upper)
+    {
+        double gap = upper.Value - lower.Value;
+        double probability = gap > 0.0 ? Math.Exp(-lower.Value) * -NearZero.Expm1(-gap) : 0.0;
+        if (probability < 1e-25)
+        {
+            return Jet.Constant(Math.Log(1e-25), lower.Size);
+        }
+        if (probability > 1.0 - 1e-25)
+        {
+            return Jet.Constant(NearZero.Log1P(-1e-25), lower.Size);
+        }
+
+        // At an infinite upper end the probability is the survival at the lower one.
+        return double.IsPositiveInfinity(upper.Value) ? -lower : Jet.Log1mExp(upper - lower) - lower;
     }
 }
 
@@ -91,6 +117,9 @@ internal interface IObservationModel
     Jet CumulativeHazard(int observation, double t);
 
     Jet LogHazard(int observation, double t);
+
+    /// <summary><c>log h − H</c>, an event's term.</summary>
+    Jet LogDensity(int observation, double t);
 
     Jet LogOneMinusSurvival(int observation, double t);
 }

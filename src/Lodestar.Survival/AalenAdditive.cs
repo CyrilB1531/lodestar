@@ -215,56 +215,181 @@ public static class AalenAdditive
     {
         int n = times.Length;
         double[] eventTimes = [.. times.Where((_, i) => events[i]).Distinct().OrderBy(t => t)];
+        int[][] leaving = Leaving(times, eventTimes);
+        var grams = new RiskGrams(x, leaving, n, d);
         var increments = new double[TableLength.Of(eventTimes.Length, d, ResultTable.FeatureCount)];
         var variances = new double[TableLength.Of(eventTimes.Length, d, ResultTable.FeatureCount)];
-        var atRisk = new bool[n];
-        atRisk.AsSpan().Fill(true);
         double ridge = settings.CoefficientPenalizer + settings.SmoothingPenalizer;
         var previous = new double[d];
         int exited = 0;
         int stop = 0;
         for (int e = 0; e < eventTimes.Length; e++)
         {
-            int[] leaving = Leaving(times, eventTimes[e]);
-            int[] deaths = [.. leaving.Where(i => events[i])];
-            (double[] v, double[] spread) = Solve(x, atRisk, deaths, roots, d, ridge, settings.SmoothingPenalizer, previous);
+            int[] deaths = [.. leaving[e].Where(i => events[i])];
+            (double[] v, double[] spread) = Solve(x, grams.At(e), n - exited, deaths, roots, d, ridge, settings.SmoothingPenalizer, previous);
             Array.Copy(v, 0, increments, e * d, d);
             Array.Copy(spread, 0, variances, e * d, d);
             previous = v;
-            foreach (int i in leaving)
-            {
-                atRisk[i] = false;
-            }
-
-            int exits = leaving.Length;
             stop = e + 1;
             if (3 * (d - 1) >= n - exited)
             {
                 break;
             }
 
-            exited += exits;
+            exited += leaving[e].Length;
         }
 
         return (eventTimes.AsSpan(0, stop).ToArray(), increments.AsSpan(0, stop * d).ToArray(), variances.AsSpan(0, stop * d).ToArray());
     }
 
-    /// <summary>The subjects whose duration is exactly <paramref name="time"/>: lifelines removes them, and only them, at an event time.</summary>
-    private static int[] Leaving(double[] times, double time)
+    /// <summary>The subjects whose duration is exactly each event time: lifelines removes them, and only them, at that time.</summary>
+    private static int[][] Leaving(double[] times, double[] eventTimes)
     {
-        var leaving = new List<int>();
-        for (int i = 0; i < times.Length; i++)
+        var leaving = new int[eventTimes.Length][];
+        int i = 0;
+        for (int e = 0; e < eventTimes.Length; e++)
         {
-            // S1244: a tie in survival data is the same recorded duration, which is lifelines' test.
-#pragma warning disable S1244
-            if (times[i] == time)
-#pragma warning restore S1244
+            // Both ascending: the subjects at this event time are the run of equal times the merge reaches.
+            while (i < times.Length && times[i] < eventTimes[e])
             {
-                leaving.Add(i);
+                i++;
+            }
+
+            int first = i;
+            while (i < times.Length && times[i] <= eventTimes[e])
+            {
+                i++;
+            }
+
+            leaving[e] = [.. Enumerable.Range(first, i - first)];
+        }
+
+        return leaving;
+    }
+
+    /// <summary><c>XᵀX</c> over each event time's risk set, accumulated from the last time back.</summary>
+    /// <remarks>
+    /// A risk set is the one after it with its own leavers added, so each row enters a sum once and none is taken out:
+    /// rebuilt per event time the sums cost events × subjects × d², 139 ms at 10,000 subjects (#1224). A matrix is kept
+    /// every √E event times, sparser where they would pass CheckpointCells, and each time's is rebuilt from the next.
+    /// </remarks>
+    private sealed class RiskGrams
+    {
+        // Past this many cells of kept matrices, the checkpoints thin out: a wide design held a gigabyte at √E of them.
+        private const long CheckpointCells = 1L << 22;
+
+        private readonly double[] _x;
+        private readonly int[][] _leaving;
+        private readonly int _d;
+        private readonly int _spacing;
+        private readonly double[][] _checkpoints;
+
+        // The current block's matrices, where they fit within CheckpointCells: At(e) in order re-summed a block per call.
+        private readonly double[][]? _block;
+        private int _cachedBlock = -1;
+
+        public RiskGrams(double[] x, int[][] leaving, int n, int d)
+        {
+            (_x, _leaving, _d) = (x, leaving, d);
+            int cells = TableLength.Of(d, d, ResultTable.FeatureCount);
+            int count = leaving.Length;
+            long thinnest = Math.Max(1L, ((long)count * cells) / CheckpointCells);
+            _spacing = (int)Math.Min(Math.Max(Math.Max(1L, (long)Math.Sqrt(count)), thinnest), Math.Max(1, count));
+            _checkpoints = new double[(count / _spacing) + 2][];
+            var staying = new bool[n];
+            staying.AsSpan().Fill(true);
+            foreach (int i in leaving.SelectMany(subjects => subjects))
+            {
+                staying[i] = false;
+            }
+
+            var gram = new double[cells];
+            for (int i = 0; i < n; i++)
+            {
+                if (staying[i])
+                {
+                    AddRow(gram, x, i, d);
+                }
+            }
+
+            if ((long)_spacing * cells <= CheckpointCells)
+            {
+                _block = new double[_spacing][];
+            }
+
+            // The checkpoint past the last one holds the subjects no event time removes.
+            _checkpoints[(count + _spacing - 1) / _spacing] = [.. gram];
+            for (int e = count - 1; e >= 0; e--)
+            {
+                foreach (int i in leaving[e])
+                {
+                    AddRow(gram, x, i, d);
+                }
+
+                // Block 0 is summed from checkpoint 1, so none is kept at 0.
+                if (e > 0 && e % _spacing == 0)
+                {
+                    _checkpoints[e / _spacing] = [.. gram];
+                }
             }
         }
 
-        return [.. leaving];
+        /// <summary>Event time <paramref name="e"/>'s matrix, the caller's own to shift in place, in the order the checkpoints
+        /// summed it; each event time is read once, in order.</summary>
+        public double[] At(int e)
+        {
+            int block = e / _spacing;
+            if (_block is null)
+            {
+                return Summed(block, e, null);
+            }
+
+            if (block != _cachedBlock)
+            {
+                Summed(block, block * _spacing, _block);
+                _cachedBlock = block;
+            }
+
+            // Each event time is read once, so the kept matrix is handed over rather than copied again.
+            double[] gram = _block[e - (block * _spacing)];
+            _block[e - (block * _spacing)] = [];
+            return gram;
+        }
+
+        /// <summary>The matrix at <paramref name="e"/>, summed from the next checkpoint down, keeping each one on the way
+        /// in <paramref name="kept"/> where given.</summary>
+        private double[] Summed(int block, int e, double[][]? kept)
+        {
+            int last = Math.Min((block + 1) * _spacing, _leaving.Length) - 1;
+            double[] gram = [.. _checkpoints[block + 1]];
+            for (int t = last; t >= e; t--)
+            {
+                foreach (int i in _leaving[t])
+                {
+                    AddRow(gram, _x, i, _d);
+                }
+
+                if (kept is not null)
+                {
+                    // The last matrix kept is the running one itself, which nothing sums into after it.
+                    kept[t - (block * _spacing)] = t == e ? gram : [.. gram];
+                }
+            }
+
+            return gram;
+        }
+
+        private static void AddRow(double[] gram, double[] x, int i, int d)
+        {
+            for (int p = 0; p < d; p++)
+            {
+                double xp = x[(i * d) + p];
+                for (int q = 0; q < d; q++)
+                {
+                    gram[(p * d) + q] += xp * x[(i * d) + q];
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -272,13 +397,12 @@ public static class AalenAdditive
     /// whose squares summed are the increments' variances; zero where the system is not positive definite, as lifelines
     /// answers its <c>LinAlgError</c>.
     /// </summary>
-    // S107: the scaled rows, the risk set, the deaths and their weights, the width, both penalties and the previous step.
+    // S107: the scaled rows, the risk set's Gram matrix and size, the deaths and their weights, the width, both penalties and the previous step.
 #pragma warning disable S107
     private static (double[] Increments, double[] Variances) Solve(
-        double[] x, bool[] atRisk, int[] deaths, double[] roots, int d, double ridge, double smoothing, double[] previous)
+        double[] x, double[] a, int atRisk, int[] deaths, double[] roots, int d, double ridge, double smoothing, double[] previous)
 #pragma warning restore S107
     {
-        double[] a = Gram(x, atRisk, d);
         var b = new double[d];
         foreach (int i in deaths)
         {
@@ -295,7 +419,7 @@ public static class AalenAdditive
         }
 
         // A penalty makes the system positive definite, and LAPACK then fails only on a pivot at or below zero.
-        double relative = ridge > 0.0 ? 0.0 : SingularPivotPerSubject * Math.Max(1, atRisk.Count(r => r));
+        double relative = ridge > 0.0 ? 0.0 : SingularPivotPerSubject * Math.Max(1, atRisk);
         double[]? lower = Factor(a, d, relative);
         var spread = new double[d];
         if (lower is null)
@@ -314,30 +438,6 @@ public static class AalenAdditive
         }
 
         return (v, spread);
-    }
-
-    /// <summary><c>XᵀX</c> over the subjects at risk.</summary>
-    private static double[] Gram(double[] x, bool[] atRisk, int d)
-    {
-        var a = new double[TableLength.Of(d, d, ResultTable.FeatureCount)];
-        for (int i = 0; i < atRisk.Length; i++)
-        {
-            if (!atRisk[i])
-            {
-                continue;
-            }
-
-            for (int p = 0; p < d; p++)
-            {
-                double xp = x[(i * d) + p];
-                for (int q = 0; q < d; q++)
-                {
-                    a[(p * d) + q] += xp * x[(i * d) + q];
-                }
-            }
-        }
-
-        return a;
     }
 
     /// <summary>

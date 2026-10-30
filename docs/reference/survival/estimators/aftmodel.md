@@ -28,9 +28,9 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-double weibull = Math.Round(AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, 1).Coefficients[0], 4);           // => -0.5492
-double logNormal = Math.Round(AcceleratedFailureTime.Fit(AftModel.LogNormal, dose, months, died, 1).Coefficients[0], 4);       // => -0.5588
-double logLogistic = Math.Round(AcceleratedFailureTime.Fit(AftModel.LogLogistic, dose, months, died, 1).Coefficients[0], 4);   // => -0.5525
+double weibull = Math.Round(AcceleratedFailureTime.Fit(dose, months, died, 1, AftModel.Weibull).Coefficients[0], 4);           // => -0.5492
+double logNormal = Math.Round(AcceleratedFailureTime.Fit(dose, months, died, 1, AftModel.LogNormal).Coefficients[0], 4);       // => -0.5588
+double logLogistic = Math.Round(AcceleratedFailureTime.Fit(dose, months, died, 1, AftModel.LogLogistic).Coefficients[0], 4);   // => -0.5525
 ```
 
 **Remarks** — in all three **the primary coefficient is a log time ratio**: `log T` is linear in the

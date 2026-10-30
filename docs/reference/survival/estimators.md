@@ -87,9 +87,9 @@ keeps the size of that last step.
 | [`NelsonAalen`](estimators/nelsonaalen.md) | The cumulative hazard function. |
 | [`NelsonAalenCurve`](estimators/nelsonaalencurve.md) | What it returns: the accumulated hazard and its steps. |
 | [`PairwiseLogRankResult`](estimators/pairwiselogrankresult.md) | One pair of groups from the pairwise test. |
-| [`ParametricFit`](estimators/parametricfit.md) | What a parametric fit returns: the parameter table and the fitted curves. |
 | [`ParametricModel`](estimators/parametricmodel.md) | Which parametric model runs. |
 | [`ParametricOptions`](estimators/parametricoptions.md) | The level, the iteration budget and the piecewise breakpoints a parametric fit takes. |
+| [`ParametricSummary`](estimators/parametricsummary.md) | What a parametric fit returns: the parameter table and the fitted curves. |
 | [`ParametricSurvival`](estimators/parametricsurvival.md) | lifelines' six parametric fitters, right-, left- and interval-censored. |
 | [`RestrictedMeanResult`](estimators/restrictedmeanresult.md) | The restricted mean survival time and its variance. |
 | [`SurvivalCurve`](estimators/survivalcurve.md) | What the Breslow-Fleming-Harrington estimator returns: the estimate, its bounds and its steps. |

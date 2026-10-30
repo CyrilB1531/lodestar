@@ -72,7 +72,7 @@ public sealed class AftSummary
     public int LikelihoodRatioDegreesOfFreedom { get; private init; }
 
     /// <summary><c>−2 · LogLikelihood + 2 · k</c>, over the <c>k</c> coefficients.</summary>
-    public double Aic { get; private init; }
+    public double Akaike { get; private init; }
 
     /// <summary>Harrell's concordance index between the times and the predicted medians; NaN for an interval-censored fit, which lifelines does not score.</summary>
     public double ConcordanceIndex { get; private init; }
@@ -137,7 +137,7 @@ public sealed class AftSummary
             LikelihoodRatioStatistic = statistic,
             LikelihoodRatioPValue = freedom > 0 ? Distributions.ChiSquaredSf(statistic, freedom) : double.NaN,
             LikelihoodRatioDegreesOfFreedom = freedom,
-            Aic = (-2.0 * logLikelihood) + (2.0 * k),
+            Akaike = (-2.0 * logLikelihood) + (2.0 * k),
             ConcordanceIndex = concordance,
             ConfidenceLevel = settings.ConfidenceLevel,
             Robust = settings.Robust,

@@ -15,6 +15,9 @@ internal enum CoxOutcome
     Separated,
     Exhausted,
 
+    /// <summary>No halving of the Newton step kept the likelihood, short of the maximum.</summary>
+    Stalled,
+
     /// <summary>lifelines' own loop stopped on a failure rule.</summary>
     GaveUp,
 }
@@ -70,7 +73,7 @@ internal sealed record ElasticNet(double Scale, double Penalizer, double L1Ratio
 internal static class CoxNewton
 {
     // The largest step component below which the fit has converged. Four or five iterations reach it on
-    // every fixture of the corpus, from coefficients at zero.
+    // the corpus' random fixtures from coefficients at zero; the #1242 one, whose steps are halved, takes seven.
     private const double StepTolerance = 1e-10;
 
     // Past this many units of log hazard ratio in one step, a flat likelihood is read as a
@@ -97,18 +100,20 @@ internal static class CoxNewton
         double logLikelihood = nullLogLikelihood;
         for (int iteration = 1; iteration <= maximumIterations; iteration++)
         {
-            if (!Cholesky.TryFactor(information, p, out double[] lower))
+            if (NewtonStep(information, score, p) is not { } step)
             {
                 return Ended(iteration > 1 && logLikelihood > nullLogLikelihood ? CoxOutcome.Separated : CoxOutcome.Collinear);
             }
 
-            double largest = Step(coefficients, Cholesky.Solve(lower, p, score));
-            double next = Penalised(likelihood, coefficients, penalty, 1.0, score, information);
-            if (largest < StepTolerance)
+            // Newton's decrement, the likelihood the step would gain twice over: at a maximum far out the step kept the
+            // score's rounding, 8e-10, past the tolerance, and a design with a maximum at β = 661 never converged (#1756).
+            bool settled = Settled(score, step, logLikelihood);
+            (double largest, bool stuck, double next) = Halved(likelihood, coefficients, step, penalty, logLikelihood, score, information);
+            if (Stopped(settled, largest, stuck, information, initial) is { } outcome)
             {
-                return Collapsed(information, initial, p)
-                    ? Ended(CoxOutcome.Separated)
-                    : new CoxFit(CoxOutcome.Converged, coefficients, next, nullLogLikelihood, information);
+                return outcome == CoxOutcome.Converged
+                    ? new CoxFit(CoxOutcome.Converged, coefficients, next, nullLogLikelihood, information)
+                    : Ended(outcome);
             }
 
             if (iteration == maximumIterations && largest > RunawayStep && next - logLikelihood < StepTolerance)
@@ -119,7 +124,7 @@ internal static class CoxNewton
             logLikelihood = next;
         }
 
-        return Ended(CoxOutcome.Exhausted);
+        return Ended(Spent(information, initial, p));
     }
 
     /// <summary>lifelines' <c>_newton_raphson_for_efron_model</c>, step for step, for a penalty with an L1 part.</summary>
@@ -259,6 +264,57 @@ internal static class CoxNewton
         return diagonal;
     }
 
+    private static bool Settled(double[] score, double[] step, double logLikelihood) =>
+        Decrement(score, step) <= 1e-20 * Math.Max(1.0, Math.Abs(logLikelihood));
+
+    private static double Decrement(double[] score, double[] step)
+    {
+        double decrement = 0.0;
+        for (int j = 0; j < step.Length; j++)
+        {
+            decrement += score[j] * step[j];
+        }
+
+        return decrement;
+    }
+
+    /// <summary>How a Newton step of <paramref name="largest"/> ends the fit, or null where it goes on: a collapsed
+    /// information is a separation, a settled decrement or a step below the tolerance converges, and a search no
+    /// halving completed stalls.</summary>
+    private static CoxOutcome? Stopped(bool settled, double largest, bool stuck, double[] information, double[] initial)
+    {
+        int p = initial.Length;
+        settled |= largest < StepTolerance;
+        if (!stuck && !settled)
+        {
+            return null;
+        }
+
+        if (Collapsed(information, initial, p))
+        {
+            return CoxOutcome.Separated;
+        }
+
+        return settled ? CoxOutcome.Converged : CoxOutcome.Stalled;
+    }
+
+    /// <summary>Newton's step, or null where the information does not factor or the step leaves the doubles, from an
+    /// overflowing score or information: as singular as an unfactored one.</summary>
+    private static double[]? NewtonStep(double[] information, double[] score, int p)
+    {
+        if (!Cholesky.TryFactor(information, p, out double[] lower))
+        {
+            return null;
+        }
+
+        double[] step = Cholesky.Solve(lower, p, score);
+        return step.All(s => !double.IsNaN(s) && !double.IsInfinity(s)) ? step : null;
+    }
+
+    /// <summary>How a spent budget ends: a collapsed information is a plateau a coefficient runs along, separated (#1756).</summary>
+    private static CoxOutcome Spent(double[] information, double[] initial, int p) =>
+        Collapsed(information, initial, p) ? CoxOutcome.Separated : CoxOutcome.Exhausted;
+
     /// <summary>Whether any coefficient's information fell to a vanishing fraction of its value at zero.</summary>
     private static bool Collapsed(double[] information, double[] initial, int p)
     {
@@ -273,17 +329,48 @@ internal static class CoxNewton
         return false;
     }
 
-    /// <summary>Applies a Newton step and returns its largest component.</summary>
-    private static double Step(double[] coefficients, double[] step)
+    /// <summary>Applies the Newton step, halved while it lowers the penalised likelihood or leaves the finite values, by
+    /// the search it shares with ParametricNewton, NewtonSearch.Scale: taken whole, a 23-subject fit lifelines solves ran to β ≈ [164, 1906] and was refused
+    /// as separated (#1242). Returns Newton's whole step's largest component, so a halved one never reads as converged
+    /// nor a runaway as slowing, whether no halving kept the likelihood, the coefficients then left where they were, and
+    /// the likelihood reached.</summary>
+    private static (double Largest, bool Stuck, double Next) Halved(
+        IPartialLikelihood likelihood, double[] coefficients, double[] step, ElasticNet penalty, double current,
+        double[] score, double[] information)
     {
-        double largest = 0.0;
-        for (int j = 0; j < coefficients.Length; j++)
+        double[] start = [.. coefficients];
+        // The score and information at the start, restored where no halving holds: re-evaluating cost a pass of the data.
+        double[] startScore = [.. score];
+        double[] startInformation = [.. information];
+        double largest = step.Max(Math.Abs);
+
+        double next = current;
+        double scale = NewtonSearch.Scale(current, fraction =>
         {
-            coefficients[j] += step[j];
-            largest = Math.Max(largest, Math.Abs(step[j]));
+            for (int j = 0; j < step.Length; j++)
+            {
+                coefficients[j] = start[j] + (fraction * step[j]);
+            }
+
+            // A step halved below half an ulp of every coefficient no longer moves them: the halvings left would
+            // evaluate the start again.
+            if (coefficients.AsSpan().SequenceEqual(start))
+            {
+                return null;
+            }
+
+            next = Penalised(likelihood, coefficients, penalty, 1.0, score, information);
+            return next;
+        });
+        if (double.IsNaN(scale))
+        {
+            Array.Copy(start, coefficients, start.Length);
+            Array.Copy(startScore, score, score.Length);
+            Array.Copy(startInformation, information, information.Length);
+            return (largest, true, current);
         }
 
-        return largest;
+        return (largest, false, next);
     }
 }
 
