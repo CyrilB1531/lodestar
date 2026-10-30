@@ -17,7 +17,7 @@ internal static class Densities
     // and a gate at 1e-290 read FisherSnedecorPdf(0.1, 1e14, 200) 8e-5 off (#1708's Review A).
     private const double FrontFloor = NearZero.SmallestNormal;
 
-    // A chi-squared prefactor or an F front below it has an exponent past -69, whose rounding grows past 1e-14 (#1708).
+    // A chi-squared prefactor below it has an exponent past -69, whose rounding grows past 1e-14 (#1708).
     private const double LongExponent = 1e-30;
 
     // Both F shapes past it take the front in logs where it underflows: log B by log-gammas cancels against the powers.
@@ -28,21 +28,11 @@ internal static class Densities
     private const int MaxPowerParts = 4;
     private const double MaxLogPart = 600.0;
 
-    // Below it the F density takes 1/B as s e^(−log s B), log B being past 7 nats.
-    private const double ProductShape = 1e-3;
-
-    // e^-8: from ProductShape to Beta.SmallShape a front below it takes the product, its exponent's rounding past 1e-15:
-    // FisherSnedecorPdf(1e10, 0.002, 5) was 6e-15 off as one exponential, 5e-16 at a df an ulp under 0.002.
-    private const double SmallShapeFront = 3.3546262790251185e-4;
-
-    // The most factors SmallShapeFisher and LongFrontFisher form: three, and each power in up to MaxPowerParts parts.
+    // The most factors SmallShapeFisher forms: three, and each power in up to MaxPowerParts parts.
     private const int MaxFactors = 3 + (2 * MaxPowerParts);
 
     // Twice ExactHalf.Threshold, conservatively: below it the density takes x unhalved, as halving x rounds under the threshold.
     private const double SubnormalHalving = 2.0 * ExactHalf.Threshold;
-
-    // log(2 pi) / 2.
-    private const double HalfLogTwoPi = 0.9189385332046728;
 
     /// <summary>Student's t density at <paramref name="t"/> with <paramref name="df"/> degrees of freedom.</summary>
     internal static double Student(double t, double df)
@@ -52,21 +42,20 @@ internal static class Densities
             return double.NaN;
         }
 
-        // The two limits StudentSf takes (#1690's review): the normal law, and below Beta.SmallShape the constant
-        // from log(a B), since df/2 of a subnormal df rounds to zero and LogGammaHalfStep threw on it.
+        // The normal law from NormalLimitDf, as StudentSf takes it (#1690's review).
         if (df >= Beta.NormalLimitDf)
         {
             return Distributions.NormalPdf(t);
         }
-        double half = df / 2.0;
-        // Two log-gammas, not the inversion's -log B - log(df)/2: through Beta.LogBeta StudentPdf took 1.3 to 2 times as
-        // long, 54 to 71 ns at df 5.5 (Stopwatch; the #1690 spec has the run).
-        double logNormalizer = half < Beta.SmallShape
-            ? Beta.SmallStudentLogNormalizer(df)
-            : LogNormalizer(half, df);
-        // t^2/df overflowed past 1e308 and the density read 0, as scipy's t.pdf does: StudentPdf(1e140, 1e-30) for 5e-171.
-        double logDensity = logNormalizer - ((df + 1.0) / 2.0 * Beta.StudentLogOnePlusSquare(t, df));
-        return Math.Exp(logDensity);
+        if (double.IsInfinity(t))
+        {
+            return 0.0;
+        }
+        // The constant and log(1 + t²/df) in double-double: as one double exponential of some 620 nats StudentPdf(204.2,
+        // 240.09) read 1.5e-13 off, scipy's 1.8e-14 (#1745's Review A). t²/df's overflow takes its logarithms apart.
+        DoubleDouble logDensity = Beta.ExactStudentLogNormalizer(df)
+            - ((0.5 * DoubleDouble.Sum(df, 1.0)) * Beta.ExactStudentLogOnePlusSquare(t, df));
+        return DoubleDouble.ExpExact(logDensity).Rounded;
     }
 
     /// <summary>The F density at <paramref name="f"/>, through the beta density of <c>y = d₁f / (d₁f + d₂)</c>.</summary>
@@ -107,7 +96,7 @@ internal static class Densities
         return SmallShapeFisher(f, dfn, dfd, (a, b), y, oneMinusY, ExactHalf.Drop);
     }
 
-    /// <summary>The F density at a shape below ProductShape, times <paramref name="scale"/>.</summary>
+    /// <summary>The F density at a lifted df's shapes, times <paramref name="scale"/>.</summary>
     /// <remarks>
     /// <c>s y^a (1 − y)^b / (s B(a, b) f)</c>, s the smaller shape, as factors each a double, multiplied so every partial
     /// product stays normal and only the last rounds: through Front's <c>e^(−log B)</c> of some 600 it took 600 ulps, and
@@ -124,22 +113,6 @@ internal static class Densities
         factors[1] = scale;
         factors[2] = Math.Exp(-Beta.LogScaledBeta(small, Math.Max(a, b)));
         return SidesProduct(factors, 3, (f, dfn, dfd), shapes, (y, oneMinusY));
-    }
-
-    /// <summary>The F density past a front of LongExponent as SmallShapeFisher's product, <paramref name="logBeta"/> being
-    /// Front's <c>log B</c>: below SmallShape <c>log s + log B</c> cancels and <c>s B</c> takes LogScaledBeta.</summary>
-    /// <remarks>Its own method: a log B passed through SmallShapeFisher cost that density 24 of its 170 ns.</remarks>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static double LongFrontFisher(
-        double f, double dfn, double dfd, (double A, double B) shapes, double y, double oneMinusY, double logBeta)
-    {
-        if (Math.Min(shapes.A, shapes.B) < Beta.SmallShape)
-        {
-            return SmallShapeFisher(f, dfn, dfd, shapes, y, oneMinusY, 1.0);
-        }
-        Span<double> factors = stackalloc double[MaxFactors];
-        factors[0] = Math.Exp(-logBeta);
-        return SidesProduct(factors, 1, (f, dfn, dfd), shapes, (y, oneMinusY));
     }
 
     /// <summary>The leading factors times <c>y^a (1 − y)^b</c>, over f.</summary>
@@ -234,31 +207,24 @@ internal static class Densities
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static double FisherAt(double f, double dfn, double dfd, double a, double b)
     {
-        // The beta density of y times dy/df reduces to y^a (1-y)^b / (B(a, b) f), and Beta.Front forms
+        // The beta density of y times dy/df reduces to y^a (1-y)^b / (B(a, b) f), and the fronts form
         // that numerator from Stirling past shapes of ten, so no log-gamma of order n log n cancels.
-        (double y, double oneMinusY) = Beta.FisherSplit(f, dfn, dfd);
+        (DoubleDouble exactY, DoubleDouble exactOneMinusY, double y, double oneMinusY) = Beta.ExactFisherSplit(f, dfn, dfd);
         if (Beta.TakesLimit(y, oneMinusY))
         {
             return Beta.FisherDensityFromLimit(f, dfn, dfd, a, b, y);
         }
-        // Front's e^(−log B), log B some 100 nats at shapes 1e-25 and 1e-47, took 4.2e-14 (#1729's Review A). Past
-        // ProductShape it is under 8 nats, and LogScaledBeta's ten log1p steps took 2.4 times as long at dfs 0.1 and 3.
-        if (a < ProductShape || b < ProductShape)
+        // The 106-bit front, divided by f and rounded once, a shape below 1e-3 too: as doubles FisherSnedecorPdf(2e-6, 1e5,
+        // 1e-3) read 750 ulps off (#1746's Review A). A lifted df's half took LiftedFisher's forms before here.
+        if (a + b <= Beta.ExactExponentShapes || Math.Min(a, b) < Beta.StirlingMinimumShape)
         {
-            return SmallShapeFisher(f, dfn, dfd, (a, b), y, oneMinusY, 1.0);
+            return Beta.ExactFisherDensity(a, b, exactY, exactOneMinusY, f);
         }
         // Against the exact mean from f - 1, as the tail takes it: at shapes past 1e30 y's rounding is the law's width.
         double deviation = Beta.FisherDeviation(f, dfn, dfd, y);
-        bool small = Math.Min(a, b) < Beta.StirlingMinimumShape;
-        double logBeta = small ? Beta.LogBeta(a, b) : double.NaN;
-        double front = double.IsNaN(deviation) ? Beta.Front(a, b, y, oneMinusY, logBeta) : Beta.StirlingFront(a, b, y, oneMinusY, deviation);
-        // Front's one exponential of 200 nats took 4.2e-14 at FisherSnedecorPdf(1e10, 0.002, 30), where 0.0019 took products.
-        // Below LargeBothShapes 1/B is a double whatever the smaller shape below 10: Γ(10) 1000^-10 is 3.6e-25.
-        bool longFront = front < LongExponent || (front < SmallShapeFront && Math.Min(a, b) < Beta.SmallShape);
-        if (longFront && front >= FrontFloor && small && Math.Max(a, b) < LargeBothShapes)
-        {
-            return LongFrontFisher(f, dfn, dfd, (a, b), y, oneMinusY, logBeta);
-        }
+        // Past ExactExponentShapes Stirling's front against the deviation: there its exponent from the split no longer
+        // holds, 6.2e86 for 0 at dfs 1e300 and 0.5 and f = 1e-70.
+        double front = Beta.StirlingFront(a, b, y, oneMinusY, deviation);
         return front >= FrontFloor ? front / f : UnderflowedFisher(f, dfn, dfd, (a, b), y, oneMinusY, deviation);
     }
 
@@ -340,21 +306,6 @@ internal static class Densities
             return power * Gamma.ExpOverGamma(a, (-x / 2.0) - (a * Beta.Ln2));
         }
         return prefactor >= FrontFloor ? prefactor / x : Math.Exp(Gamma.LogStirlingPrefactor(a, x / 2.0) - Math.Log(x));
-    }
-
-    /// <summary><c>log Γ(h + ½) − log Γ(h) − ½ log(2h π)</c>, h = df/2, with the two <c>½ log h</c> cancelled by hand from a shape of 10.</summary>
-    /// <remarks>
-    /// Formed as a difference they were 23 each at df 1e19, and the density stepped 1.4e-15 crossing df 1e20, where it
-    /// becomes the normal one (#1690's review).
-    /// </remarks>
-    private static double LogNormalizer(double half, double df)
-    {
-        if (half < StirlingShape)
-        {
-            return Gamma.LogGamma(half + 0.5) - Gamma.LogGamma(half) - (0.5 * Math.Log(df * Math.PI));
-        }
-        return (half * NearZero.Log1P(0.5 / half)) - 0.5 - HalfLogTwoPi
-            + Gamma.LogStirlingCorrection(half + 0.5) - Gamma.LogStirlingCorrection(half);
     }
 
     /// <summary><c>y^(a−1) · (1−y)^b (y/f) / B(a, b)</c> where Front underflowed: the power by Math.Pow, the rest by one exponential.</summary>

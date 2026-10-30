@@ -44,9 +44,10 @@ public static class Distributions
     /// <remarks>
     /// A 95% interval takes <c>StudentQuantile(0.975, df)</c> as its multiplier; the endpoints
     /// answer the support's ends, <c>-∞</c> and <c>+∞</c>, as scipy's do (#1158).
-    /// <strong>This is the quantile, not the inverse survival function</strong> — the internal
-    /// helper solves <c>P(T &gt; x) = p</c> and carries the opposite sign, so the negation below
-    /// is the distribution's symmetry rather than a correction. The reference page has why.
+    /// <strong>This is the quantile, not the inverse survival function</strong>: the smallest
+    /// double whose lower tail reaches <paramref name="p"/>, judged on the smaller tail, where
+    /// <see cref="StudentIsf"/> is the smallest whose upper tail falls to it, one ulp apart where no
+    /// double's tail is p. The reference page has why, and its exceptions.
     /// </remarks>
     public static double StudentQuantile(double p, double df)
     {
@@ -58,7 +59,7 @@ public static class Distributions
         RequirePositive(df, nameof(df));
         // The + 0.0 turns the median's -0 into the +0 scipy's t.ppf and NormalQuantile return (#1690's review).
         return Endpoint(p, double.NegativeInfinity, double.PositiveInfinity)
-            ?? Unbounded(-Beta.StudentQuantile(p, df) + 0.0);
+            ?? StudentWithinTheDoubles(Beta.StudentLowerRoot(p, df) + 0.0, p, df, upper: false);
     }
 
     /// <summary>The former name of <see cref="FisherSnedecorSf"/>, which it calls.</summary>
@@ -207,7 +208,7 @@ public static class Distributions
         RequireProbability(p, nameof(p));
         RequirePositive(df, nameof(df));
         return Endpoint(p, double.PositiveInfinity, double.NegativeInfinity)
-            ?? Unbounded(Beta.StudentQuantile(p, df));
+            ?? StudentWithinTheDoubles(Beta.StudentUpperRoot(p, df), p, df, upper: true);
     }
 
     /// <summary>The <em>F</em> density.</summary>
@@ -247,7 +248,8 @@ public static class Distributions
     {
         RequireProbability(p, nameof(p));
         RequirePositiveDfs(numeratorDf, denominatorDf);
-        return Endpoint(p, 0.0, double.PositiveInfinity) ?? FisherQuantile.Invert(p, 1.0 - p, numeratorDf, denominatorDf);
+        return Endpoint(p, 0.0, double.PositiveInfinity)
+            ?? FisherWithinTheDoubles(FisherQuantile.Invert(p, givenLower: true, numeratorDf, denominatorDf), p, givenLower: true, numeratorDf, denominatorDf);
     }
 
     /// <summary>The <c>f</c> with <c>P(F &gt; f) = p</c>: the inverse of <see cref="FisherSnedecorSf"/>.</summary>
@@ -260,7 +262,8 @@ public static class Distributions
     {
         RequireProbability(p, nameof(p));
         RequirePositiveDfs(numeratorDf, denominatorDf);
-        return Endpoint(p, double.PositiveInfinity, 0.0) ?? FisherQuantile.Invert(1.0 - p, p, numeratorDf, denominatorDf);
+        return Endpoint(p, double.PositiveInfinity, 0.0)
+            ?? FisherWithinTheDoubles(FisherQuantile.Invert(p, givenLower: false, numeratorDf, denominatorDf), p, givenLower: false, numeratorDf, denominatorDf);
     }
 
     /// <summary>The chi-squared density.</summary>
@@ -319,18 +322,65 @@ public static class Distributions
         return ChiSquaredRoot.Invert(p, df, upper: true);
     }
 
-    /// <summary>A quantile the inversion capped at the largest double, answered as the infinity it stands for.</summary>
-    /// <remarks>
-    /// The inversion's growth stops at <see cref="double.MaxValue"/>, so a root past it, such as the
-    /// t quantile at <c>1e-300</c> on half a degree of freedom, near <c>1e600</c>, came back finite.
-    /// </remarks>
-    private static double Unbounded(double quantile)
+    /// <summary>A Student quantile <paramref name="t"/>, or AtTheEnd's double where it is infinite: by symmetry the smaller
+    /// tail at either end is the upper tail at the largest double; the caller's, Sf or Cdf at that end.</summary>
+    private static double StudentWithinTheDoubles(double t, double p, double df, bool upper)
     {
-        if (Math.Abs(quantile) < double.MaxValue)
+        if (!double.IsInfinity(t))
         {
-            return quantile;
+            return t;
         }
-        return quantile > 0.0 ? double.PositiveInfinity : double.NegativeInfinity;
+        double smaller = StudentSf(double.MaxValue, df);
+        // The caller's own tail is that one, by symmetry, unless it is the far side's, Isf at −∞ or the quantile at +∞, which
+        // is the lower tail at the largest double either way.
+        double callers = upper == t < 0.0 ? StudentCdf(double.MaxValue, df) : smaller;
+        return AtTheEnd(t, p, smaller, callers);
+    }
+
+    /// <summary>An F quantile <paramref name="f"/>, or AtTheEnd's double where it is +∞, from the tail FisherQuantile keeps,
+    /// the smaller target's, the caller's at a tie, and the caller's own.</summary>
+    private static double FisherWithinTheDoubles(double f, double p, bool givenLower, double numeratorDf, double denominatorDf)
+    {
+        if (!double.IsPositiveInfinity(f))
+        {
+            return f;
+        }
+        bool keepsLower = FisherQuantile.KeepsLower(givenLower ? p : 1.0 - p, givenLower ? 1.0 - p : p, givenLower);
+        double kept = keepsLower
+            ? FisherSnedecorCdf(double.MaxValue, numeratorDf, denominatorDf)
+            : FisherSnedecorSf(double.MaxValue, numeratorDf, denominatorDf);
+        // The caller's own tail read only where it is the other.
+        double callers = kept;
+        if (keepsLower != givenLower)
+        {
+            callers = givenLower
+                ? FisherSnedecorCdf(double.MaxValue, numeratorDf, denominatorDf)
+                : FisherSnedecorSf(double.MaxValue, numeratorDf, denominatorDf);
+        }
+        return AtTheEnd(f, p, kept, callers);
+    }
+
+    /// <summary>The largest double of <paramref name="root"/>'s sign where a tail there, as the public tails round it, is
+    /// its target: the smaller tail the smaller of <paramref name="p"/> and one less it, or the caller's own p; else the
+    /// infinite root (Cyril, 2026-10-29, #1746).</summary>
+    /// <remarks>
+    /// That tail rounds onto the target from short of it: judged before rounding, Isf(Sf(MaxValue, 0.5, 0.5)) answered +∞
+    /// where main answered the largest double. Equality, not reaching: -MaxValue's tail reaches every target below it,
+    /// whose root lies past the doubles (#1690). Either tail, so every round trip holds (Cyril, 2026-10-29): on the smaller
+    /// alone Isf(Sf(MaxValue)) read +∞ where Sf there passes one half; near one the caller's rounds 1e-16 wide, so
+    /// Q(1 − p) = −Q(p) can part there. Read only past the doubles, so no finite quantile pays for it.
+    /// </remarks>
+    private static double AtTheEnd(double root, double p, double smallerTail, double callersTail)
+    {
+        // S1244: the round trip's own doubles, compared bit for bit; a tail one ulp off is a root past the doubles.
+#pragma warning disable S1244
+        bool isTarget = smallerTail == Math.Min(p, 1.0 - p) || callersTail == p;
+#pragma warning restore S1244
+        if (!isTarget)
+        {
+            return root;
+        }
+        return root > 0.0 ? double.MaxValue : -double.MaxValue;
     }
 
     /// <summary>The answer at a closed endpoint of <c>[0, 1]</c>, or <see langword="null"/> inside it.</summary>

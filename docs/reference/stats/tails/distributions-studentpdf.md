@@ -23,7 +23,7 @@ double centre = Distributions.StudentPdf(0.0, 5.0);   // => 0.379606…
 double twoOut = Distributions.StudentPdf(2.0, 5.0);   // => 0.065090…
 ```
 
-**Remarks** — Formed in logs. Past ten degrees of freedom the ratio `Γ((ν+1)/2) / Γ(ν/2)` comes from Stirling's series rather than from two log-gammas of order `ν log ν` subtracted, which at a million degrees of freedom would lose six digits.
+**Remarks** — Formed in logs to 106 bits and rounded once: `log B(½, ν/2)`, whose large-shape form subtracts no two log-gammas of order `ν log ν`, and `log(1 + t²/ν)`, each in double-double. As one double exponential of some 620 nats, `StudentPdf(204.2, 240.09)` read 1.5e-13 off.
 
 **Applies to** — net10.0, netstandard2.0.
 

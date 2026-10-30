@@ -631,7 +631,7 @@ internal static class Gamma
     internal const double Stirling6 = -691.0 / 360360.0;
     internal const double Stirling7 = 1.0 / 156.0;
 
-    private static bool IsTemmeRegion(double a, double x) =>
+    internal static bool IsTemmeRegion(double a, double x) =>
         a > TemmeMinimumShape && Math.Abs(x - a) < TemmeMaximumDeviation * a;
 
     /// <summary>P(a, x) or Q(a, x) by Temme's uniform asymptotic expansion.</summary>

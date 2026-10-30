@@ -462,23 +462,30 @@ jobs:
       # integration puts them in is not worth a CI round-trip to discover.
       # Neither bucket has anything here to analyse.
       #
-      # cpd.exclusions covers the stemmers, and only them: CPD normalises every
-      # literal to one token before it compares, so two suffix tables of similar
-      # length are identical to it however different the suffixes are. Measured on
-      # #574 — the 105-token run it reported over Danish and Swedish is
-      # `$LIT or $LIT ... ; private static readonly string[] Step1Suffixes = [ $LIT,
-      # ... ]`, which is the s-ending predicate and the step 1 table, i.e. the two
-      # places those two languages differ most. A single ~35-entry table is already
-      # ~77 tokens, so no ordering of the members keeps two of them under the
-      # 100-token minimum; the duplication the shared shape really did carry was
-      # factored into ScandinavianSnowballWorker instead, which took the density
-      # from 11.0% to 7.7% before this. The exclusion below carries both the measurement and the
-      # scope. The Temme table is the other: twelve rows of 61 derived coefficients, every row
-      # `[ $LIT, $LIT, ... ]` to CPD, read the whole new-code density of #1729's pull request,
-      # 202 lines and 6.7%, all within the one file. Every other duplication finding in the
-      # repository still fails the gate — these are the files that are tables.
+      # cpd.exclusions covers three paths, the stemmer directory, TemmeSeries.Table.cs and
+      # Stats' TemmeSeries.Lows.cs, whose tables CPD cannot tell apart: it normalises every literal to one token
+      # before it compares, so two runs of literals of similar length are identical
+      # to it however different they are. The stemmer directory also holds code
+      # beside its tables, hidden with them: every stemmer's steps, their shared
+      # workers and PorterStemmer. Temme's table file holds the table alone, its
+      # code in TemmeSeries.cs, under the gate; the low parts' file its two
+      # one-line accessors and two constants beside them.
       #
-      # projectBaseDir is pinned because those two exclusions are *relative*: they
+      # The stemmers, measured on #574: the 105-token run it reported over Danish
+      # and Swedish is `$LIT or $LIT ... ; private static readonly string[]
+      # Step1Suffixes = [ $LIT, ... ]`, which is the s-ending predicate and the step
+      # 1 table, i.e. the two places those two languages differ most. A single
+      # ~35-entry table is already ~77 tokens, so no ordering of the members keeps
+      # two of them under the 100-token minimum; the duplication the shared shape
+      # really did carry was factored into ScandinavianSnowballWorker instead, which
+      # took the density from 11.0% to 7.7% before the exclusion.
+      #
+      # The Temme table, measured on #1729's pull request: twelve rows of 61 derived
+      # coefficients in one flat array, `$LIT, $LIT, ...` to CPD, made the whole
+      # new-code density, 202 lines and 6.7%, all within the one file. Every other
+      # duplicated block in the new code Sonar analyses still counts toward the gate.
+      #
+      # projectBaseDir is pinned because the exclusion patterns below are *relative*: they
       # are matched against whatever directory the scanner decided was the base,
       # and Scanner for .NET warns that its auto-detection of that directory
       # already changed once between major versions. Left implicit, an upgrade
@@ -538,7 +545,7 @@ jobs:
             /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,tests/**,.claude/**" \
             /d:sonar.exclusions="tests/oracles/**,samples/Lodestar.DocSnippets/Generated/**,tools/tests/**,assets/**,.claude/**" \
             /d:sonar.test.exclusions="tests/oracles/**" \
-            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**,src/Shared/TemmeSeries.cs"
+            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**,src/Shared/TemmeSeries.Table.cs,src/Lodestar.Stats/Internal/TemmeSeries.Lows.cs"
 
       - name: Build the solution
         run: dotnet build Lodestar.slnx --configuration Release
@@ -567,7 +574,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           for project in tests/Lodestar.*.Tests; do
-            case "$project" in *NetStandard*) continue ;; esac
+            case "$project" in *NetStandard*) continue ;; *) ;; esac
             name=$(basename "$project")
             mkdir -p "doc-tests/$name"
             rsync -a --exclude=docs/ --exclude=reference/ --exclude=oracles/ --exclude=runtimes/ \
@@ -712,18 +719,19 @@ jobs:
             class=""
           fi
           check() {
-            if [ "$2" = "success" ]; then
+            local job="$1" result="$2" skip="$3"
+            if [ "$result" = "success" ]; then
               return
             fi
-            if [ "$2" = "skipped" ] && [ "$3" = classified ] && [ -n "$class" ]; then
-              echo "$class pull request: $1 was skipped by design."
+            if [ "$result" = "skipped" ] && [ "$skip" = classified ] && [ -n "$class" ]; then
+              echo "$class pull request: $job was skipped by design."
               return
             fi
-            if [ "$2" = "skipped" ] && [ "$3" = "workflows-only" ] && [ "$WORKFLOWS_ONLY" = "true" ]; then
-              echo "No Markdown in this pull request: $1 was skipped by design."
+            if [ "$result" = "skipped" ] && [ "$skip" = "workflows-only" ] && [ "$WORKFLOWS_ONLY" = "true" ]; then
+              echo "No Markdown in this pull request: $job was skipped by design."
               return
             fi
-            echo "::error::$1 ended $2."
+            echo "::error::$job ended $result."
             status=1
           }
           check "Build, test, analyze" "$BUILD_TEST" classified

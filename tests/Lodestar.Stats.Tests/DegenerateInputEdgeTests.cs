@@ -442,16 +442,108 @@ public sealed class DegenerateInputEdgeTests
     }
 
     [Fact]
-    public void An_F_quantile_whose_target_the_flat_tail_meets_at_the_smallest_double_is_a_root()
+    public void An_F_quantile_on_a_flat_tail_is_an_end_unless_its_target_is_the_tail()
     {
-        // At two tiny dfs the lower tail is flat to its last ulp and falls by one; read strictly, the end check answered +∞
-        // for a target it met at the smallest double (#1729's Review A).
+        // The lower tail is b/(a + b) at every f; a target an ulp below, met at ε, read 1.0000007 (#1743). Before rounding
+        // it lies above its rounding at every f, so ε's tail is past that and the quantile is 0 (#1745's Review A).
         double p = Distributions.FisherSnedecorCdf(1.44e-190, 1e-300, 3.395841653944e-312);
-        double root = Distributions.FisherSnedecorQuantile(p, 1e-300, 3.395841653944e-312);
-        Assert.True(root == 0.0 || Math.Abs(Distributions.FisherSnedecorCdf(root, 1e-300, 3.395841653944e-312) - p) <= 1e-9 * p, $"root {root}");
+        Assert.Equal(p, Distributions.FisherSnedecorCdf(double.Epsilon, 1e-300, 3.395841653944e-312));
+        Assert.Equal(p, Distributions.FisherSnedecorCdf(double.MaxValue, 1e-300, 3.395841653944e-312));
+        Assert.True(ExactQuantileContract.FisherLowerReaches(double.Epsilon, 1e-300, 3.395841653944e-312, p));
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(p, 1e-300, 3.395841653944e-312));
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(3.3958416539320224e-12, 1e-300, 3.395841653944e-312));
 
-        // Past the plateau the tail never reaches the target, so the root lies past every double.
+        // Above the tail the target is never met, so the root lies past every double.
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(3.395841653932023e-12, 1e-300, 3.395841653944e-312));
         Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(3.395841654271607e-12, 1e-300, 3.395841653944e-312));
+
+        // Past the first order's reach the inversion's end check reads a flat tail met at ε as 0, where it read +∞ (#1729's
+        // Review A).
+        double flat = Distributions.FisherSnedecorCdf(double.Epsilon, 1e-20, 1.1e-11);
+        Assert.Equal(flat, Distributions.FisherSnedecorCdf(double.MaxValue, 1e-20, 1.1e-11));
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(flat, 1e-20, 1.1e-11));
+
+        // Judged on the caller's own side past one half, its plateau before rounding is below its rounding at every f, so no
+        // double reaches it (#1745's Review A); the largest, whose tail rounds to it, answers (#1746).
+        double large = Distributions.FisherSnedecorCdf(1.0, 3.395841653944e-312, 1e-300);
+        Assert.Equal(double.MaxValue, Distributions.FisherSnedecorQuantile(large, 3.395841653944e-312, 1e-300));
+        double upper = Distributions.FisherSnedecorSf(1.0, 1.9e-23, 1.9e-26);
+        double upperRoot = Distributions.FisherSnedecorIsf(upper, 1.9e-23, 1.9e-26);
+        Assert.Equal(ExactQuantileContract.FisherUpperReaches(double.MaxValue, 1.9e-23, 1.9e-26, upper), upperRoot <= double.MaxValue);
+        Assert.True(double.IsPositiveInfinity(upperRoot) || ExactQuantileContract.FisherUpperReaches(Math.Max(upperRoot, double.Epsilon), 1.9e-23, 1.9e-26, upper));
+        // One less a target an ulp below the tail rounds to one less the tail itself: only the caller's side parts them.
+        Assert.Equal(0.15254237288135594, Distributions.FisherSnedecorCdf(1.0, 1e-300, 1.8e-301));
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(0.15254237288135591, 1e-300, 1.8e-301));
+
+        // One df below 2^-1021 alone: the flat share, not the lifted tail scaled back.
+        foreach (double f in new[] { double.Epsilon, 1.0, double.MaxValue })
+        {
+            Assert.Equal(9.999999999999969e-286, Distributions.FisherSnedecorSf(f, 1e-310, 1e-25));
+        }
+        Assert.Equal(0.0, Distributions.FisherSnedecorIsf(1e-285, 1e-310, 1e-25));
+    }
+
+    [Fact]
+    public void The_F_law_at_shapes_below_the_first_orders_reach_is_monotone_and_inverts_to_its_tail()
+    {
+        // The fraction's two sides fell 3 ulps apart across y = ½, and main's tail here was 3 ulps off the 400-digit series'
+        // 3.671581579456564e-268 (#1743).
+        Assert.True(Distributions.FisherSnedecorCdf(0.138, 9.829125705138842e-20, 1.6085286591331236e-20)
+            <= Distributions.FisherSnedecorCdf(0.3236, 9.829125705138842e-20, 1.6085286591331236e-20));
+        Assert.Equal(3.671581579456564e-268, Distributions.FisherSnedecorCdf(1.9826540529802225e-268, 1.2061636154805542e-10, 4.428528112573702e-278));
+
+        // The inversion stopped within RootTolerance anywhere on a tail moving by a few ulps: the median of equal dfs read
+        // 0.99956, below the 0.99978 an ulp lower read, and a target the tail meets at ε read +∞.
+        Assert.Equal(0.5, Distributions.FisherSnedecorCdf(1.0, 1e-12, 1e-12));
+        Assert.Equal(1.0, Distributions.FisherSnedecorQuantile(0.5, 1e-12, 1e-12));
+        Assert.True(Distributions.FisherSnedecorQuantile(0.49999999999999994, 1e-12, 1e-12) <= 1.0);
+        Assert.True(Distributions.FisherSnedecorQuantile(0.50000000000000011, 1e-12, 1e-12) > 1.0);
+        // The smallest double whose tail before rounding reaches the target; the rounded tail at 1 sat above its own.
+        double met = Distributions.FisherSnedecorCdf(1.0, 1.9e-32, 1.9e-17);
+        double metRoot = Distributions.FisherSnedecorQuantile(met, 1.9e-32, 1.9e-17);
+        // No double reaches it before rounding; the largest, whose tail rounds to it, answers (Cyril, 2026-10-29, #1746).
+        Assert.Equal(double.MaxValue, metRoot);
+        Assert.False(metRoot > 0.0 && ExactQuantileContract.FisherLowerReaches(Math.BitDecrement(metRoot), 1.9e-32, 1.9e-17, met));
+        double upper = Distributions.FisherSnedecorSf(1.0, 1.9e-17, 1.9e-29);
+        double upperRoot = Distributions.FisherSnedecorIsf(upper, 1.9e-17, 1.9e-29);
+        Assert.True(double.IsPositiveInfinity(upperRoot) || ExactQuantileContract.FisherUpperReaches(Math.Max(upperRoot, double.Epsilon), 1.9e-17, 1.9e-29, upper));
+        Assert.False(upperRoot > 0.0 && ExactQuantileContract.FisherUpperReaches(Math.BitDecrement(upperRoot), 1.9e-17, 1.9e-29, upper));
+
+        // A subnormal df's rounded half moved the guess's share by far more than the slope, and the inversion it fell back to
+        // answered a double whose tail fell short (#1743's Review A).
+        double lone = Distributions.FisherSnedecorCdf(7.242828225307288e122, 1.0390523104750727e-11, 1.1403317e-317);
+        double loneRoot = Distributions.FisherSnedecorQuantile(lone, 1.0390523104750727e-11, 1.1403317e-317);
+        Assert.Equal(lone, Distributions.FisherSnedecorCdf(loneRoot, 1.0390523104750727e-11, 1.1403317e-317));
+        Assert.True(Distributions.FisherSnedecorCdf(BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(loneRoot) - 1), 1.0390523104750727e-11, 1.1403317e-317) < lone);
+
+        // Searched from the first order's root, the search's ends went untested: a target ε's tail is past read ε, not 0,
+        // and one past the largest double's MaxValue, not +∞.
+        double atSmallest = Distributions.FisherSnedecorCdf(double.Epsilon, 1e-12, 1e-12);
+        Assert.Equal(0.0, Distributions.FisherSnedecorQuantile(BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(atSmallest) - 1), 1e-12, 1e-12));
+        double atLargest = Distributions.FisherSnedecorCdf(double.MaxValue, 1e-12, 1e-12);
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(atLargest) + 1), 1e-12, 1e-12));
+    }
+
+    [Theory]
+    [InlineData(0.01, 0.01)]
+    [InlineData(1.06997e-5, 0.214987)]
+    [InlineData(0.5, 0.5)]
+    public void An_F_inverse_upper_tail_whose_target_is_the_tail_at_the_largest_double_is_a_double(double numeratorDf, double denominatorDf)
+    {
+        // The inversion overflowed past the largest double, whose upper tail is the target, and read +∞ (#1746).
+        double target = Distributions.FisherSnedecorSf(double.MaxValue, numeratorDf, denominatorDf);
+        double root = Distributions.FisherSnedecorIsf(target, numeratorDf, denominatorDf);
+        // The largest double too where its tail before rounding lies above its rounding, as at dfs (0.5, 0.5) (Cyril,
+        // 2026-10-29).
+        Assert.Equal(target, Distributions.FisherSnedecorSf(root, numeratorDf, denominatorDf));
+
+        // An ulp above it, the root's tail is the target, or, where no double's is, the root is the first reaching it.
+        double above = BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(target) + 1);
+        double next = Distributions.FisherSnedecorIsf(above, numeratorDf, denominatorDf);
+        double atNext = Distributions.FisherSnedecorSf(next, numeratorDf, denominatorDf);
+        double before = BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(next) - 1);
+        Assert.True(atNext <= above, $"root {next}");
+        Assert.True(atNext >= above || Distributions.FisherSnedecorSf(before, numeratorDf, denominatorDf) > above, $"root {next}");
     }
 
     [Fact]
@@ -585,6 +677,281 @@ public sealed class DegenerateInputEdgeTests
         // I_x(a, b) is past one half with b at least a, and near b/(a + b) below it; 1000-digit reference, 13 digits held.
         Assert.Equal(1.0, Distributions.FisherSnedecorSf(1e-300, 3.7, 1e-300), 3.3e-16);
         Assert.Equal(9.999999988486215e-291, Distributions.FisherSnedecorSf(1e300, 1e-300, 1e-10), 1e-303);
+    }
+
+    [Theory]
+    [InlineData(1e300, 1.9e5, 2e304, 1.0)]
+    [InlineData(1e300, 1e5, 1e305, 1.0)]
+    [InlineData(5e-324, 1.7e308, 1.0, 0.0)]
+    [InlineData(1.7e308, 10.0, 1.7e308, 1.0)]
+    [InlineData(1.7e308, 1000.0, 1.7e308, 1.0)]
+    public void An_overflowing_shape_product_leaves_the_f_tails_at_their_end(double f, double dfn, double dfd, double lower)
+    {
+        // a b past the largest double, and a shape times a logarithm, overflowed in double-double, whose ∞ − ∞ error read
+        // NaN where main's doubles flowed through exp to 0 or 1 (#1745's Review A).
+        Assert.Equal(lower, Distributions.FisherSnedecorCdf(f, dfn, dfd));
+        Assert.Equal(1.0 - lower, Distributions.FisherSnedecorSf(f, dfn, dfd));
+    }
+
+    [Fact]
+    public void A_df_whose_half_rounds_to_zero_keeps_the_inversion_root_at_a_subnormal_target()
+    {
+        // The Newton step's density took log B(0, b), which threw; a subnormal target keeps the inversion's root, inside a
+        // run of doubles at the target whose start the search took milliseconds to reach (#1745's Review A).
+        Assert.Equal(9.8663389555306772e147, Distributions.FisherSnedecorIsf(1e-321, double.Epsilon, 5));
+        Assert.Equal(1.0135471774354963e-148, Distributions.FisherSnedecorQuantile(1e-321, 5, double.Epsilon));
+    }
+
+    [Fact]
+    public void A_subnormal_target_searches_past_a_root_whose_tail_falls_short()
+    {
+        // The inversion's root, one, has an upper tail of one half; the next double's is zero.
+        Assert.Equal(1.0000000000000002, Distributions.FisherSnedecorIsf(5e-324, 1e300, 1e300));
+    }
+
+    [Theory]
+    [InlineData(3e-307, 0.3, 1e-307)]
+    [InlineData(2.7e-308, 3.7, 1e-307)]
+    [InlineData(1.3e-308, 3.7, 4.5e-308)]
+    public void The_F_tail_rises_near_the_smallest_normal_doubles(double from, double dfn, double dfd)
+    {
+        // The product's residual rounded to the subnormals there, and b times the front fell below them: over 20,000 ulps
+        // the tail fell 552 to 2,142 times (#1745's Review A).
+        double f = from;
+        double previous = Distributions.FisherSnedecorCdf(f, dfn, dfd);
+        for (int i = 0; i < 4000; i++)
+        {
+            f = Math.BitIncrement(f);
+            double tail = Distributions.FisherSnedecorCdf(f, dfn, dfd);
+            Assert.True(tail >= previous, $"fell at {f:R}");
+            previous = tail;
+        }
+    }
+
+    [Theory]
+    [InlineData(1.0, 0.5, 0.698878389158678)]
+    [InlineData(1.0, 3.7, 0.8109293001197738)]
+    [InlineData(0.5, 2.0, 0.6666666666666666)]
+    public void Student_larger_tail_is_rounded_once(double t, double df, double lower)
+    {
+        // One less the smaller tail before its rounding, against a 60-digit sum; rounded twice it read up to 4 ulps off.
+        Assert.Equal(lower, Distributions.StudentCdf(t, df));
+        Assert.Equal(lower, Distributions.StudentSf(-t, df));
+    }
+
+    [Fact]
+    public void Past_a_harmonic_shape_of_1000_the_F_quantile_keeps_the_inversion_root()
+    {
+        // The double fraction steps some 1e4 ulps between runs of f there; the search for the run took 59 us, scipy's 29.
+        Assert.Equal(1.0000793419837652, Distributions.FisherSnedecorQuantile(0.5094683656978739, 165557.4344487868, 8597663.01685013));
+    }
+
+    [Theory]
+    [InlineData(8.38769461692256, 52.34046127357577, 446.97820450138437, 2.2608091918231524e-39)]
+    [InlineData(0.6818319510262985, 329.278608780484, 743.0123651982178, 0.002246340662753896)]
+    public void The_F_density_takes_its_front_from_the_exact_split(double f, double dfn, double dfd, double density)
+    {
+        // A 50-digit density at the doubles themselves; from the rounded split the front read 442 and 424 ulps off,
+        // main 110 and 265 (#1745's Review A).
+        Assert.Equal(density, Distributions.FisherSnedecorPdf(f, dfn, dfd), 2e-16 * density);
+    }
+
+    [Theory]
+    [InlineData(0.5420006953841079, 0.019859971225212675)]
+    [InlineData(0.4210632003010545, 0.053)]
+    [InlineData(0.975, 1999.0)]
+    public void A_student_root_far_from_its_crossing_is_settled_by_further_newton_steps(double p, double df)
+    {
+        // 129 and 196 ulps off at the small dfs, past the window, and at df 1999 past one step's reach: the root was kept
+        // with a tail short of p, or 14 exact tails searched (#1745's Review A). Judged on the smaller tail.
+        double t = Distributions.StudentQuantile(p, df);
+        Func<double, bool> reaches = x => p <= 0.5
+            ? ExactQuantileContract.StudentLowerReaches(x, df, p)
+            : ExactQuantileContract.StudentUpperReaches(x, df, 1.0 - p);
+        Assert.True(reaches(t));
+        Assert.False(reaches(Math.BitDecrement(t)));
+    }
+
+    [Fact]
+    public void An_f_root_past_the_window_is_settled_by_further_newton_steps()
+    {
+        // 142 ulps off at dfs (0.0649, 0.240), whose root was kept with a tail short of p (#1745's Review A).
+        const double P = 0.6456600677434635;
+        double f = Distributions.FisherSnedecorQuantile(P, 0.0649, 0.240);
+        Assert.True(ExactQuantileContract.FisherUpperReaches(f, 0.0649, 0.240, 1.0 - P));
+        Assert.False(ExactQuantileContract.FisherUpperReaches(Math.BitDecrement(f), 0.0649, 0.240, 1.0 - P));
+    }
+
+    [Theory]
+    [InlineData(0.4998268366311668, 0.001, 0.001)]
+    [InlineData(0.2945541156514044, 0.001, 20.0)]
+    [InlineData(6.828857148687927e-78, 400.0, 0.5)]
+    [InlineData(6.832047447591412e-78, 1e5, 0.5)]
+    [InlineData(1e-10, 1e-12, 1e6)]
+    [InlineData(0.5, 0.05, 0.3)]
+    public void An_f_inverse_tail_in_a_wide_run_or_near_the_largest_double_is_the_smallest_reaching(double p, double dfn, double dfd)
+    {
+        // Runs of doubles sharing the tail wider than the window, and a density underflowing near the largest double, kept
+        // roots whose tail was past p, 1.9999999999996552 at the first (#1745's Review A).
+        double f = Distributions.FisherSnedecorIsf(p, dfn, dfd);
+        Assert.True(ExactQuantileContract.FisherUpperReaches(f, dfn, dfd, p));
+        Assert.False(ExactQuantileContract.FisherUpperReaches(Math.BitDecrement(f), dfn, dfd, p));
+    }
+
+    [Theory]
+    [InlineData(0.4996010777327141, 5000.0)]
+    [InlineData(0.4996, 0.7)]
+    [InlineData(0.49999999, 2000.0)]
+    public void A_student_inverse_tail_in_a_wide_run_or_near_the_largest_double_is_the_smallest_reaching(double p, double df)
+    {
+        // As the F's (#1745's Review A).
+        double t = Distributions.StudentIsf(p, df);
+        Assert.True(ExactQuantileContract.StudentUpperReaches(t, df, p));
+        Assert.False(ExactQuantileContract.StudentUpperReaches(Math.BitDecrement(t), df, p));
+    }
+
+    [Theory]
+    [InlineData(0.3, 1e300, 7.41691286169067e-08)]
+    [InlineData(30.0, 1e307, 0.007416912861689144)]
+    [InlineData(1.0, 1e307, 0.05562684646268078)]
+    public void The_F_chi_squared_limit_at_a_subnormal_half_rises_with_f(double dfn, double dfd, double f)
+    {
+        // As a double it fell up to 34 ulps between neighbouring f, and 2 where it met the 106-bit forms (#1746's Review A).
+        for (int i = 0; i < 64; i++)
+        {
+            double next = Math.BitIncrement(f);
+            Assert.True(Distributions.FisherSnedecorCdf(next, dfn, dfd) >= Distributions.FisherSnedecorCdf(f, dfn, dfd), $"f {f}");
+            f = next;
+        }
+    }
+
+    [Fact]
+    public void An_F_inverse_tail_of_the_largest_doubles_tail_past_one_half_is_that_double()
+    {
+        // Judged on the smaller tail alone, one less a target past one half missed the rounded lower tail, +∞ (Cyril,
+        // 2026-10-29, #1746's Review A).
+        const double a = 0.49610036947034547, b = 0.00038124907557019193;
+        Assert.Equal(double.MaxValue, Distributions.FisherSnedecorIsf(Distributions.FisherSnedecorSf(double.MaxValue, a, b), a, b));
+    }
+
+    [Fact]
+    public void The_F_law_below_the_first_orders_shapes_takes_one_form_on_both_sides_and_its_tie_on_the_callers()
+    {
+        // The own side alone in 106 bits jumped at ProductFloor, and the upper tail rose an ulp (#1746's Review A).
+        const double d = 1.2564049194572966e-11;
+        Assert.True(Distributions.FisherSnedecorSf(4.989600773836801e291, d, d) <= Distributions.FisherSnedecorSf(4.9896007738368e291, d, d));
+        Assert.True(Distributions.FisherSnedecorCdf(2.004168360008973e-292, d, d) >= Distributions.FisherSnedecorCdf(2.0041683600089726e-292, d, d));
+
+        // At one half the end judged the side the inversion does not keep: Isf(Sf(MaxValue)) read +∞, and the quantile
+        // MaxValue though the lower tail there is short of one half.
+        Assert.Equal(0.5, Distributions.FisherSnedecorSf(double.MaxValue, 1e-6, 9.992908456791932e-7));
+        Assert.Equal(double.MaxValue, Distributions.FisherSnedecorIsf(0.5, 1e-6, 9.992908456791932e-7));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorQuantile(0.5, 1e-6, 9.992908456791932e-7));
+    }
+
+    [Fact]
+    public void Log_beta_at_a_ratio_of_shapes_below_1e_minus_16_keeps_its_106_bits()
+    {
+        // log(1 + ratio) read on 1 + ratio lost the ratio's low part: 4e-17 off (#1746's Review A); log Γ(½) − ½ log b.
+        var value = Lodestar.Stats.Internal.DoubleDouble.LogBeta(0.5, 5e250);
+        Assert.Equal(-288.0554906375481, value.High);
+        Assert.Equal(1.4856592530925077e-14, value.Low, 1e-28);
+    }
+
+    [Fact]
+    public void The_F_law_at_shapes_past_2e305_keeps_its_ends_and_its_mirror()
+    {
+        // log Γ(s) and s log(s + o) each overflowed, and odds rounded to 0 at ε passed the limit's bound: NaN where main
+        // answered 0 and 1; a subnormal target kept a root 2 ulps short of 1, whose tail is 0 (#1746's Review A).
+        Assert.Equal(0.0, Distributions.FisherSnedecorCdf(double.Epsilon, 1e307, 1e308));
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(double.Epsilon, 1e307, double.MaxValue));
+        Assert.Equal(-1.6754985354208095e307, Lodestar.Stats.Internal.DoubleDouble.LogBeta(5e306, 5e307).High, 1e-14 * 1.7e307);
+        Assert.Equal(1.0, Distributions.FisherSnedecorQuantile(1e-310, 1e40, 1e41));
+        Assert.Equal(1.0, Distributions.FisherSnedecorQuantile(2.2e-308, 1e307, 2e307));
+        // The 106-bit chi-squared limit at a shape near 1e307 formed ∞ − ∞ and read NaN (#1746's Review A).
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(1e-300, 1e308, 1e300));
+        Assert.Equal(1.0, Distributions.FisherSnedecorCdf(1e300, 1e300, 1e308));
+
+        // The caller's side near one rounds 1e-16 wide: its round trip holds, and its mirror, judged on a finer tail, is ±∞
+        // (Cyril, 2026-10-29).
+        Assert.Equal(double.MaxValue, Distributions.FisherSnedecorQuantile(0.9999999999999999, 4.519e-12, 0.0392));
+        Assert.Equal(double.PositiveInfinity, Distributions.FisherSnedecorIsf(1.1102230246251565e-16, 4.519e-12, 0.0392));
+        Assert.Equal(double.MaxValue, Distributions.StudentQuantile(0.9999999999999999, 0.0506));
+        Assert.Equal(double.NegativeInfinity, Distributions.StudentQuantile(1.1102230246251565e-16, 0.0506));
+    }
+
+    [Theory]
+    [InlineData(0.05)]
+    [InlineData(0.1)]
+    [InlineData(0.7)]
+    public void A_student_quantile_whose_target_is_the_largest_doubles_rounded_tail_is_that_double(double df)
+    {
+        // That tail before rounding lies short of the target, the root past every double: ±∞, where main answered the
+        // largest double and the round trip expects it (Cyril, 2026-10-29, #1746). An ulp further, ±∞ stands.
+        double upper = Distributions.StudentSf(double.MaxValue, df);
+        double lower = Distributions.StudentCdf(-double.MaxValue, df);
+        Assert.False(ExactQuantileContract.StudentUpperReaches(double.MaxValue, df, upper));
+        Assert.Equal(double.MaxValue, Distributions.StudentIsf(upper, df));
+        Assert.Equal(-double.MaxValue, Distributions.StudentQuantile(lower, df));
+        Assert.Equal(double.PositiveInfinity, Distributions.StudentIsf(Math.BitDecrement(upper), df));
+        Assert.Equal(double.NegativeInfinity, Distributions.StudentQuantile(Math.BitDecrement(lower), df));
+    }
+
+    [Theory]
+    [InlineData(0.7, 0.001, 1e6)]
+    [InlineData(0.3, 10.0, 0.001)]
+    public void An_f_quantile_on_a_double_form_tail_is_searched_past_the_window(double p, double dfn, double dfd)
+    {
+        // A subnormal half's limit, whose tail is a double: the root was kept 1,522 and 1,397 ulps past the crossing.
+        double f = Distributions.FisherSnedecorQuantile(p, dfn, dfd);
+        Func<double, bool> reaches = x => p <= 0.5
+            ? ExactQuantileContract.FisherLowerReaches(x, dfn, dfd, p)
+            : ExactQuantileContract.FisherUpperReaches(x, dfn, dfd, 1.0 - p);
+        Assert.True(reaches(f));
+        Assert.False(reaches(Math.BitDecrement(f)));
+    }
+
+    [Fact]
+    public void An_f_tail_an_ulp_from_the_mean_at_large_dfs_keeps_its_deviation()
+    {
+        // ½ − 9.9e-15 by the log-F normal limit, off by order 1/d of the deviation; it read one half (#1745's Review A).
+        Assert.Equal(0.4999999999999901, Distributions.FisherSnedecorCdf(Math.BitDecrement(1.0), 2e5, 2e5));
+        Assert.Equal(0.5000000000000198, Distributions.FisherSnedecorCdf(Math.BitIncrement(1.0), 2e5, 2e5));
+    }
+
+    [Fact]
+    public void An_f_split_rounded_to_one_half_off_the_mean_keeps_its_deviation()
+    {
+        // At dfs of 1e308 the sum overflows and the split rounds to one half an ulp below f = 1, about 1e138 standard
+        // deviations from the mean: the symmetry's one half read there, where main read 0 and 1 (#1745's Review A).
+        Assert.Equal(0.0, Distributions.FisherSnedecorCdf(Math.BitDecrement(1.0), 1e308, 1e308));
+        Assert.Equal(1.0, Distributions.FisherSnedecorSf(Math.BitDecrement(1.0), 1e308, 1e308));
+    }
+
+    [Theory]
+    [InlineData(1e20)]
+    [InlineData(1e280)]
+    [InlineData(1e296)]
+    public void An_f_tail_at_a_huge_denominator_df_is_its_chi_squared_limit(double dfd)
+    {
+        // erfc(√5), 0.00156540225800254968: from the point's low part alone −log x drifted 4 ulps either way (#1745's Review A).
+        Assert.Equal(0.0015654022580025497, Distributions.FisherSnedecorSf(10, 1, dfd));
+    }
+
+    [Fact]
+    public void A_far_student_tail_is_rounded_once_and_falls_with_t()
+    {
+        // 1/(π 1e100); one double exponential of a rounded log read 25 ulps off and held flat for 150 ulps (#1745's Review A).
+        Assert.Equal(3.1830988618379067e-101, Distributions.StudentSf(1e100, 1));
+        double t = 1e100;
+        double previous = Distributions.StudentSf(t, 1);
+        for (int i = 0; i < 1000; i++)
+        {
+            t = Math.BitIncrement(t);
+            double tail = Distributions.StudentSf(t, 1);
+            Assert.True(tail <= previous);
+            previous = tail;
+        }
     }
 
     [Theory]

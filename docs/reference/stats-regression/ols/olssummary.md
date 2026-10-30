@@ -32,7 +32,7 @@ OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 1)
 double explained = summary.RSquared;              // => 0.9988392866011389
 double residualError = summary.ResidualStandardError;  // => 0.18016747059421467
 int degreesOfFreedom = summary.ResidualDegreesOfFreedom;  // => 6
-double overall = summary.FPValue;                 // => 4.88893361255519E-10
+double overall = summary.FPValue;                 // => 4.888933612555189E-10
 ```
 
 **Remarks** — **there is no public constructor.** A summary is what

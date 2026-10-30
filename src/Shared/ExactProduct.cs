@@ -10,6 +10,9 @@ internal static class ExactProduct
     // Past this an operand's product by Splitter overflows; it is scaled by 2^-600 first, exactly.
     private const double SplitLimit = 1e290;
 
+    // Past this Veltkamp's halves, each rounded up, can carry their own product past the largest double.
+    private const double LargeProduct = 1e307;
+
     // Below this a product's error terms, about 2^-106 of it, fall under the smallest normal double.
     private const double TinyProduct = 1e-275;
     private const double Scale = 2.409919865102884e-181;
@@ -42,6 +45,14 @@ internal static class ExactProduct
         {
             return minuend - product;
         }
+        // Within a few ulps of the largest double the halves' product overflowed and Residual(MaxValue, 1, MaxValue) read
+        // −∞: a quarter of the larger factor and of the minuend, exactly, and four times that residual.
+        if (Math.Abs(product) > LargeProduct)
+        {
+            return Math.Abs(left) >= Math.Abs(right)
+                ? Residual(minuend * 0.25, left * 0.25, right) * 4.0
+                : Residual(minuend * 0.25, left, right * 0.25) * 4.0;
+        }
         // An operand that would overflow its split trades 2^600 with the other, which is then below 1e19, so the product
         // and the minuend stay as they are: scaling the minuend with it underflowed a small one to zero (#1690's review).
         if (Math.Abs(left) > SplitLimit)
@@ -60,14 +71,37 @@ internal static class ExactProduct
                 ? Residual(minuend * Unscale, left * Unscale, right) * Scale
                 : Residual(minuend * Unscale, left, right * Unscale) * Scale;
         }
-        (double leftHigh, double leftLow) = Split(left);
-        (double rightHigh, double rightLow) = Split(right);
-        double error = (((leftHigh * rightHigh) - product) + (leftHigh * rightLow) + (leftLow * rightHigh)) + (leftLow * rightLow);
-        return (minuend - product) - error;
+        return (minuend - product) - DekkerError(product, left, right);
+#endif
+    }
+
+    /// <summary><c>left·right − product</c>, <paramref name="product"/> their rounded product: Residual negated, its guards
+    /// passed over in one test where the product and both operands lie inside Dekker's range. Through every guard each
+    /// double-double product cost the netstandard2.0 tails, FisherSnedecorIsf(1e-10, 1e-9, 1000) 43 us to scipy's 27.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static double ProductError(double product, double left, double right)
+    {
+#if NET
+        return Math.FusedMultiplyAdd(left, right, -product);
+#else
+        double magnitude = Math.Abs(product);
+        if (magnitude >= TinyProduct && magnitude <= LargeProduct && Math.Abs(left) <= SplitLimit && Math.Abs(right) <= SplitLimit)
+        {
+            return DekkerError(product, left, right);
+        }
+        return -Residual(product, left, right);
 #endif
     }
 
 #if !NET
+    /// <summary><c>left·right − product</c> by Veltkamp's halves, exact where the operands and product are in range.</summary>
+    private static double DekkerError(double product, double left, double right)
+    {
+        (double leftHigh, double leftLow) = Split(left);
+        (double rightHigh, double rightLow) = Split(right);
+        return (((leftHigh * rightHigh) - product) + (leftHigh * rightLow) + (leftLow * rightHigh)) + (leftLow * rightLow);
+    }
+
     private static (double High, double Low) Split(double value)
     {
         double scaled = Splitter * value;

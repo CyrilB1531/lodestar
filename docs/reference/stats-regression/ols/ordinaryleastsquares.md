@@ -20,7 +20,7 @@ OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 1)
 
 double slope = summary.Coefficients[1];        // => 1.9976190476190496
 double error = summary.StandardErrors[1];      // => 0.027800444266884012
-double significance = summary.PValues[1];      // => 4.888933612554946E-10
+double significance = summary.PValues[1];      // => 4.888933612554952E-10
 ```
 
 **Remarks** — the estimate is the cheap half. `1.9976` on its own says nothing about whether the

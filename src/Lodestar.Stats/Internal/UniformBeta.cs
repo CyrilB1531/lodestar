@@ -27,8 +27,16 @@ internal static class UniformBeta
     internal static bool Holds(double a, double b) => a >= MinimumShape && b >= MinimumShape;
 
     /// <summary>I_x(a, b), given y = 1 − x as the caller formed it, and x's distance from the exact mean, or NaN to take it from x.</summary>
-    internal static double Regularized(double a, double b, double x, double y, double deviation)
+    internal static double Regularized(double a, double b, double x, double y, double deviation) =>
+        ExactRegularized(a, b, x, y, deviation, new DoubleDouble(double.NaN, 0.0), out _).Rounded;
+
+    /// <summary>The same with <c>s η²/2</c> given, or NaN to take it here: F's and Student's split form it from their point
+    /// to some 106 bits, which a rounded x moves by its ulp times the shapes, tens of ulps of the tail at 1e6 (#1745). Left
+    /// unrounded where given, for the quantiles' Newton steps toward the target; <paramref name="inDouble"/> where a
+    /// double form gave it instead.</summary>
+    internal static DoubleDouble ExactRegularized(double a, double b, double x, double y, double deviation, DoubleDouble givenExponent, out bool inDouble)
     {
+        inDouble = true;
         double s = a + b;
         double p = a / s;
         double q = b / s;
@@ -36,17 +44,35 @@ internal static class UniformBeta
 
         // delta and s eta^2 / 2 from Beta.ShapeExponent, one side for both, so exchanging the shapes and points only
         // negates delta: a delta of zero beside a nonzero exponent read both tails as one at shapes (2e108, 5e106).
-        double exponent = Math.Max(-Beta.ShapeExponent(a, b, x, y, deviation, out double delta), 0.0);
+
+        // Not with a NaN deviation, whose sign from the rounded x can part from the given exponent's within half an ulp of
+        // the mean, the tail then on the far side of one half (#1746's Review A).
+        bool given = !double.IsNaN(givenExponent.High) && !double.IsNaN(deviation);
+        double delta = deviation;
+        double exponent;
+        if (given)
+        {
+            // Given with the deviation, ShapeExponent's delta: F's is NaN only at a lifted df, never at these shapes.
+            // A negative rounding clamped, as Math.Max does below; a NaN is not given, and the double form stands.
+            givenExponent = givenExponent.High < 0.0 ? new DoubleDouble(0.0, 0.0) : givenExponent;
+            exponent = givenExponent.High;
+            // Its ends and NaN too are no double form's.
+            inDouble = false;
+        }
+        else
+        {
+            exponent = Math.Max(-Beta.ShapeExponent(a, b, x, y, deviation, out delta), 0.0);
+        }
         // Past FarExponent both terms underflow, and 2 exponent / s overflowed past 9e307 into NaN: F's tail at
         // (7.6e-132, 1.9e306, 5e232) read NaN for 1 (#1690's review).
         if (exponent > FarExponent)
         {
-            return delta < 0.0 ? 0.0 : 1.0;
+            return new DoubleDouble(delta < 0.0 ? 0.0 : 1.0, 0.0);
         }
         // A NaN y, which RegularizedIncomplete does not validate, answers NaN as the fraction did: Math.Sign throws on it.
         if (double.IsNaN(delta) || double.IsNaN(exponent))
         {
-            return double.NaN;
+            return new DoubleDouble(double.NaN, 0.0);
         }
         double eta = Math.Sign(delta) * Math.Sqrt(2.0 * exponent / s);
 
@@ -57,9 +83,17 @@ internal static class UniformBeta
         double small = Math.Min(a, b);
         double remainder = k * ((h0 / small) + (h1 / small / small));
 
-        // erfc(|eta| sqrt(s/2)) from its square, s eta^2 / 2, so the exponent is not rounded twice.
+        // erfc(|eta| sqrt(s/2)) from its square, s eta^2 / 2, so the exponent is not rounded twice; given to some 106
+        // bits, in double-double, and the tail rounded once.
+        if (given)
+        {
+            DoubleDouble exactTail = 0.5 * DoubleDouble.ErfcOfSquareRoot(givenExponent);
+            return delta < 0.0
+                ? exactTail - new DoubleDouble(remainder, 0.0)
+                : new DoubleDouble(1.0, 0.0) - exactTail - new DoubleDouble(remainder, 0.0);
+        }
         double tail = 0.5 * Normal.ErfcOfSquareRoot(exponent);
-        return delta < 0.0 ? tail - remainder : 1.0 - tail - remainder;
+        return new DoubleDouble(delta < 0.0 ? tail - remainder : 1.0 - tail - remainder, 0.0);
     }
 
     /// <summary>m h₀ and m² h₁ at η, m = min(p, q): by their series in t = δ/m near the mean, directly away from it.</summary>

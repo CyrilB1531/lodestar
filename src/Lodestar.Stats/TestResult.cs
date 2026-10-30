@@ -72,19 +72,20 @@ public sealed record TTestResult(double Statistic, double PValue, double Degrees
         };
     }
 
-    /// <summary>The upper Student quantile of what lies outside <paramref name="level"/>, half of it two-sided: one-sided
-    /// below one half by symmetry from the level itself, where <c>1 − level</c> rounded to one below 2^-53 and was
-    /// refused under a parameter the caller never passed, and kept six digits at 1e-10 (#1729's Review A).</summary>
+    /// <summary>The upper Student quantile of what lies outside <paramref name="level"/>, half of it two-sided; one-sided
+    /// the quantile at the level itself, as <c>1 − level</c> rounded to one below 2^-53 and was refused under a parameter
+    /// the caller never passed, and kept six digits at 1e-10 (#1729's Review A).</summary>
     private double StudentMultiplier(double level)
     {
-        // The inversion's own root, finite at its cap as main read it, not the public quantile's ±∞ there.
+        // ±∞ where the root lies past every double, as the public quantile's: main's inversion stopped at the largest double
+        // and read a finite interval for a level no double reaches (#1745's Review A).
         if (Alternative == Alternative.TwoSided)
         {
-            return Internal.Beta.StudentQuantile((1.0 - level) / 2.0, DegreesOfFreedom);
+            return CriticalValue.TwoSidedStudent(level, DegreesOfFreedom);
         }
-        return level < 0.5
-            ? -Internal.Beta.StudentQuantile(level, DegreesOfFreedom)
-            : Internal.Beta.StudentQuantile(1.0 - level, DegreesOfFreedom);
+        // The lower quantile at the level itself, at every level: it keeps its digits below one half, where 1 − level
+        // rounds, and above it judges the smaller tail as the upper root at one less it does (#1745's Review A).
+        return Distributions.StudentQuantile(level, DegreesOfFreedom);
     }
 }
 

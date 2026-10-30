@@ -77,9 +77,9 @@ public static partial class Spearman
         {
             // Sf(-t) rather than 1 - Sf(t): the far tail is where the complement of a value
             // near one has no bits left to lose.
-            Alternative.Less => Beta.StudentSf(-t, dof),
-            Alternative.Greater => Beta.StudentSf(t, dof),
-            Alternative.TwoSided => 2.0 * Beta.StudentSf(Math.Abs(t), dof),
+            Alternative.Less => Beta.DoubleFormStudentSf(-t, dof),
+            Alternative.Greater => Beta.DoubleFormStudentSf(t, dof),
+            Alternative.TwoSided => 2.0 * Beta.DoubleFormStudentSf(Math.Abs(t), dof),
             _ => throw new ArgumentOutOfRangeException(nameof(alternative), alternative, null),
         };
     }

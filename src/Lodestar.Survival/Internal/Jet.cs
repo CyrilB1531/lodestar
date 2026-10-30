@@ -172,7 +172,7 @@ internal sealed class Jet
     public static Jet NormalLogPdf(Jet u) => Apply(u, Special.NormalLogPdf(u.Value), -u.Value, -1.0);
 
     /// <summary><c>log Γ(u)</c>.</summary>
-    public static Jet LogGamma(Jet u) => Apply(u, Special.LogGamma(u.Value), Special.Digamma(u.Value), Special.Trigamma(u.Value));
+    public static Jet LogGamma(Jet u) => Apply(u, Special.LogGamma(u.Value), Special.Digamma(u.Value), Trigamma.Of(u.Value));
 
     /// <summary>
     /// <c>log Q(a, x)</c> or <c>log P(a, x)</c>, the regularized incomplete gamma, clipped to <c>[1e-35, 1 − 1e-35]</c>

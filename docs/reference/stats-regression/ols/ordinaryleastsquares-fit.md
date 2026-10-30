@@ -54,7 +54,7 @@ double[] response = [2.2, 4.1, 6.3, 7.9, 10.2, 12.1, 14.3, 15.9, 18.2, 20.1];
 OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 2);
 
 double explained = summary.RSquared;               // => 0.9995494585696385
-double firstP = summary.PValues[1];                // => 0.13402447032529333
+double firstP = summary.PValues[1];                // => 0.13402447032529347
 double firstVif = summary.VarianceInflationFactors[0];  // => 59483.30118126556
 ```
 

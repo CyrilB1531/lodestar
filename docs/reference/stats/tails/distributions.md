@@ -17,7 +17,7 @@ using Lodestar.Stats;
 
 // A t of 2.0 on 12 residual degrees of freedom.
 double twoSided = 2.0 * Distributions.StudentSf(2.0, 12.0);   // => 0.0686550…
-double multiplier = Distributions.StudentQuantile(0.975, 12.0); // => 2.1788128296672298
+double multiplier = Distributions.StudentQuantile(0.975, 12.0); // => 2.1788128296672284
 
 // And the overall F test of a model with two regressors and twenty residual df.
 double overall = Distributions.FisherSnedecorSf(4.0, 2.0, 20.0);        // => 0.0345716…

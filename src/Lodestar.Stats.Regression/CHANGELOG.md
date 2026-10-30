@@ -16,6 +16,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- The fits' Student and F p-values and their intervals' Student multipliers take `Lodestar.Stats`' regularized incomplete beta to 106 bits, which moves them toward the exact tail by up to some 900 ulps. ([#1745](https://github.com/CyrilB1531/lodestar/issues/1745))
 - `OrdinaryLeastSquares.Fit`, `GeneralizedLinearModel.Fit`, `MultinomialLogit.Fit` and the instrumental-variables and panel fits keep their interval multiplier's digits at a confidence level near one, which moves an ordinary level's by a few ulps toward the exact quantile. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
 - `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` refuse a copy past one array — the design with its intercept column, which a design that fits one array can pass, and the VIFs' copy or the GLS covariance, which only a span over native memory reaches — where the copy failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `InstrumentalVariables` and `PanelRegression` count their columns in `long`, so column counts near `int.MaxValue` over no rows are refused as leaving no residual degree of freedom where their sum wrapped negative and passed. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))

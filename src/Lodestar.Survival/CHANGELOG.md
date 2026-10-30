@@ -17,6 +17,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- `ParametricSurvival`'s generalized gamma fit takes the trigamma it now shares with `Lodestar.Stats`, which moves its standard errors by about 1e-9 relative. ([#1746](https://github.com/CyrilB1531/lodestar/issues/1746))
 - `log1p` and `expm1` come from the one implementation `Lodestar.Preprocessing`, `Lodestar.Stats`, `Lodestar.Survival` and `Lodestar.Metrics` share, which can move a value by an ulp. ([#1230](https://github.com/CyrilB1531/lodestar/issues/1230))
 - `Lodestar.Survival` needs the next `Lodestar.Stats`, for the normal and chi-squared tails the parametric fits read. ([#1172](https://github.com/CyrilB1531/lodestar/issues/1172))
 - The `Lodestar.Stats` dependency floor rises from 0.4.0 to 0.5.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
