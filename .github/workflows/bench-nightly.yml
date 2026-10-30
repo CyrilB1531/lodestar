@@ -69,7 +69,7 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0   # the baseline commit is read from the previous page
+          fetch-depth: 0   # the previous page's baseline commit is compared and diffed against
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -78,6 +78,13 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+
+      # Cloned before the baseline, which reads the last night's page from it (#1754), and so the
+      # aggregate below can read this repo's history and land in the same pull request as tonight's page.
+      - name: Clone the wiki
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
 
       # An absent or unreadable baseline means "we do not know what moved", and the safe
       # reading of not knowing is to measure everything -- select_benchmarks.py does that.
@@ -95,9 +102,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$TARGET_REF" = "main" ]; then
-            # The page's baseline, what it owes (#650) and what it cut, which only orders tomorrow's
-            # selection: a page a night old, its pull request unmerged, costs minutes, not a verdict.
-            python tools/render_nightly.py --markers | tee -a "$GITHUB_OUTPUT"
+            # The last night's baseline, what it owes (#650) and what it cut, from its wiki commit: main's
+            # page waits for its pull request, and the nights after re-measured its classes (#1754).
+            python tools/render_nightly.py --markers --wiki wiki | tee -a "$GITHUB_OUTPUT"
           else
             git fetch origin main --quiet
             sha=$(git merge-base origin/main HEAD)
@@ -300,12 +307,9 @@ jobs:
             --cut $(sort -u cut.txt 2>/dev/null | tr '\n' ' ') \
             $branch_flag
 
-      # Cloned here, ahead of "Open the pull request", so the aggregate below can read
-      # this repo's history and land in the same pull request as tonight's own page.
-      - name: Clone the wiki
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+      # Cloned hours ago for the baseline: a wiki.yml publish since then would reject the push below.
+      - name: Bring the wiki up to date
+        run: git -C wiki pull --ff-only --quiet
 
       # The nightly's memory (#672). Tonight is compared with the series before it joins it, so a
       # reading is never measured against itself; the section this appends to the page, the job

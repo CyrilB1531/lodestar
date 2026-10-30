@@ -248,7 +248,10 @@ given:
   and `--baseline` with the run's two shas, `--runner` for the label, and
   `--selected`/`--harnesses` for what the night measured, `--owed`, `--cut` and
   `--failed` for what it carries or reports; `--markers` prints the page's baseline, owed list and
-  cut as `GITHUB_OUTPUT` lines (#1694). `--branch` writes the
+  cut as `GITHUB_OUTPUT` lines (#1694). With `--wiki <clone>` it reads them from whichever page's
+  baseline is furthest along `main`'s history, among the wiki's night commits and the page under
+  `docs/guides/`, which moves only when a night's pull request is merged
+  ([#1754](https://github.com/CyrilB1531/lodestar/issues/1754)). `--branch` writes the
   copy under `docs/guides/branch/` instead, which is what a
   `workflow_dispatch` off another ref uses so its numbers never touch the page a
   merge into `main` could carry along

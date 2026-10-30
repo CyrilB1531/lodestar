@@ -36,7 +36,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 PAGE = ROOT / "docs" / "guides" / "benchmark_latest.md"
 BRANCH_PAGE = ROOT / "docs" / "guides" / "branch" / "benchmark_latest.md"
 
-WIKI_PAGE = "nightly_run.md"
+WIKI_PAGE = rn.PAGE.name
 
 HEADER = "# Latest known benchmark result, per method"
 
@@ -72,10 +72,7 @@ def commits(wiki: pathlib.Path, limit: int) -> list[str]:
 
 def show(wiki: pathlib.Path, sha: str) -> str:
     """The page as it stood at one commit, or empty when that revision lacked it."""
-    out = subprocess.run(
-        ["git", "show", f"{sha}:{WIKI_PAGE}"],
-        cwd=wiki, capture_output=True, text=True, check=False)
-    return out.stdout if out.returncode == 0 else ""
+    return rn.wiki_show(wiki, sha)
 
 
 def commit_date(wiki: pathlib.Path, sha: str) -> str:
