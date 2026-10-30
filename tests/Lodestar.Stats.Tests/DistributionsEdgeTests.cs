@@ -1183,14 +1183,14 @@ public sealed class DistributionsEdgeTests
     }
 
     [Theory]
-    [InlineData(30.0, 4.906713927148187e-198)]
-    [InlineData(37.0, 5.72557122252457682e-300)]
-    public void The_normal_far_tail_holds_its_exponent(double z, double sf)
+    [InlineData(30.0, 4.906713927148187e-198, 4.906713927148197e-198)]
+    [InlineData(37.0, 5.72557122252457682e-300, 5.7255712225246036e-300)]
+    public void The_normal_far_tail_holds_its_exponent(double z, double sf, double student)
     {
-        // Q(z) to 20 digits. Through z / sqrt 2 the exponent took that quotient's rounding twice, 1.1e-13 of Q(37), and
-        // Student's tail jumped by that much crossing df 1e20, where it becomes this one (#1690's review).
+        // Q(z) to 20 digits, and Student's at df 1e20 with its term in 1/df, in 70: through z / sqrt 2 the exponent took
+        // that quotient's rounding twice, 1.1e-13 of Q(37), and Student's tail jumped by it there (#1690's review).
         Assert.Equal(sf, Distributions.NormalSf(z), 2e-15 * sf);
-        Assert.Equal(sf, Distributions.StudentSf(z, 1e20), 2e-15 * sf);
+        Assert.Equal(student, Distributions.StudentSf(z, 1e20), 2e-15 * sf);
     }
 
     [Fact]

@@ -26,7 +26,7 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-AftSummary fit = AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, featureCount: 1);
+AftSummary fit = AcceleratedFailureTime.Fit(dose, months, died, featureCount: 1, AftModel.Weibull);
 
 double[] medians = fit.PredictMedian([0.0, 2.0]);
 double untreated = Math.Round(medians[0], 6);   // => 19.598539

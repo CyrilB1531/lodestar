@@ -3,13 +3,13 @@ using Lodestar.Survival;
 namespace Lodestar.Sample;
 
 /// <summary>Everything a parametric fit reports: its parameter table, its curves and their bands.</summary>
-internal static class ParametricFitSample
+internal static class ParametricSummarySample
 {
     public static void Run()
     {
-        Console.WriteLine("ParametricFit (Lodestar.Survival)");
+        Console.WriteLine("ParametricSummary (Lodestar.Survival)");
 
-        ParametricFit fit = ParametricSurvival.Fit(ParametricModel.LogNormal, Trial.TreatmentDurations, Trial.TreatmentObserved);
+        ParametricSummary fit = ParametricSurvival.Fit(Trial.TreatmentDurations, Trial.TreatmentObserved, ParametricModel.LogNormal);
         for (int j = 0; j < fit.Parameters.Count; j++)
         {
             Console.WriteLine(
@@ -18,7 +18,7 @@ internal static class ParametricFitSample
                 + $"[{Inv.F3(fit.ConfidenceLower[j])}, {Inv.F3(fit.ConfidenceUpper[j])}]");
         }
 
-        Console.WriteLine($"  {fit.Model} fit    : log-likelihood {Inv.F4(fit.LogLikelihood)}, AIC {Inv.F4(fit.Aic)} at {Inv.F3(fit.ConfidenceLevel)}");
+        Console.WriteLine($"  {fit.Model} fit    : log-likelihood {Inv.F4(fit.LogLikelihood)}, AIC {Inv.F4(fit.Akaike)} at {Inv.F3(fit.ConfidenceLevel)}");
         double[] weeks = [10.0, 20.0];
         double[] survival = fit.Survival(weeks);
         double[] cumulative = fit.CumulativeHazard(weeks);

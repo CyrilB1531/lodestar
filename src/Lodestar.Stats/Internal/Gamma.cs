@@ -3,7 +3,7 @@ namespace Lodestar.Stats.Internal;
 /// <summary>The log-gamma function and the two regularized incomplete gammas.</summary>
 /// <remarks>
 /// Lanczos (1964) for the log-gamma; the series-below / continued-fraction-above split, by
-/// modified Lentz (1976), for the incomplete pair -- except <c>Q</c> at an integer or half-integer
+/// Steed's forward sum and its tail read backward, for the incomplete pair -- except <c>Q</c> at an integer or half-integer
 /// shape, a finite sum (<see cref="HalfIntegerQ"/>), and a large shape near its mean, Temme's
 /// expansion (<see cref="Temme"/>). No reference implementation is transcribed (ADR 0002). The
 /// upper tail <c>Q</c> is a chi-square p-value: with <c>a = dof/2</c>, <c>x = statistic/2</c>,
@@ -35,10 +35,6 @@ internal static class Gamma
 
     // 2^-56, an eighth of the ulp of doubles in [1/2, 1): a P term below it cannot move 1 − P where Q is near one.
     private const double OneMinusPFloor = 1.3877787807814457e-17;
-
-    // A floor well above where the recurrence's denominator would underflow: Lentz
-    // divides by it, so a zero one is nudged here instead of an infinity that never recovers.
-    private const double Tiny = 1e-300;
 
     // At 2a = 100 the sum beat the iteration at x = a and x = 2a (default job: 44 vs 177 and 71 ns,
     // a short run had the fraction ahead at 160). Past x = 700 e^-x nears the subnormals, Q need not.
@@ -74,6 +70,30 @@ internal static class Gamma
     // Stirling's correction is within 3e-17 of log Gamma*(a) from here, while the Lanczos
     // prefactor a log x - x - log Gamma(a) cancels a digit per decade of a log a.
     internal const double StirlingMinimumShape = 10.0;
+
+    // Between these x PowerPrefactor reads below a shape of 10: x^a stays inside the normal doubles, and past e^750 the tail
+    // has underflowed anyway.
+    private const double PowerPrefactorLowest = 1e-20;
+    private const double PowerPrefactorHighest = 1e20;
+
+    // Past it e^-x nears the subnormals, and is taken in two halves about the rest so a subnormal product rounds once.
+    private const double HalvedDecayFrom = 700.0;
+
+    // Inside this reach the series' first dropped term is 3e-21 of the exponent.
+    private const double ExcessSeriesReach = 1e-5;
+
+    // From here Q past x = a reads the fraction, read back from its tail, and not 1 − P: Q fell to 0.02 near a + 1.
+    private const double FractionFrom = 0.8;
+
+    // Up to this many terms the forward sum holds 4 ulps; the backward pass takes a quarter as many again, and a margin.
+    private const int ForwardFractionSteps = 24;
+    private const int ForwardFractionMargin = 4;
+
+    // Below this x, a at most x as every caller has it, 90/x + 6 terms read the fraction to 4.3 ulps, and its terms are known
+    // without the forward pass, which cost twice its time.
+    private const double TailFractionBelow = 4.0;
+    private const double TailFractionTerms = 90.0;
+    private const int TailFractionMargin = 6;
 
     // Below it the series for log(1 + t) - t takes at most 16 terms; above it the logarithm's
     // rounding costs under 2e-15 of t^2 / 2.
@@ -155,7 +175,7 @@ internal static class Gamma
 
         if (x >= a + 1.0)
         {
-            return 1.0 - ContinuedFractionQ(a, x);
+            return OneLess(ContinuedFraction(a, x), a, x);
         }
         return a < SmallShape ? SmallShapeTail(a, x, upper: false) : SeriesP(a, x);
     }
@@ -442,14 +462,20 @@ internal static class Gamma
             return Temme(a, x, upper: true);
         }
 
-        if (x >= a + 1.0)
+        if (x >= a + 1.0 || FractionReads(a, x))
         {
             return ContinuedFractionQ(a, x);
         }
-        return a < SmallShape ? SmallShapeTail(a, x, upper: true) : 1.0 - SeriesP(a, x);
+        return a < SmallShape || TailSeriesHolds(a, x) ? SmallShapeTail(a, x, upper: true) : OneLess(SeriesSum(a, x), a, x);
     }
 
-    /// <summary>Q(a, x), or P when not <paramref name="upper"/>, below SmallShape and below <c>x = a + 1</c>, where <c>1 − P</c> cancels.</summary>
+    private static bool FractionReads(double a, double x) => x >= FractionFrom && x >= a;
+
+    // Below FractionFrom, where the fraction needs too many terms: a P within 0.67 of its x^a / Γ(1 + a) leaves little of 1 − P.
+    private static bool TailSeriesHolds(double a, double x) =>
+        x < FractionFrom && (x > 0.5 ? a <= 1.1 * x : a * Math.Log(x) >= -0.4);
+
+    /// <summary>Q(a, x), or P when not <paramref name="upper"/>, below <c>x = a + 1</c> where <c>1 − P</c> cancels.</summary>
     /// <remarks>
     /// <c>P = x^a / Γ(1 + a) · (1 + a T)</c>, <c>T = Σ (−x)^n / ((a + n) n!)</c> from <c>n = 1</c>, so with
     /// <c>u = a log x − log Γ(1 + a)</c>, <c>Q = −expm1(u) − a T e^u</c>. Below 1.1 <c>T</c>'s alternating terms cancel
@@ -458,20 +484,27 @@ internal static class Gamma
     private static double SmallShapeTail(double a, double x, bool upper)
     {
         double logPower = a * Math.Log(x);
-        double logGamma = LogGammaOnePlus(a);
+        // Past SmallShape the Taylor series no longer holds, and log Γ(a) + log a cancelled to 40 ulps of a Q of 0.03.
+        double logGamma = a < SmallShape ? LogGammaOnePlus(a) : DoubleDouble.LogGammaOnePlus(a).High;
         double u = logPower - logGamma;
-        double power = 1.0;
-        double sum = 0.0;
-        for (int n = 1; n <= MaxIterations; n++)
+        // The first two terms in double-double: rounded, their few ulps each took 13 ulps of a Q of 0.004 at x = 0.75,
+        // where T is half its first term (Review A, pass 40).
+        DoubleDouble square = DoubleDouble.Product(x, x);
+        DoubleDouble half = new(0.5 * square.High, 0.5 * square.Low);
+        DoubleDouble head = (new DoubleDouble(-x, 0.0) / DoubleDouble.Sum(a, 1.0)) + (half / DoubleDouble.Sum(a, 2.0));
+        double power = half.High;
+        double rest = 0.0;
+        for (int n = 3; n <= MaxIterations; n++)
         {
             power *= -x / n;
             double term = power / (a + n);
-            sum += term;
-            if (Math.Abs(term) <= Epsilon * Math.Abs(sum))
+            rest += term;
+            if (Math.Abs(term) <= Epsilon * Math.Abs(head.High))
             {
                 break;
             }
         }
+        double sum = head.High + (head.Low + rest);
         if (upper)
         {
             return -NearZero.Expm1(u) - (a * sum * Math.Exp(u));
@@ -488,21 +521,6 @@ internal static class Gamma
         logPower < -LongPower ? Math.Pow(x, a) * Math.Exp(rest) : Math.Exp(logPower + rest);
 
     private static bool IsClosedFormQ(double a, double x) => x <= MaxClosedFormX && IsHalfIntegerShape(a);
-
-    /// <summary>e^(x^2) Q(1/2, x^2), which is erfcx(x): what <see cref="Normal"/> samples its table from.</summary>
-    /// <remarks>
-    /// The prefactor x^a e^-s / Gamma(a) is (x / sqrt(pi)) e^-s at a = 1/2 and s = x^2, so the
-    /// scaling cancels its exponential instead of multiplying one back in -- which overflows
-    /// past x = 26.6, where the table still has to reach.
-    /// </remarks>
-    internal static double ScaledUpperHalf(double x)
-    {
-        double s = x * x;
-        double prefactor = x / Math.Sqrt(Math.PI);
-        return s < 1.5
-            ? Math.Exp(s) - (prefactor * SeriesSum(0.5, s))
-            : prefactor * ContinuedFraction(0.5, s);
-    }
 
     // Q of a shape plus one is Q plus x^b e^-x / Gamma(b+1), by parts: positive terms, whose error grows with their count
     // and not x. Below x = a/2 past a shape of one, one less HalfIntegerP, whose series stops at 2^-56 of one.
@@ -639,30 +657,46 @@ internal static class Gamma
     /// Q = erfc(eta sqrt(a/2)) / 2 + R and P = erfc(-eta sqrt(a/2)) / 2 - R, with R = e^(-a eta^2/2)
     /// / sqrt(2 pi a) times the sum of c_k(eta) a^-k, eta^2 / 2 = lambda - 1 - log lambda, lambda =
     /// x / a, eta signed as x - a (DLMF 8.12); asymptotic, so the sum also stops at a growing term.
-    /// The series needs about 7 sqrt(a) terms at x = a. This held 1e-13 of the full series over
-    /// |x - a| / a &lt;= 0.3 up to a = 1e10; scipy's region past a = 200 is 4.5 standard deviations
-    /// wide, and its capped series is 60% wrong just past that at a = 1e8 (docs/equivalence.md).
+    /// The series needs about 7 sqrt(a) terms at x = a, and with the exponent taken whole the tail held 2 ulps of a
+    /// 90-digit one over 104 points to a = 6,000 (#1756); scipy's region past a = 200 is 4.5 standard deviations wide,
+    /// and its capped series is 60% wrong just past that at a = 1e8 (docs/equivalence.md).
     /// </remarks>
     private static double Temme(double a, double x, bool upper)
     {
-        (double eta, double sum) = TemmeSum(a, x);
-        double remainder = Math.Exp(-0.5 * a * eta * eta) / Math.Sqrt(2.0 * Math.PI * a) * sum;
-        double argument = eta * Math.Sqrt(a / 2.0);
-        return upper
-            ? (0.5 * Normal.Erfc(argument)) + remainder
-            : (0.5 * Normal.Erfc(-argument)) - remainder;
-    }
-
-    /// <summary>Temme's η, signed as x − a, and the sum of <c>c_k(η) a^-k</c>, stopped at a growing term.</summary>
-    private static (double Eta, double Sum) TemmeSum(double a, double x)
-    {
-        double sigma = (x - a) / a;
-        double eta = Math.Sqrt(-2.0 * LogOnePlusMinus(sigma, x / a));
-        if (x < a)
+        // The exponent a η²/2 = −a (log(1 + σ) − σ) to some 106 bits, its erfc from it, its low part a first-order
+        // factor: through η √(a/2) erfc took 2y² times the argument's roundings, 862 ulps of Q(1410, 1561) (#1756).
+        DoubleDouble whole = TemmeExponent(a, x);
+        double exponent = whole.High;
+        double root = Math.Sqrt(exponent);
+        double eta = Math.Sqrt(2.0 / a) * (x < a ? -root : root);
+        double sum = TemmeSeriesSum(a, eta);
+        double decay = Math.Exp(-exponent);
+        double remainder = decay * Math.Max(0.0, 1.0 - whole.Low) / Math.Sqrt(2.0 * Math.PI * a) * sum;
+        double tail = Normal.ErfcOfSquareRoot(exponent);
+        // d erfc(√s)/ds = −e^−s / √(π s): the low part moves the tail by that much, nothing at x = a, where it is zero.
+        if (exponent > 0.0)
         {
-            eta = -eta;
+            tail -= whole.Low * decay / (Math.Sqrt(Math.PI) * root);
+        }
+        if (upper != (x > a))
+        {
+            tail = 2.0 - tail;
         }
 
+        return upper ? (0.5 * tail) + remainder : (0.5 * tail) - remainder;
+    }
+
+    /// <summary>The exponent <c>−a (log(1 + σ) − σ)</c>, σ = (x − a)/a, which is a η²/2, to some 106 bits.</summary>
+    /// <remarks>Never below zero, as a η²/2 is not: within ulps of a its last bits read −4e-28, and the root NaN.</remarks>
+    private static DoubleDouble TemmeExponent(double a, double x)
+    {
+        DoubleDouble exponent = -LogExcess(a, x);
+        return exponent.High > 0.0 ? exponent : new DoubleDouble(0.0, 0.0);
+    }
+
+    /// <summary>The sum of <c>c_k(η) a^-k</c>, stopped at a growing term.</summary>
+    private static double TemmeSeriesSum(double a, double eta)
+    {
         double sum = 0.0;
         double inversePower = 1.0;
         double previous = double.PositiveInfinity;
@@ -685,7 +719,7 @@ internal static class Gamma
             previous = Math.Abs(term);
             inversePower /= a;
         }
-        return (eta, sum);
+        return sum;
     }
 
     /// <summary>log Q(a, x), or log P when not <paramref name="upper"/>, over a below SmallShape, where the tail lies below
@@ -698,11 +732,10 @@ internal static class Gamma
     {
         if (IsTemmeRegion(a, x))
         {
-            (double eta, double sum) = TemmeSum(a, x);
-            double y = (upper ? eta : -eta) * Math.Sqrt(a / 2.0);
-            if (y > 0.0)
+            // Only the small side: the other is one less it, which Temme's direct sum reads whole.
+            if (upper ? x > a : x < a)
             {
-                return TemmeLogTail(a, eta, sum, y, upper);
+                return TemmeLogTail(a, x, upper);
             }
         }
         else if (upper ? x >= a + 1.0 : (x < a + 1.0 && a >= SmallShape))
@@ -715,18 +748,23 @@ internal static class Gamma
         return (scaledLog, Math.Exp(LogPrefactor(a, x) - scaledLog));
     }
 
-    /// <summary><see cref="LogTail"/> in Temme's region on the small side, <paramref name="y"/> = |η| √(a/2) positive.</summary>
+    /// <summary><see cref="LogTail"/> in Temme's region on the small side, where x lies past a for the upper tail.</summary>
     /// <remarks>e^(−a η²/2) taken out of both terms, erfc(y) = erfcx(y) e^(−y²): the two logs apart, some 5.5e267 each at
-    /// a = 5e299, differed by their rounding, and ChiSquaredQuantile(5e-324, 1e300) read 7e299.</remarks>
-    private static (double Log, double Ratio) TemmeLogTail(double a, double eta, double sum, double y, bool upper)
+    /// a = 5e299, differed by their rounding, and ChiSquaredQuantile(5e-324, 1e300) read 7e299. The exponent is
+    /// <see cref="Temme"/>'s, whole: from a double η it took 862 ulps of Q(1410, 1561) (#1756).</remarks>
+    private static (double Log, double Ratio) TemmeLogTail(double a, double x, bool upper)
     {
+        DoubleDouble whole = TemmeExponent(a, x);
+        double y = Math.Sqrt(whole.High);
+        double eta = Math.Sqrt(2.0 / a) * (x < a ? -y : y);
+        double sum = TemmeSeriesSum(a, eta);
         double scaled = (0.5 * Normal.ScaledComplement(y)) + ((upper ? sum : -sum) / Math.Sqrt(2.0 * Math.PI * a));
         // x f(x) is e^(-a η²/2 - Stirling's correction) √(a/2π), so the exponential cancels in the slope.
         double ratio = Math.Exp(-LogStirlingCorrection(a)) * Math.Sqrt(a / (2.0 * Math.PI)) / scaled;
-        return ((-0.5 * a * eta * eta) + Math.Log(scaled), ratio);
+        return (-whole.High + (Math.Log(scaled) - whole.Low), ratio);
     }
 
-    /// <summary>The log of <see cref="Prefactor"/>, which underflows where the tail it scales does, over a below SmallShape.</summary>
+    /// <summary>The log of <see cref="Prefactor(double, double)"/>, which underflows where the tail it scales does, over a below SmallShape.</summary>
     private static double LogPrefactor(double a, double x)
     {
         if (a < SmallShape)
@@ -736,24 +774,124 @@ internal static class Gamma
         return a < StirlingMinimumShape ? (a * Math.Log(x)) - x - LogGamma(a) : LogStirlingPrefactor(a, x);
     }
 
-    // x^a e^-x / Gamma(a), from a = 10 through Stirling so no term of order a log a cancels; the
-    // chi-squared density is this over x (#1158).
-    internal static double Prefactor(double a, double x)
+    // x^a e^-x / Gamma(a), below a shape of 10 as PowerPrefactor's three factors, from it through Stirling so no term of
+    // order a log a cancels; the chi-squared density is this over x (#1158).
+    internal static double Prefactor(double a, double x) => Prefactor(a, x, whole: true);
+
+    /// <summary><see cref="Prefactor(double, double)"/>, its exponent from a shape of 10 in doubles unless
+    /// <paramref name="whole"/>: one less a tail needs it only to an ulp of one.</summary>
+    private static double Prefactor(double a, double x, bool whole)
     {
         // a x^a e^-x / Gamma(1 + a) below SmallShape: log Gamma(a), about -log a, rounded by |log a| ulps.
         if (a < SmallShape)
         {
-            return a * PowerTimesExp(x, a, a * Math.Log(x), -x - LogGammaOnePlus(a));
+            // e^-x apart, in two halves about the rest so a subnormal product rounds once: as one exponent x's size took 255 ulps of it.
+            double halfDecay = Math.Exp(-0.5 * x);
+            return a * PowerTimesExp(x, a, a * Math.Log(x), -LogGammaOnePlus(a)) * halfDecay * halfDecay;
         }
         if (a < StirlingMinimumShape)
         {
+            if (ReadsPowerPrefactor(a, x))
+            {
+                return PowerPrefactor(a, x);
+            }
+
             double power = a * Math.Log(x);
             // At a chi-squared shape 1/Γ(a) from the table on both sides of LongPower, not Lanczos' log Γ, good to 1e-15:
             // one side alone stepped ChiSquaredCdf(0.40379303598931077, 5) down 10 ulps as x rose (#1729's Review A).
             return power < -LongPower ? LongPowerPrefactor(x, a) : ExpOverGamma(a, power - x);
         }
 
-        return Math.Exp(StirlingExponent(a, x)) * Math.Sqrt(a / (2.0 * Math.PI));
+        if (!whole)
+        {
+            return Math.Exp(PlainStirlingExponent(a, x)) * Math.Sqrt(a / (2.0 * Math.PI));
+        }
+        DoubleDouble exponent = StirlingExponent(a, x);
+        // Past 2^53 the low part can pass one, and an underflowed exponential read −0 (Review A, pass 36).
+        return Math.Exp(exponent.High) * Math.Max(0.0, 1.0 + exponent.Low) * Math.Sqrt(a / (2.0 * Math.PI));
+    }
+
+    /// <summary>One less the other tail, <paramref name="rest"/> times the prefactor: its exponent in doubles where that tail
+    /// is under a thousandth, whose error barely reaches one, and whole past it, where 1 − P took 57 ulps of a Q of 0.4 (#1756).</summary>
+    private static double OneLess(double rest, double a, double x)
+    {
+        if (a < StirlingMinimumShape)
+        {
+            return 1.0 - (rest * Prefactor(a, x));
+        }
+
+        double plain = rest * Prefactor(a, x, whole: false);
+        return 1.0 - (plain < 1e-3 ? plain : rest * Prefactor(a, x, whole: true));
+    }
+
+    /// <summary>Whether <see cref="Prefactor(double, double)"/> reads <see cref="PowerPrefactor"/>, whose factors stay normal.</summary>
+    internal static bool ReadsPowerPrefactor(double a, double x) =>
+        a >= SmallShape && a < StirlingMinimumShape && x > PowerPrefactorLowest && x < PowerPrefactorHighest;
+
+    /// <summary>x^a e^-x / Γ(a) below a shape of 10 as three factors, each within an ulp.</summary>
+    /// <remarks>Through a log x − x − log Γ(a) each term's rounding reached the tail, 141 ulps of ChiSquaredSf(20.09, 18.64),
+    /// and 12.7 of ChiSquaredCdf(6.79, 13) at a half-integer shape (#1756).</remarks>
+    private static double PowerPrefactor(double a, double x)
+    {
+        double rest = Math.Pow(x, a) * ReciprocalGamma(a);
+        if (x < HalvedDecayFrom)
+        {
+            return rest * Math.Exp(-x);
+        }
+        double halfDecay = Math.Exp(-0.5 * x);
+        return halfDecay * rest * halfDecay;
+    }
+
+    /// <summary>1/Γ(a) below a shape of 10: the table at a half-integer shape, else 1/Γ(1 + f) over Π (f + k), f the
+    /// fraction of a, each f + k exact and the product kept with its residuals.</summary>
+    internal static double ReciprocalGamma(double a)
+    {
+        if (IsHalfIntegerShape(a))
+        {
+            return a * ReciprocalGammaOnePlusHalfInteger(a);
+        }
+
+        int whole = (int)a;
+        double fraction = a - whole;
+        double reciprocal = ReciprocalGammaOnePlusFraction(fraction);
+        if (whole == 0)
+        {
+            return a * reciprocal;
+        }
+
+        double high = 1.0;
+        double low = 0.0;
+        for (int k = 1; k < whole; k++)
+        {
+            DoubleDouble step = DoubleDouble.Product(high, fraction + k);
+            low = step.Low + (low * (fraction + k));
+            high = step.High;
+        }
+        return reciprocal / high * (1.0 - (low / high));
+    }
+
+    /// <summary>1/Γ(1 + f) over [0, 1], within 3.7e-20 of mpmath's: its degree-16 Chebyshev fit, unrolled, where a loop over
+    /// an array of its coefficients took 81 ns to 2.3.</summary>
+    private static double ReciprocalGammaOnePlusFraction(double f)
+    {
+        double sum = -8.521820446681207e-10;
+        sum = (sum * f) + 2.3630858794920432e-08;
+        sum = (sum * f) - 2.4083612503619526e-07;
+        sum = (sum * f) + 1.1832658730843587e-06;
+        sum = (sum * f) - 1.3030643874115745e-06;
+        sum = (sum * f) - 2.009377474090673e-05;
+        sum = (sum * f) + 0.00012802610331145715;
+        sum = (sum * f) - 0.00021523094537767175;
+        sum = (sum * f) - 0.0011651711582134274;
+        sum = (sum * f) + 0.007218944122549672;
+        sum = (sum * f) - 0.009621971683209187;
+        sum = (sum * f) - 0.04219773453633884;
+        sum = (sum * f) + 0.1665386113807218;
+        sum = (sum * f) - 0.04200263503401723;
+        sum = (sum * f) - 0.6558780715202559;
+        sum = (sum * f) + 0.5772156649015329;
+        sum = (sum * f) + 1.0;
+        return sum;
     }
 
     /// <summary>x^a e^-x / Γ(a) past LongPower in a log x: x^a by Math.Pow, or where that is subnormal as mantissa and
@@ -762,25 +900,92 @@ internal static class Gamma
     {
         double power = Math.Pow(x, a);
         // At x = 0 the power is the prefactor's zero, which PowerOfTwo.Split would read as NaN.
+        // 1/Γ(a) as PowerPrefactor takes it: e^(−log Γ(a)) held 57 ulps of ChiSquaredCdf(1.07e-23, 16.98) (Review A, pass 44).
+        double rest = ReciprocalGamma(a) * Math.Exp(-x);
         if (power >= NearZero.SmallestNormal || !(x > 0.0))
         {
-            return power * ExpOverGamma(a, -x);
+            return power * rest;
         }
         (double mantissa, int exponent) = PowerOfTwo.Split(x);
         (double value, int powerExponent) = PowerOfTwo.Power(mantissa, exponent, a);
-        return PowerOfTwo.Scale(value * ExpOverGamma(a, -x), powerExponent);
+        return PowerOfTwo.Scale(value * rest, powerExponent);
     }
 
-    /// <summary>The logarithm of <see cref="Prefactor"/> from a shape of 10, with no term of order <c>a log a</c> formed.</summary>
+    /// <summary>The logarithm of <see cref="Prefactor(double, double)"/> from a shape of 10, with no term of order <c>a log a</c> formed.</summary>
     /// <remarks>
     /// <c>a log x − x − log Γ(a)</c> cancels terms of order <c>a log a</c>: at a = 1e15 its rounding reaches a nat, and the
     /// chi-squared quantile's Newton steps came out short by that factor (#1690's review).
     /// </remarks>
-    internal static double LogStirlingPrefactor(double a, double x) =>
-        StirlingExponent(a, x) + (0.5 * Math.Log(a / (2.0 * Math.PI)));
+    internal static double LogStirlingPrefactor(double a, double x)
+    {
+        DoubleDouble exponent = StirlingExponent(a, x);
+        return exponent.High + (exponent.Low + (0.5 * Math.Log(a / (2.0 * Math.PI))));
+    }
 
-    private static double StirlingExponent(double a, double x) =>
+    /// <summary><see cref="Prefactor(double, double)"/> over <paramref name="divisor"/> from a shape of 10, where the prefactor is
+    /// subnormal and the quotient need not be: e^high in two halves about the division, so it rounds once (#1756).</summary>
+    internal static double StirlingPrefactorOver(double a, double x, double divisor)
+    {
+        DoubleDouble exponent = StirlingExponent(a, x);
+        double half = Math.Exp(0.5 * exponent.High);
+        return half * Math.Max(0.0, 1.0 + exponent.Low) * Math.Sqrt(a / (2.0 * Math.PI)) / divisor * half;
+    }
+
+    /// <summary><c>a (log(1 + σ) − σ)</c> less Stirling's correction, σ = (x − a)/a, to some 106 bits: from a double σ
+    /// its rounding took a σ² ε, 1,529 ulps of P(3000, 2070) beside Temme's region (#1756).</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static DoubleDouble StirlingExponent(double a, double x)
+    {
+        // At x of zero or ∞, a shape whose a log(x/a) can overflow, or an x/a that underflows, where the tail does too, the
+        // double form's limits: double-double reads ∞ − ∞, and QuickLog no zero.
+        if (!(x > 1e-300 * a && x < double.PositiveInfinity && a < 1e300))
+        {
+            return new DoubleDouble(PlainStirlingExponent(a, x), 0.0);
+        }
+
+        (double high, double low) = LogExcess(a, x);
+        DoubleDouble corrected = DoubleDouble.Sum(high, -LogStirlingCorrection(a));
+        return DoubleDouble.Sum(corrected.High, corrected.Low + low);
+    }
+
+    private static double PlainStirlingExponent(double a, double x) =>
         (a * LogOnePlusMinus((x - a) / a, x / a)) - LogStirlingCorrection(a);
+
+    /// <summary><c>a (log(1 + σ) − σ)</c>, σ = (x − a)/a, to some 106 bits, for x/a a positive double and a under 1e300.</summary>
+    /// <remarks>log(x/a) from a quotient and its residual, σ from x − a's two-sum and its own: each residual is exact, so
+    /// neither quotient need be rounded correctly, and a reciprocal serves. Their difference cancels at most the bits σ²/2
+    /// leaves of σ, from a log within 5.2e-24 (#1756).</remarks>
+    private static DoubleDouble LogExcess(double a, double x)
+    {
+        double inverse = 1.0 / a;
+        DoubleDouble difference = DoubleDouble.Sum(x, -a);
+        double sigma = difference.High * inverse;
+        double sigmaLow = (ExactProduct.Residual(difference.High, sigma, a) + difference.Low) * inverse;
+        if (Math.Abs(sigma) < ExcessSeriesReach)
+        {
+            return LogExcessSeries(a, sigma, sigmaLow);
+        }
+
+        double ratio = x * inverse;
+        (double logHigh, double logLow) = DoubleDouble.QuickLog(ratio);
+        DoubleDouble inner = DoubleDouble.Sum(logHigh, -sigma);
+        DoubleDouble product = DoubleDouble.Product(a, inner.High);
+        // log(1 + d) to its second order, d the quotient's relative residual: at x an ulp below a, d² is all of σ²/2.
+        double residual = ExactProduct.Residual(x, ratio, a) / x;
+        double innerLow = inner.Low + logLow + residual + (0.5 * residual * residual) - sigmaLow;
+        return DoubleDouble.Sum(product.High, product.Low + (a * innerLow));
+    }
+
+    /// <summary><c>a (−σ²/2 + σ³/3 − σ⁴/4 + σ⁵/5)</c> for σ + <paramref name="sigmaLow"/>: the log's absolute 1e-32
+    /// times a was the tail's whole error near x = a, 188 ulps of ChiSquaredCdf at a = 1e18 and 123 at a = 11,300 (#1756).</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static DoubleDouble LogExcessSeries(double a, double sigma, double sigmaLow)
+    {
+        DoubleDouble square = DoubleDouble.Product(sigma, sigma);
+        DoubleDouble leading = DoubleDouble.Product(a, -0.5 * square.High);
+        double cubic = sigma * square.High * ((1.0 / 3.0) - (sigma * (0.25 - (0.2 * sigma))));
+        return DoubleDouble.Sum(leading.High, leading.Low + (a * (cubic - (0.5 * square.Low) - (sigma * sigmaLow))));
+    }
 
     /// <summary>P(a, x), or Q(a, x) when <paramref name="upper"/>, with the prefactor x^a e^-x / Gamma(a).</summary>
     /// <remarks>
@@ -800,9 +1005,9 @@ internal static class Gamma
             return upper ? RegularizedQ(a, x) : RegularizedP(a, x);
         }
 
-        if (x < a + 1.0)
+        if (x < a + 1.0 && !(upper && FractionReads(a, x)))
         {
-            if (a < SmallShape)
+            if (a < SmallShape || (upper && TailSeriesHolds(a, x)))
             {
                 return SmallShapeTail(a, x, upper);
             }
@@ -815,66 +1020,86 @@ internal static class Gamma
     }
 
     // P(a, x) = x^a e^-x / Gamma(a) * sum_{n>=0} x^n / (a(a+1)...(a+n)).
-    private static double SeriesP(double a, double x) => SeriesSum(a, x) * Prefactor(a, x);
+    private static double SeriesP(double a, double x)
+    {
+        // The prefactor first: after the sum, dynamic PGO took ChiSquaredCdf(1300, 2000) to 206 ns against 118 (#1756).
+        double prefactor = Prefactor(a, x);
+        return SeriesSum(a, x) * prefactor;
+    }
 
-    // The sum above without its prefactor, so ScaledUpperHalf can supply its own.
+    // The sum above without its prefactor, so a caller can supply its own.
     private static double SeriesSum(double a, double x)
     {
         double term = 1.0 / a;
         double sum = term;
+        // Each addition's rounding, by Dekker's fast two-sum as the terms are positive and under the sum: near x = a, where
+        // some 3√a terms count, the sum's roundings took 5.5 ulps of it, and 11 of a Q of 0.48 read as one less P (#1756).
+        double carry = 0.0;
         for (int n = 1; n <= MaxIterations; n++)
         {
             term *= x / (a + n);
-            sum += term;
+            double next = sum + term;
+            carry += term - (next - sum);
+            sum = next;
             if (Math.Abs(term) < Math.Abs(sum) * Epsilon)
             {
                 break;
             }
         }
 
-        return sum;
+        return sum + carry;
     }
 
-    // Q(a, x) = x^a e^-x / Gamma(a) * 1/(x+1-a - 1(1-a)/(x+3-a - 2(2-a)/(x+5-a - ...))),
-    // evaluated by modified Lentz.
+    // Q(a, x) = x^a e^-x / Gamma(a) * 1/(x+1-a - 1(1-a)/(x+3-a - 2(2-a)/(x+5-a - ...))).
     private static double ContinuedFractionQ(double a, double x) =>
         Prefactor(a, x) * ContinuedFraction(a, x);
 
-    // The fraction above without its prefactor, for the same reason as SeriesSum.
+    /// <summary>The fraction above without its prefactor, for the same reason as SeriesSum.</summary>
+    /// <remarks>Steed's forward sum, its denominators positive past x = a, finds the terms it needs; past ForwardFractionSteps
+    /// its errors have grown, and modified Lentz's forward product held 100 ulps of a Q of 0.03 at some 80 terms, so the fraction
+    /// is read back from its tail (#1756). Called only at a up to x.</remarks>
     private static double ContinuedFraction(double a, double x)
     {
+        if (x < TailFractionBelow)
+        {
+            return FractionFromTail(a, x, (int)(TailFractionTerms / x) + TailFractionMargin);
+        }
+
         double b = x + 1.0 - a;
-        double c = 1.0 / Tiny;
         double d = 1.0 / b;
         double h = d;
+        double delta = d;
+        int taken = MaxIterations;
 
         for (int i = 1; i <= MaxIterations; i++)
         {
             double an = -i * (i - a);
             b += 2.0;
+            double next = 1.0 / (b + (an * d));
+            delta *= -an * d * next;
+            d = next;
+            h += delta;
 
-            d = (an * d) + b;
-            if (Math.Abs(d) < Tiny)
+            if (Math.Abs(delta) < Epsilon * Math.Abs(h))
             {
-                d = Tiny;
-            }
-
-            c = b + (an / c);
-            if (Math.Abs(c) < Tiny)
-            {
-                c = Tiny;
-            }
-
-            d = 1.0 / d;
-            double delta = d * c;
-            h *= delta;
-
-            if (Math.Abs(delta - 1.0) < Epsilon)
-            {
+                taken = i;
                 break;
             }
         }
 
-        return h;
+        return taken <= ForwardFractionSteps ? h : FractionFromTail(a, x, taken + (taken / 4) + ForwardFractionMargin);
+    }
+
+    /// <summary>The fraction from its last term back, its error a few ulps however many terms.</summary>
+    private static double FractionFromTail(double a, double x, int terms)
+    {
+        double start = x + 1.0 - a;
+        double tail = 0.0;
+        for (int i = terms; i > 0; i--)
+        {
+            tail = -i * (i - a) / (start + (2.0 * i) + tail);
+        }
+
+        return 1.0 / (start + tail);
     }
 }

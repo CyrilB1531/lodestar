@@ -2,18 +2,16 @@ namespace Lodestar.Stats.Internal;
 
 /// <summary>The complementary error function, and the standard normal's upper tail.</summary>
 /// <remarks>
-/// Accuracy still comes from erfc(x) = Q(1/2, x^2): <see cref="Gamma"/>'s continued fraction is
-/// sampled once, at type initialization, into piecewise Chebyshev interpolants of the slowly varying
-/// erfcx(x) = e^(x^2) erfc(x) over y = 4/(4+x), the substitution S. G. Johnson's Faddeeva package
-/// (MIT) uses -- nothing else is shared, ADR 0002. A call runs one polynomial and one exponential.
-/// Against scipy.special.erfc on 60,001 points over [-6, 27.5] the worst relative gap is 7e-15,
-/// where the iteration alone reached 1e-13.
+/// Below 0.04 erfc is one less erf's Maclaurin series; above, erfcx(x) = e^(x²) erfc(x) times e^(−x²), the square's
+/// rounding restored. erfcx is a degree-8 polynomial on each of 128 intervals uniform in y = 4/(4+x), the substitution
+/// S. G. Johnson's Faddeeva package (MIT) uses, nothing else shared (ADR 0002), in a variable linear in x: through y the
+/// position took 60ε and erfcx 4 ulps. tools/generate_normal_table.py fits each at its Chebyshev nodes to a 70-digit
+/// erfc and rounds its powers, within 1.2e-16 of erfcx. Against those digits Sf holds
+/// 3.5 ulps over [−8, 38], where the table sampled from a double continued fraction at type initialization reached 59.
 /// </remarks>
-internal static class Normal
+internal static partial class Normal
 {
-    // Against scipy.special.erfcx, 16 intervals of degree 8 already reached its 2e-15 rounding,
-    // 64 of degree 5 stopped at 6e-14, and 32 of degree 8 doubles the smallest that sufficed.
-    private const int Intervals = 32;
+    private const int Intervals = 128;
     private const int Coefficients = 9;
 
     // erfc(27.3) is 4e-326, under half the smallest subnormal (2.5e-324), so it rounds to zero.
@@ -21,19 +19,13 @@ internal static class Normal
 
     private const double LowestY = 4.0 / (4.0 + Cutoff);
 
-    // Below this erfc is erf's series, six terms. The interpolant swings within 20 ulps of erfc and is 8 below it here,
-    // so the switch steps down, as erfc does; at 0.01 it stepped up 4 ulps and NormalSf rose (#1690's review).
+    // Below this erfc is erf's series, six terms: the table read 1 + 1.6e-15 at zero before, so Normal.Sf(1e-17) read
+    // above one half (#1690's review).
     private const double SeriesLimit = 0.04;
 
     internal const double TwoOverSqrtPi = 1.1283791670955126;
 
-    // From here z/sqrt 2's rounding costs the tail more than the interpolant's 7e-15, z^2 eps; below it Sf keeps its
-    // one division, the 1.96 a 95% interval reads costing 14% more through the exact exponent (#1690's review).
-    private const double ExactExponentFrom = 6.0;
-
     private const double IntervalsPerY = Intervals / (1.0 - LowestY);
-
-    private static readonly double[] Table = SampleScaledErfc();
 
     // Where the expansion takes over: Sf(30) is 5e-198, still a double, so the two forms overlap
     // over twenty orders of magnitude and the tests compare them there.
@@ -60,7 +52,10 @@ internal static class Normal
         {
             return SmallErfc(x);
         }
-        return x > Cutoff ? 0.0 : ScaledErfc(x) * Math.Exp(-x * x);
+
+        // e^(−x²) with x²'s rounding restored as a factor: rounded, it cost the tail 2x² ε.
+        double square = x * x;
+        return x > Cutoff ? 0.0 : ScaledErfc(x) * Math.Exp(-square) * (1.0 + ExactProduct.Residual(square, x, x));
     }
 
     /// <summary>erfc(sqrt(s)), which is Q(1/2, s): the chi-squared tail at one degree of freedom.</summary>
@@ -78,11 +73,7 @@ internal static class Normal
     }
 
     /// <summary>erfc(x) below SeriesLimit, as one less erf's Maclaurin series, exactly one at zero.</summary>
-    /// <remarks>
-    /// The interpolant reads 1 + 1.6e-15 near zero, so a tail at a tiny positive argument read above one half:
-    /// Normal.Sf(1e-17), and with it StudentSf(1e-17, 1e21), was 0.5000000000000008 (#1690's review). At x = 0.04 the
-    /// first term dropped, x^12/9360 of the sum, is 2e-21 of it.
-    /// </remarks>
+    /// <remarks>At x = 0.04 the first term dropped, x^12/9360 of the sum, is 2e-21 of it.</remarks>
     private static double SmallErfc(double x)
     {
         double square = x * x;
@@ -93,13 +84,12 @@ internal static class Normal
 
     /// <summary>The standard normal's upper tail: P(Z &gt; z).</summary>
     /// <remarks>
-    /// Past z = 6 by ErfcOfSquareRoot(z²/2) with z²'s rounding restored as a factor <c>1 + excess/2</c>: through z/√2
-    /// the exponent took that quotient's rounding twice, 1.1e-13 of Sf(37), 200 times Student's error just below df 1e20,
-    /// where Student's tail becomes this one (#1690's review).
+    /// Past the series by ErfcOfSquareRoot(z²/2), with z²'s rounding restored as a factor <c>1 + excess/2</c>: through z/√2
+    /// the exponent took that quotient's rounding twice, 1.1e-13 of Sf(37) (#1690's review), and 42 ulps at z = 5.7.
     /// </remarks>
     internal static double Sf(double z)
     {
-        if (!(z > ExactExponentFrom && z < Cutoff * Math.Sqrt(2.0)))
+        if (!(z > SeriesLimit * Math.Sqrt(2.0) && z < Cutoff * Math.Sqrt(2.0)))
         {
             return 0.5 * Erfc(z / Math.Sqrt(2.0));
         }
@@ -119,13 +109,23 @@ internal static class Normal
         return MillsSeries.Sum(1.0 / (2.0 * x * x), AsymptoticTerms) / (x * Math.Sqrt(Math.PI));
     }
 
-    // x lies in [0, Cutoff]; y = 4/(4+x) then lies in [LowestY, 1], and each interval's
-    // polynomial is in u = 2t - 1, t being y's position inside it.
+    // x lies in [0, Cutoff]; y = 4/(4+x) picks the interval, whose polynomial is in (x − mid) · scale.
     private static double ScaledErfc(double x)
     {
         double position = ((4.0 / (4.0 + x)) - LowestY) * IntervalsPerY;
-        int interval = Math.Min((int)position, Intervals - 1);
-        double u = (2.0 * (position - interval)) - 1.0;
+        return ScaledErfcIn(Math.Max(0, Math.Min((int)position, Intervals - 1)), x);
+    }
+
+    /// <summary>The table's intervals, for a test that reads where neighbours meet.</summary>
+    internal static int IntervalCount => Intervals;
+
+    /// <summary>Where <paramref name="interval"/> meets the next, at its lower end in x.</summary>
+    internal static double LowerEnd(int interval) => Bounds[2 * interval] - (1.0 / Bounds[(2 * interval) + 1]);
+
+    /// <summary><paramref name="interval"/>'s polynomial at <paramref name="x"/>.</summary>
+    internal static double ScaledErfcIn(int interval, double x)
+    {
+        double u = (x - Bounds[2 * interval]) * Bounds[(2 * interval) + 1];
 
         int offset = interval * Coefficients;
         double sum = Table[offset + Coefficients - 1];
@@ -135,79 +135,6 @@ internal static class Normal
         }
 
         return sum;
-    }
-
-    // Chebyshev interpolation at each interval's first-kind nodes, converted to power form in u
-    // so a call runs Horner's rule; the sweep the class remarks cite went through the conversion.
-    private static double[] SampleScaledErfc()
-    {
-        double[] table = new double[Intervals * Coefficients];
-        for (int interval = 0; interval < Intervals; interval++)
-        {
-            double[] chebyshev = ChebyshevCoefficients(SampleInterval(interval));
-            AddPowerForm(chebyshev, table.AsSpan(interval * Coefficients, Coefficients));
-        }
-
-        return table;
-    }
-
-    // erfcx at the interval's first-kind Chebyshev nodes, taken in y and mapped back to x.
-    private static double[] SampleInterval(int interval)
-    {
-        double[] values = new double[Coefficients];
-        for (int k = 0; k < Coefficients; k++)
-        {
-            double node = Math.Cos(Math.PI * (k + 0.5) / Coefficients);
-            double y = LowestY + ((interval + ((node + 1.0) / 2.0)) / IntervalsPerY);
-            values[k] = Gamma.ScaledUpperHalf((4.0 / y) - 4.0);
-        }
-
-        return values;
-    }
-
-    // The discrete cosine transform of those samples: the interpolant's coefficients in T_m(u).
-    private static double[] ChebyshevCoefficients(double[] values)
-    {
-        double[] chebyshev = new double[Coefficients];
-        for (int m = 0; m < Coefficients; m++)
-        {
-            double sum = 0.0;
-            for (int k = 0; k < Coefficients; k++)
-            {
-                sum += values[k] * Math.Cos(Math.PI * m * (k + 0.5) / Coefficients);
-            }
-
-            chebyshev[m] = (m == 0 ? 1.0 : 2.0) * sum / Coefficients;
-        }
-
-        return chebyshev;
-    }
-
-    // T_0 = 1, T_1 = u, T_(m+1) = 2u T_m - T_(m-1), each kept as power coefficients.
-    private static void AddPowerForm(double[] chebyshev, Span<double> power)
-    {
-        double[] previous = new double[Coefficients];
-        double[] current = new double[Coefficients];
-        double[] next = new double[Coefficients];
-        previous[0] = 1.0;
-        current[1] = 1.0;
-        power[0] = chebyshev[0];
-        power[1] = chebyshev[1];
-        for (int m = 2; m < Coefficients; m++)
-        {
-            next[0] = -previous[0];
-            for (int p = 1; p < Coefficients; p++)
-            {
-                next[p] = (2.0 * current[p - 1]) - previous[p];
-            }
-
-            for (int p = 0; p <= m; p++)
-            {
-                power[p] += chebyshev[m] * next[p];
-            }
-
-            (previous, current, next) = (current, next, previous);
-        }
     }
 
     /// <summary>The logarithm of the upper tail, where the tail itself would underflow.</summary>

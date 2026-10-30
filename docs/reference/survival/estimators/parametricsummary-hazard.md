@@ -1,4 +1,4 @@
-# ParametricFit.Hazard
+# ParametricSummary.Hazard
 
 The fitted hazard at given times: lifelines' `hazard_at_times`.
 
@@ -20,7 +20,7 @@ using Lodestar.Survival;
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-ParametricFit fit = ParametricSurvival.Fit(ParametricModel.Weibull, months, died);
+ParametricSummary fit = ParametricSurvival.Fit(months, died, ParametricModel.Weibull);
 
 double[] hazard = fit.Hazard([5.0, 10.0]);
 double atFive = Math.Round(hazard[0], 6);   // => 0.06135
@@ -33,4 +33,4 @@ between events and undefined at them.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ParametricFit`](parametricfit.md), [`ParametricFit.CumulativeHazard`](parametricfit-cumulativehazard.md).
+**See also** — [`ParametricSummary`](parametricsummary.md), [`ParametricSummary.CumulativeHazard`](parametricsummary-cumulativehazard.md).

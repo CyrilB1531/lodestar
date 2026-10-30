@@ -4,6 +4,8 @@ Scripts under `tools/`, each responsible for one input the test suite treats as
 given:
 
 - `generate_oracles.py` produces the reference values the test suite replays.
+- `generate_normal_table.py` writes `src/Lodestar.Stats/Internal/Normal.Table.cs`, the erfcx polynomials the
+  normal tail reads, from a 70-digit erfc in Python's `decimal`; `--check` exits 1 where the committed table differs.
 - `seeded_random.py` is not a script and has no command line: it is the seeded
   `random.Random` that `generate_oracles.py` and the five
   `bench/corpus/generate_*.py` draw every number through. Each method delegates

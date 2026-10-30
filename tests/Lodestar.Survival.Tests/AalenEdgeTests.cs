@@ -126,4 +126,26 @@ public sealed class AalenEdgeTests
         Assert.Equal(1, fit.FeatureCount);
         Assert.True(fit.FitIntercept);
     }
+
+    [Theory]
+    [InlineData(8L)]
+    [InlineData(64L)]
+    public void Thinned_checkpoints_rebuild_the_same_risk_sets(long checkpointCells)
+    {
+        // A small budget thins the checkpoints, one past a block's matrices drops the block: reached by default only past
+        // some 650 covariates or 10⁴ event times, and no test held them to the plain path (Review A, pass 45).
+        double[] design = [.. Enumerable.Range(0, 600).Select(i => Math.Sin(i * 1.3) + (0.5 * Math.Cos(i * 0.7)))];
+        double[] durations = [.. Enumerable.Range(0, 200).Select(i => 0.05 + (i * 0.37 % 11.0) + (0.001 * i))];
+        bool[] events = [.. durations.Select((_, i) => i % 5 != 0)];
+
+        AalenSummary plain = AalenAdditive.Fit(design, durations, events, 3);
+        AalenSummary thinned = AalenAdditive.Fit(design, durations, events, 3, new AalenOptions { CheckpointCells = checkpointCells });
+
+        Assert.Equal(plain.EventTimes, thinned.EventTimes);
+        for (int i = 0; i < plain.CumulativeHazards.Count; i++)
+        {
+            Assert.Equal(plain.CumulativeHazards[i], thinned.CumulativeHazards[i], 1e-12 * Math.Max(1.0, Math.Abs(plain.CumulativeHazards[i])));
+            Assert.Equal(plain.CumulativeVariance[i], thinned.CumulativeVariance[i], 1e-12 * Math.Max(1.0, Math.Abs(plain.CumulativeVariance[i])));
+        }
+    }
 }

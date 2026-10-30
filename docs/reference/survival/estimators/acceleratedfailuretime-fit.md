@@ -5,13 +5,13 @@ Fits an accelerated failure time regression to right-censored durations: lifelin
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary Fit(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, AftOptions options = null)
+public static AftSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary Fit(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftOptions options = null)
+public static AftSummary Fit(ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 The second overload takes lifelines' `weights_col` and `entry_col`.
@@ -31,8 +31,8 @@ likelihood-ratio test against the univariate fit, the AIC and the concordance in
 **Exceptions** — `ArgumentException` when the spans do not match the subjects, a value is not finite,
 a duration is not positive, a weight or entry span is neither empty nor one valid value per subject,
 or the primary parameter has no column at all. `ArgumentOutOfRangeException` when `model` names no
-model, or `featureCount` is negative. `InvalidOperationException` when the fit does not converge, or
-its parameters are not identified.
+model, or `featureCount` is negative. `InvalidOperationException` when the fit does not converge,
+its parameters are not identified, or every observation is a probability and the likelihood reaches one only in the limit of a point mass, so it has no maximum.
 `ArgumentException` also when the parameters are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
 `ArgumentException` naming `featureCount` also when the parameters are more than one array holds,
 and naming `design` when the design is more cells than one array holds or its length only matches
@@ -51,7 +51,7 @@ string refusal;
 try
 {
     // Ten values read as rows of two are five subjects, not the ten durations.
-    AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, featureCount: 2);
+    AcceleratedFailureTime.Fit(dose, months, died, featureCount: 2, AftModel.Weibull);
     refusal = "fitted";
 }
 catch (ArgumentException error)
@@ -70,7 +70,7 @@ its intercept under [`AftOptions.Ancillary`](aftoptions.md).
 **Newton's method on exact derivatives**, from the univariate fit lifelines starts from, each
 parameter the intercept of its block; that univariate fit is also the null model of the
 likelihood-ratio test. lifelines' own optimiser stops short of the maximum this reaches, so a default
-lifelines fit differs in about the sixth significant figure.
+lifelines fit can differ from the third significant figure.
 
 **A design that does not identify the coefficients is refused** — a covariate that does not vary is
 collinear with the intercept, and the observed information is then singular.

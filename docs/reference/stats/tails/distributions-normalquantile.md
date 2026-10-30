@@ -46,7 +46,7 @@ against `scipy.stats.norm.ppf(0.975)`, its relative error is the two laws' own d
 | 1e16 | 1.1e-16 |
 
 Past that rounding decides: one ulp off at `1e16`, two at `1e17` and at `9.9e19`, and exact from
-`df = 1e20`, where the Student law is the normal one. A Kaplan-Meier confidence bound is
+`df = 1e20`, where the Student quantile is the normal one, the law's first term in `1/df` moving it under an ulp. A Kaplan-Meier confidence bound is
 built on the log-log transform of the estimate, which amplifies a smaller `df`'s distance into the
 digits of a bound its corpus compares at `1e-9`. This member answers to the last bit on Linux
 instead. [Decision 0003](../../../decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)

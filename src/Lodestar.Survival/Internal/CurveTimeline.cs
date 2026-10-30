@@ -9,13 +9,13 @@ internal static class CurveTimeline
     /// the frame's row. lifelines' sum adds <c>d / (n (n − d))</c> per step and replaces the infinite term, where
     /// every subject left has the event, by zero.
     /// </remarks>
-    internal static (double[] Times, double[] Survival, double[] Greenwood) Of(KaplanMeierCurve curve)
+    internal static (double[] Times, double[] Survival, double[] Greenwood) Of(KaplanMeierCurve curve, string name = "curve")
     {
         SurvivalStep[] steps = curve.Steps;
         if (steps is null || steps.Length == 0 || curve.Survival is null || curve.Survival.Length != steps.Length)
         {
             throw new ArgumentException(
-                "The curve needs at least one step and one estimate per step, as KaplanMeier.Estimate builds it.", nameof(curve));
+                "The curve needs at least one step and one estimate per step, as KaplanMeier.Estimate builds it.", name);
         }
 
         var times = new List<double>(steps.Length);
@@ -51,9 +51,9 @@ internal static class CurveTimeline
 
     /// <summary>The estimate at <paramref name="time"/> as a step, and Greenwood's sum there linearly interpolated.</summary>
     /// <remarks>lifelines' <c>predict</c> and <c>interpolate_at_times</c>, which is <c>numpy.interp</c>: clamped at both ends.</remarks>
-    internal static (double Survival, double Greenwood) At(KaplanMeierCurve curve, double time)
+    internal static (double Survival, double Greenwood) At(KaplanMeierCurve curve, double time, string name = "curve")
     {
-        (double[] times, double[] survival, double[] greenwood) = Of(curve);
+        (double[] times, double[] survival, double[] greenwood) = Of(curve, name);
         int last = times.Length - 1;
         int at = 0;
         while (at < last && times[at + 1] <= time)
