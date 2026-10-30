@@ -11697,3 +11697,25 @@ date,commit,cpu,class,parameters,method,ratio
 2026-10-28,b3fd40aa4e70bd587819396620eee61914103d94,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_KnnImpute,13.37
 2026-10-28,b3fd40aa4e70bd587819396620eee61914103d94,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeLpNorm_Read,3.47
 2026-10-28,b3fd40aa4e70bd587819396620eee61914103d94,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeBinning_Read,15.75
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=10000, K=10, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=10000, K=10, Device=CPUAc(...) GPU) [26]",GpuResident,2058.84
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=10000, K=100, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=10000, K=100, Device=CPUAc(...) GPU) [26]",GpuResident,2250.95
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=10000, K=1000, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=10000, K=1000, Device=CPUAc(...) GPU) [26]",GpuResident,1842.62
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=100000, K=10, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=100000, K=10, Device=CPUAc(...) GPU) [26]",GpuResident,803.38
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=100000, K=100, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=100000, K=100, Device=CPUAc(...) GPU) [26]",GpuResident,765.07
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=100000, K=1000, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,CosineTopKSelectionBenchmarks,"Documents=100000, K=1000, Device=CPUAc(...) GPU) [26]",GpuResident,734.64
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Estimate,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Fit,1.65
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=4,MathNet_Qr,5.23
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Estimate,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Fit,3.91
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=250,MathNet_Qr,6.29
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,BkTreeNearestBenchmarks,Count=10,FullScan,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,BkTreeNearestBenchmarks,Count=10,TreeNearest,0.65
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,BkTreeNearestBenchmarks,Count=2000,FullScan,1.0
+2026-10-29,116c2b60eb01f66d877a72dad27d55a719473120,INTEL XEON PLATINUM 8573C,BkTreeNearestBenchmarks,Count=2000,TreeNearest,1.01
