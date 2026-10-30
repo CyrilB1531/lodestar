@@ -2,8 +2,8 @@
 """Render the nightly benchmark page from what the run produced (#11).
 
 The page is generated, published to the wiki, and never hand-edited. It carries
-the baseline commit the next run reads, which is why it is a file in docs/ rather
-than an artifact: the series has to remember where it stopped.
+the baseline commit the next run reads, from the night's wiki commit or this file,
+whichever is further along: the series has to remember where it stopped.
 
 What it deliberately does NOT do is pretend to be docs/guides/performance.md.
 That page's subject is what was measured on a named machine, and its numbers are
@@ -16,7 +16,7 @@ the same minute on the same VM -- which is what this page is for.
 Usage:  python tools/render_nightly.py --commit <sha> --baseline <sha> --runner <label> \\
             [--selected Class ...] [--harnesses Name ...] [--owed Name ...] [--cut Name ...] \\
             [--failed Name ...] [--reason text] [--branch] [--stdout]
-        python tools/render_nightly.py --markers
+        python tools/render_nightly.py --markers [--wiki <clone>]
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import argparse
 import json
 import re
 import pathlib
+import subprocess
 import sys
 
 import select_benchmarks
@@ -250,6 +251,55 @@ def marker(text: str, template: str) -> str | None:
     return None
 
 
+# The subject of the wiki commit each night on main makes, before its pull request is merged;
+# test_nightly_budget ties it to the workflow's own `git commit -m`.
+NIGHT_COMMIT = "Nightly benchmark run for "
+
+# How many of the wiki's nights the baseline looks back over: a run of quiet nights is far shorter.
+NIGHTS_READ = 30
+
+
+def wiki_show(wiki: pathlib.Path, sha: str) -> str:
+    """The page as it stood at one wiki commit, or empty when that revision lacked it."""
+    if not REVISION.fullmatch(sha):
+        return ""
+    out = subprocess.run(["git", "show", f"{sha}:{PAGE.name}"], cwd=wiki, capture_output=True, check=False)
+    return out.stdout.decode("utf-8", errors="replace") if out.returncode == 0 else ""
+
+
+def descends(older: str, newer: str) -> bool:
+    """Whether newer is a strict descendant of older in this repository's history."""
+    if older == newer or not (REVISION.fullmatch(older) and REVISION.fullmatch(newer)):
+        return False
+    return subprocess.run(["git", "merge-base", "--is-ancestor", older, newer],
+                          cwd=ROOT, capture_output=True, check=False).returncode == 0
+
+
+def latest_page(wiki: pathlib.Path, checked_out: str) -> str:
+    """The page of the latest night measured, from its wiki commit or the checked-out page (#1754).
+
+    The checked-out page moves only when a night's pull request is merged, so while one was open the
+    next night re-measured its classes. The newest night commit is not always it: a quiet night
+    republishes main's page under the same subject. So the page whose baseline is furthest along
+    main's history wins, the newest of those sharing it, and the checked-out one where none is ahead.
+    """
+    try:
+        shas = subprocess.run(
+            ["git", "log", f"-{NIGHTS_READ}", "--format=%H", "--fixed-strings", f"--grep={NIGHT_COMMIT}", "--", PAGE.name],
+            cwd=wiki, capture_output=True, text=True, check=True).stdout.split()
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"::warning::the wiki's nights were unreadable ({error}); reading the checked-out page", file=sys.stderr)
+        return checked_out
+    best, best_sha, from_wiki = checked_out, marker(checked_out, MARKER) or "", False
+    for sha in shas:
+        page = wiki_show(wiki, sha)
+        night = marker(page, MARKER) or ""
+        if REVISION.fullmatch(night) and (
+                not best_sha or descends(best_sha, night) or (night == best_sha and not from_wiki)):
+            best, best_sha, from_wiki = page, night, True
+    return best
+
+
 def markers(text: str) -> list[str]:
     """The three values the next night reads, as GITHUB_OUTPUT lines, through one parser."""
     sha = marker(text, MARKER) or ""
@@ -278,11 +328,14 @@ def main() -> None:
     parser.add_argument("--stdout", action=flag, help="print instead of writing")
     parser.add_argument("--markers", action=flag,
                         help="print the page's baseline, owed and cut as GITHUB_OUTPUT lines")
+    parser.add_argument("--wiki", type=pathlib.Path,
+                        help="with --markers, read the newest night's page from this wiki clone first")
     args = parser.parse_args()
 
     if args.markers:
         # An unreadable byte costs that marker, not the night: an unknown baseline measures everything.
-        print("\n".join(markers(PAGE.read_text(encoding="utf-8", errors="replace") if PAGE.exists() else "")))
+        text = PAGE.read_text(encoding="utf-8", errors="replace") if PAGE.exists() else ""
+        print("\n".join(markers(latest_page(args.wiki, text) if args.wiki else text)))
         return
     if not args.commit:
         parser.error("--commit is required to render the page")

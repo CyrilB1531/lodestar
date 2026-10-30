@@ -572,3 +572,40 @@ def test_a_page_value_that_looks_like_an_option_is_still_a_value(monkeypatch, tm
 
     monkeypatch.chdir(tmp_path)
     assert nightly_outcomes.main(["carry", "--cut-before=-v"]) == 0
+
+
+def _git_commits(repo, messages, page=None):
+    """Commits in a fresh repository, each optionally writing the page with one baseline; their shas."""
+    import subprocess
+
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t"]
+    repo.mkdir()
+    subprocess.run(git + ["init", "-q"], check=True)
+    shas = []
+    for message, baseline in messages:
+        (repo / "nightly_run.md").write_text(f"<!-- nightly-baseline: {baseline} -->\n" if baseline else message,
+                                             encoding="utf-8")
+        subprocess.run(git + ["add", "."], check=True)
+        subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", message], check=True)
+        shas.append(subprocess.run(git + ["rev-parse", "HEAD"], capture_output=True, text=True,
+                                   check=True).stdout.strip())
+    return shas
+
+
+def test_the_baseline_is_the_night_furthest_along_main_merged_or_not(monkeypatch, tmp_path):
+    """#1754: main's page waits for its pull request, and a quiet night republishes it under a night's subject."""
+    z, a = _git_commits(tmp_path / "main", [("z", None), ("a", None)])
+    monkeypatch.setattr(render_nightly, "ROOT", tmp_path / "main")
+    main_page = f"<!-- nightly-baseline: {z} -->\n"
+    # Night A measured a, its pull request open; quiet night B republished main's page; then main itself.
+    _git_commits(tmp_path / "wiki", [("Nightly benchmark run for 2026-10-25", a),
+                                     ("Nightly benchmark run for 2026-10-26", z), ("Publish main", z)])
+
+    assert render_nightly.markers(render_nightly.latest_page(tmp_path / "wiki", main_page))[0] == "sha=" + a
+    assert render_nightly.latest_page(tmp_path / "absent", main_page) == main_page
+    assert render_nightly.markers(render_nightly.latest_page(tmp_path / "wiki", ""))[0] == "sha=" + a
+    names = list(steps())
+    assert names.index("Clone the wiki") < names.index("The commit the previous run stopped at")
+    assert names.index("Bring the wiki up to date") < names.index("Push what changed")
+    assert "--markers --wiki wiki" in steps()["The commit the previous run stopped at"]["run"]
+    assert f'git commit -m "{render_nightly.NIGHT_COMMIT}' in steps()["Push what changed"]["run"]
