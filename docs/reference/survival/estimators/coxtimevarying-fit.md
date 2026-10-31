@@ -29,7 +29,8 @@ baseline. `ConcordanceIndex` is `NaN`, as lifelines computes none for this fitte
 when the spans disagree in length, an interval is not finite and non-negative with its stop after its
 start, a covariate is not finite or does not vary, no interval ends in an event, a covariate is
 collinear with the others or separates the events, or `CoxOptions.Robust` is asked for.
-`InvalidOperationException` when the fit does not converge.
+`InvalidOperationException` when the fit does not converge, or stalls where no halving of its step keeps the
+likelihood.
 `ArgumentException` also when the covariates are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
 `ArgumentException` naming `design` also when it is more cells than one array holds ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614)).
 

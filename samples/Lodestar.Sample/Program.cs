@@ -145,7 +145,7 @@ CoxTimeVaryingSample.Run();
 BreslowFlemingHarringtonSample.Run();
 SurvivalCurveSample.Run();
 ParametricSurvivalSample.Run();
-ParametricFitSample.Run();
+ParametricSummarySample.Run();
 ParametricOptionsSample.Run();
 AcceleratedFailureTimeSample.Run();
 AftSummarySample.Run();

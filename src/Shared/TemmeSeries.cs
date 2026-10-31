@@ -6,7 +6,7 @@ namespace Lodestar.Internal;
 /// them Stirling's coefficients for Γ*; λ − 1 reverted from <c>η²/2 = λ − 1 − log λ</c>. Each by exact rational
 /// arithmetic, then rounded: c_0 starts −1/3, 1/12, −2/135, c_1 at −1/540, DLMF 8.12.10's values. Twelve rows of 61:
 /// Lodestar.Stats' incomplete gamma reads sixteen of each in double and 27 − 2k of row k in double-double, Lodestar.Survival's
-/// generalized gamma quantile seven whole.
+/// generalized gamma quantile seven whole and its likelihood all twelve.
 /// </remarks>
 internal static partial class TemmeSeries
 {
@@ -21,7 +21,7 @@ internal static partial class TemmeSeries
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static double Value(int k, int terms, double eta)
     {
-        ReadOnlySpan<double> coefficients = Coefficients.AsSpan(k * Degree, terms);
+        ReadOnlySpan<double> coefficients = Row(k, terms);
         double value = coefficients[terms - 1];
         for (int j = terms - 2; j >= 0; j--)
         {
@@ -33,7 +33,7 @@ internal static partial class TemmeSeries
     /// <summary>Row k's series at <paramref name="eta"/>, of its first <paramref name="terms"/> terms, and its derivative.</summary>
     internal static (double Value, double Derivative) Evaluate(int k, int terms, double eta)
     {
-        ReadOnlySpan<double> coefficients = Coefficients.AsSpan(k * Degree, terms);
+        ReadOnlySpan<double> coefficients = Row(k, terms);
         double value = 0.0;
         double derivative = 0.0;
         for (int j = terms - 1; j >= 0; j--)
@@ -43,4 +43,7 @@ internal static partial class TemmeSeries
         }
         return (value, derivative);
     }
+
+    /// <summary>Row k's first <paramref name="terms"/> coefficients, for a caller that evaluates them its own way.</summary>
+    internal static ReadOnlySpan<double> Row(int k, int terms) => Coefficients.AsSpan(k * Degree, terms);
 }

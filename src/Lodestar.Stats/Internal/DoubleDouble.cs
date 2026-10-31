@@ -148,6 +148,34 @@ internal readonly struct DoubleDouble(double high, double low)
         return Log(value.High) + Sum(ratio, -0.5 * ratio * ratio);
     }
 
+    /// <summary><c>log value</c> for a positive finite value, within 5.2e-24 of <c>max(1, |log value|)</c> over 99,000
+    /// values from 1e-300 to 1e300: <see cref="Log(double)"/>'s table and its first term in double-double, the series
+    /// past it, under u³ ≤ 1e-8 of the whole, in doubles, gathered with the sums' errors into the low part (#1756).</summary>
+    internal static DoubleDouble QuickLog(double value)
+    {
+        (double mantissa, int exponent) = PowerOfTwo.Split(value);
+        if (mantissa > 1.4142135623730951)
+        {
+            mantissa *= 0.5;
+            exponent++;
+        }
+        int index = (int)Math.Round(mantissa * TableSteps);
+        double centre = index / (double)TableSteps;
+        // mantissa − centre is exact, the two within a factor of two; u = that over their sum, its residual beside it.
+        double difference = mantissa - centre;
+        DoubleDouble sum = Sum(mantissa, centre);
+        double u = difference / sum.High;
+        double uLow = (ExactProduct.Residual(difference, u, sum.High) - (u * sum.Low)) / sum.High;
+        double square = u * u;
+        double rest = u * square * ((2.0 / 3.0) + (square * ((2.0 / 5.0) + (square * (2.0 / 7.0)))));
+        DoubleDouble entry = LogTable[index - TableFirst];
+        DoubleDouble power = Product(exponent, Ln2High);
+        DoubleDouble head = Sum(power.High, entry.High);
+        DoubleDouble whole = Sum(head.High, 2.0 * u);
+        double low = whole.Low + head.Low + power.Low + entry.Low + (exponent * Ln2Low) + (2.0 * uLow) + rest;
+        return QuickSum(whole.High, low);
+    }
+
     // 1/(2k + 1) for k = 0 to SlowLogTerms, the table's series; Log's reads them to k = LogSeriesTerms.
     private static readonly DoubleDouble[] OddReciprocals = BuildOddReciprocals();
 

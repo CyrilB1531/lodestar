@@ -10,7 +10,7 @@ internal static class AftSummarySample
         Console.WriteLine("AftSummary (Lodestar.Survival)");
 
         (double[] design, double[] weeks, bool[] observed) = AcceleratedFailureTimeSample.Arms();
-        AftSummary s = AcceleratedFailureTime.Fit(AftModel.LogLogistic, design, weeks, observed, featureCount: 1);
+        AftSummary s = AcceleratedFailureTime.Fit(design, weeks, observed, featureCount: 1, AftModel.LogLogistic);
         for (int j = 0; j < s.Coefficients.Count; j++)
         {
             string covariate = s.CovariateIndices[j] < 0 ? "Intercept" : $"x{s.CovariateIndices[j]}";
@@ -24,7 +24,7 @@ internal static class AftSummarySample
             $"  {s.Model} fit : log-likelihood {Inv.F4(s.LogLikelihood)} against {Inv.F4(s.NullLogLikelihood)}, "
             + $"LR {Inv.F3(s.LikelihoodRatioStatistic)} on {s.LikelihoodRatioDegreesOfFreedom} df p {Inv.F4(s.LikelihoodRatioPValue)}");
         Console.WriteLine(
-            $"  AIC, concordance : {Inv.F3(s.Aic)}, {Inv.F3(s.ConcordanceIndex)} at {Inv.F3(s.ConfidenceLevel)} "
+            $"  AIC, concordance : {Inv.F3(s.Akaike)}, {Inv.F3(s.ConcordanceIndex)} at {Inv.F3(s.ConfidenceLevel)} "
             + $"({s.FeatureCount} covariate, robust {s.Robust})");
 
         // One row per arm: control, then treatment.

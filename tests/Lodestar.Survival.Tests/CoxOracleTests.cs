@@ -68,7 +68,7 @@ public sealed class CoxOracleTests
         JsonElement metadata = Corpus.RootElement.GetProperty("metadata");
         Assert.Equal("lifelines", metadata.GetProperty("library").GetString());
         Assert.Equal("survival-cox", metadata.GetProperty("family").GetString());
-        Assert.Equal(5, Cases.Count);
+        Assert.Equal(6, Cases.Count);
     }
 
     [Theory]

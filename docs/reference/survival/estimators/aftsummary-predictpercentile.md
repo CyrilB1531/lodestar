@@ -28,7 +28,7 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-AftSummary fit = AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, featureCount: 1);
+AftSummary fit = AcceleratedFailureTime.Fit(dose, months, died, featureCount: 1, AftModel.Weibull);
 
 double[] times = fit.PredictPercentile([0.0, 2.0], 0.25);
 double untreated = Math.Round(times[0], 6);   // => 22.614671
@@ -41,4 +41,4 @@ are still event-free, later than the median. Each model inverts its survival fun
 **Applies to** — net10.0, netstandard2.0.
 
 **See also** — [`AftSummary`](aftsummary.md), [`AftSummary.PredictMedian`](aftsummary-predictmedian.md),
-[`ParametricFit.Percentile`](parametricfit-percentile.md).
+[`ParametricSummary.Percentile`](parametricsummary-percentile.md).

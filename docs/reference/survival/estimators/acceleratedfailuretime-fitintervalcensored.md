@@ -6,13 +6,13 @@ Fits an accelerated failure time regression to interval-censored times: lifeline
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary FitIntervalCensored(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, int featureCount, AftOptions options = null)
+public static AftSummary FitIntervalCensored(ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary FitIntervalCensored(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftOptions options = null)
+public static AftSummary FitIntervalCensored(ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 The second overload takes lifelines' `weights_col` and `entry_col`.
@@ -46,7 +46,7 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] lastClear = [2, 4, 0, 6, 3, 8, 5, 1, 7, 10];
 double[] firstSeen = [4, 6, 3, 9, 3, double.PositiveInfinity, 7, 4, 10, double.PositiveInfinity];
 
-AftSummary fit = AcceleratedFailureTime.FitIntervalCensored(AftModel.Weibull, dose, lastClear, firstSeen, featureCount: 1);
+AftSummary fit = AcceleratedFailureTime.FitIntervalCensored(dose, lastClear, firstSeen, featureCount: 1, AftModel.Weibull);
 
 double perUnit = Math.Round(fit.Coefficients[0], 6);   // => -0.017618
 bool unscored = double.IsNaN(fit.ConcordanceIndex);    // => True

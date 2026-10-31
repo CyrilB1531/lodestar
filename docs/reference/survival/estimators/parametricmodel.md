@@ -8,7 +8,7 @@ Which of lifelines' parametric univariate models [`ParametricSurvival`](parametr
 public enum ParametricModel { Exponential, Weibull, LogNormal, LogLogistic, PiecewiseExponential, GeneralizedGamma }
 ```
 
-**Members** — each with its parameters in [`ParametricFit.ParameterNames`](parametricfit.md)' order:
+**Members** — each with its parameters in [`ParametricSummary.ParameterNames`](parametricsummary.md)' order:
 
 - `Exponential`, `H(t) = t / λ`: `lambda_`. lifelines' `ExponentialFitter`.
 - `Weibull`, `H(t) = (t / λ)^ρ`: `lambda_`, `rho_`. `WeibullFitter`.
@@ -28,9 +28,9 @@ using Lodestar.Survival;
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-double exponential = Math.Round(ParametricSurvival.Fit(ParametricModel.Exponential, months, died).Aic, 4);   // => 53.6435
-double weibull = Math.Round(ParametricSurvival.Fit(ParametricModel.Weibull, months, died).Aic, 4);           // => 53.4005
-double logNormal = Math.Round(ParametricSurvival.Fit(ParametricModel.LogNormal, months, died).Aic, 4);       // => 52.3648
+double exponential = Math.Round(ParametricSurvival.Fit(months, died, ParametricModel.Exponential).Akaike, 4);   // => 53.6435
+double weibull = Math.Round(ParametricSurvival.Fit(months, died, ParametricModel.Weibull).Akaike, 4);           // => 53.4005
+double logNormal = Math.Round(ParametricSurvival.Fit(months, died, ParametricModel.LogNormal).Akaike, 4);       // => 52.3648
 ```
 
 **Remarks** — **the exponential is a Weibull with `ρ = 1`, and both are generalized gammas**, as the

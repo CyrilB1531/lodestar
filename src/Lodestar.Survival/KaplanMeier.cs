@@ -58,7 +58,7 @@ public static class KaplanMeier
             SurvivalStep step = steps[i];
             if (step.Events > 0 && step.AtRisk > 0)
             {
-                product *= 1.0 - ((double)step.Events / step.AtRisk);
+                product = Next(product, step);
                 // In double: the product of two counts overflows int past 46,340 at risk.
                 double denominator = (double)step.AtRisk * (step.AtRisk - step.Events);
                 if (denominator > 0.0)
@@ -158,7 +158,8 @@ public static class KaplanMeier
     /// <param name="curveB">The second curve, from <see cref="Estimate"/>.</param>
     /// <returns>The chi-squared statistic on one degree of freedom and its upper-tail p-value.</returns>
     /// <exception cref="ArgumentNullException">A curve is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">A curve holds no step, or not one estimate per step.</exception>
+    /// <exception cref="ArgumentException">A curve holds no step, or not one estimate per step, or is not a right-censored
+    /// curve from <see cref="Estimate"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="time"/> is negative or NaN.</exception>
     /// <remarks>
     /// Klein, Logan, Harhoff and Andersen's test on the <c>log(−log S)</c> scale: the squared difference of the two
@@ -177,13 +178,51 @@ public static class KaplanMeier
             throw new ArgumentOutOfRangeException(nameof(time), time, "A time is non-negative.");
         }
 
-        (double survivalA, double varianceA) = CurveTimeline.At(curveA, time);
-        (double survivalB, double varianceB) = CurveTimeline.At(curveB, time);
+        RightCensored(curveA, nameof(curveA));
+        RightCensored(curveB, nameof(curveB));
+
+        (double survivalA, double varianceA) = CurveTimeline.At(curveA, time, nameof(curveA));
+        (double survivalB, double varianceB) = CurveTimeline.At(curveB, time, nameof(curveB));
         double logA = Math.Log(survivalA);
         double logB = Math.Log(survivalB);
         double gap = Math.Log(-logA) - Math.Log(-logB);
         double statistic = gap * gap / ((varianceA / (logA * logA)) + (varianceB / (logB * logB)));
         return new TestResult(statistic, Distributions.ChiSquaredSf(statistic, 1.0));
+    }
+
+    /// <summary>The running product past a step with an event, as <see cref="Estimate"/> forms it and
+    /// <see cref="RightCensored"/> re-forms it.</summary>
+    private static double Next(double product, SurvivalStep step) => product * (1.0 - ((double)step.Events / step.AtRisk));
+
+    /// <summary>Refuses a curve whose estimate is not the product of its steps' <c>1 − d/n</c>: one from
+    /// <see cref="EstimateLeftCensored"/>, whose Greenwood sum the test would read as a right-censored one's (#1224).</summary>
+    private static void RightCensored(KaplanMeierCurve curve, string name)
+    {
+        SurvivalStep[] steps = curve.Steps;
+        double[] survival = curve.Survival;
+        // A malformed curve is left to the timeline, which refuses it under its own name.
+        if (steps is null || survival is null || survival.Length != steps.Length)
+        {
+            return;
+        }
+
+        // Absolute, past both estimates' rounding: 1 − exp(Σ log) holds about kε absolutely and the product (i + 1)ε of
+        // itself; a relative bound judged an all-observed left-censored curve, equal to this one, by its size (#1224).
+        double tolerance = 16.0 * NearZero.MachineEpsilon * (steps.Length + 2);
+        double product = 1.0;
+        for (int i = 0; i < steps.Length; i++)
+        {
+            if (steps[i].Events > 0 && steps[i].AtRisk > 0)
+            {
+                product = Next(product, steps[i]);
+            }
+
+            if (!(Math.Abs(survival[i] - product) <= tolerance))
+            {
+                throw new ArgumentException(
+                    "The test reads a right-censored curve from KaplanMeier.Estimate; this curve's estimate is not the product of its steps.", name);
+            }
+        }
     }
 
     /// <summary>The unrestricted mean survival time of a curve and its variance, lifelines' <c>restricted_mean_survival_time</c> at its default <c>t=inf</c>.</summary>

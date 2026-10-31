@@ -78,9 +78,9 @@ public sealed class ParametricOracleTests
         double[] design = Rows(c, "design");
         AftSummary fit = c.GetProperty("censoring").GetString() switch
         {
-            "left" => AcceleratedFailureTime.FitLeftCensored(model, design, Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, 2, options),
-            "interval" => AcceleratedFailureTime.FitIntervalCensored(model, design, Doubles(c, "lower"), Doubles(c, "upper"), weights, entries, 2, options),
-            _ => AcceleratedFailureTime.Fit(model, design, Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, 2, options),
+            "left" => AcceleratedFailureTime.FitLeftCensored(design, Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, 2, model, options),
+            "interval" => AcceleratedFailureTime.FitIntervalCensored(design, Doubles(c, "lower"), Doubles(c, "upper"), weights, entries, 2, model, options),
+            _ => AcceleratedFailureTime.Fit(design, Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, 2, model, options),
         };
 
         string[] names = [.. fit.ParameterNames.Select((p, j) => $"{p}:{(fit.CovariateIndices[j] < 0 ? "Intercept" : $"x{fit.CovariateIndices[j]}")}")];
@@ -98,7 +98,7 @@ public sealed class ParametricOracleTests
         Near(c.GetProperty("likelihoodRatio").GetDouble(), fit.LikelihoodRatioStatistic, $"{name}: LR", tolerance);
         Relative(c.GetProperty("likelihoodRatioP"), [fit.LikelihoodRatioPValue], $"{name}: LR p");
         Assert.Equal(c.GetProperty("likelihoodRatioDf").GetInt32(), fit.LikelihoodRatioDegreesOfFreedom);
-        Near(c.GetProperty("aic").GetDouble(), fit.Aic, $"{name}: AIC", tolerance);
+        Near(c.GetProperty("aic").GetDouble(), fit.Akaike, $"{name}: AIC", tolerance);
         JsonElement concordance = c.GetProperty("concordance");
         if (concordance.ValueKind == JsonValueKind.Null)
         {
@@ -147,10 +147,10 @@ public sealed class ParametricOracleTests
     private static void FixedPoint(JsonElement c, string name)
     {
         var options = new ParametricOptions { Breakpoints = OptionalDoubles(c, "breakpoints") };
-        ParametricFit a = ParametricSurvival.Fit(
-            Enum.Parse<ParametricModel>(c.GetProperty("modelA").GetString()!), Doubles(c, "durationsA"), Flags(c, "eventsA"), options);
-        ParametricFit b = ParametricSurvival.Fit(
-            Enum.Parse<ParametricModel>(c.GetProperty("modelB").GetString()!), Doubles(c, "durationsB"), Flags(c, "eventsB"), options);
+        ParametricSummary a = ParametricSurvival.Fit(
+            Doubles(c, "durationsA"), Flags(c, "eventsA"), Enum.Parse<ParametricModel>(c.GetProperty("modelA").GetString()!), options);
+        ParametricSummary b = ParametricSurvival.Fit(
+            Doubles(c, "durationsB"), Flags(c, "eventsB"), Enum.Parse<ParametricModel>(c.GetProperty("modelB").GetString()!), options);
         Lodestar.Stats.TestResult result = ParametricSurvival.CompareAt(c.GetProperty("time").GetDouble(), a, b);
 
         Near(c.GetProperty("statistic").GetDouble(), result.Statistic, $"{name}: statistic", 1e-9);
@@ -178,18 +178,20 @@ public sealed class ParametricOracleTests
         bool valueOnly = c.TryGetProperty("valueOnly", out JsonElement flag) && flag.GetBoolean();
         double tolerance = model == ParametricModel.GeneralizedGamma ? 2e-9 : 1e-9;
         double located = valueOnly ? 1e-6 : tolerance;
+        // A case whose optimum the likelihood's rounding places less tightly carries its parameters' own tolerance.
+        double placed = c.TryGetProperty("parameterTolerance", out JsonElement own) ? own.GetDouble() : located;
         var options = new ParametricOptions { Breakpoints = OptionalDoubles(c, "breakpoints") };
         double[] weights = OptionalDoubles(c, "weights");
         double[] entries = OptionalDoubles(c, "entries");
-        ParametricFit fit = c.GetProperty("censoring").GetString() switch
+        ParametricSummary fit = c.GetProperty("censoring").GetString() switch
         {
-            "left" => ParametricSurvival.FitLeftCensored(model, Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, options),
-            "interval" => ParametricSurvival.FitIntervalCensored(model, Doubles(c, "lower"), Doubles(c, "upper"), weights, entries, options),
-            _ => ParametricSurvival.Fit(model, Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, options),
+            "left" => ParametricSurvival.FitLeftCensored(Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, model, options),
+            "interval" => ParametricSurvival.FitIntervalCensored(Doubles(c, "lower"), Doubles(c, "upper"), weights, entries, model, options),
+            _ => ParametricSurvival.Fit(Doubles(c, "durations"), Flags(c, "eventObserved"), weights, entries, model, options),
         };
 
         Assert.Equal(Strings(c, "names"), fit.ParameterNames);
-        Near(c, "parameters", fit.Parameters, name, located);
+        Near(c, "parameters", fit.Parameters, name, placed);
         // The generalized gamma's inference is frozen from an independent Hessian good to about 1e-8, lifelines' own
         // being 2e-5 off; lifelines' standard errors stay beside it, to 1e-3.
         double inference = model == ParametricModel.GeneralizedGamma ? 1e-6 : tolerance;
@@ -201,7 +203,7 @@ public sealed class ParametricOracleTests
             Near(c, "lifelinesStandardErrors", fit.StandardErrors, name, 1e-3);
         }
         Near(c.GetProperty("logLikelihood").GetDouble(), fit.LogLikelihood, $"{name}: log-likelihood", tolerance);
-        Near(c.GetProperty("aic").GetDouble(), fit.Aic, $"{name}: AIC", tolerance);
+        Near(c.GetProperty("aic").GetDouble(), fit.Akaike, $"{name}: AIC", tolerance);
         double[] times = Doubles(c, "times");
         Near(c, "survival", fit.Survival(times), name, located);
         Near(c, "cumulativeHazard", fit.CumulativeHazard(times), name, located);
@@ -217,7 +219,7 @@ public sealed class ParametricOracleTests
     }
 
     /// <summary>lifelines finds a percentile by a root search, to its own tolerance; the closed form here is compared at 1e-8.</summary>
-    private static void Percentile(JsonElement c, string key, ParametricFit fit, double probability, string name, double tolerance)
+    private static void Percentile(JsonElement c, string key, ParametricSummary fit, double probability, string name, double tolerance)
     {
         JsonElement expected = c.GetProperty(key);
         if (expected.ValueKind == JsonValueKind.Null)

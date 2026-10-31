@@ -20,7 +20,8 @@ public static class CoxProportionalHazards
     /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test, the concordance and the baseline.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
     /// <exception cref="ArgumentException">The spans disagree in length, a duration is negative or NaN, a covariate is not finite or does not vary, no event is observed, or a covariate separates the events or is collinear with the others, or the covariates are too many for their square to fit in one array, or the design is more cells than one array holds.</exception>
-    /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>.</exception>
+    /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>, or
+    /// stalled where no halving of its step kept the likelihood.</exception>
     public static CoxSummary Fit(
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> durations,
@@ -41,7 +42,8 @@ public static class CoxProportionalHazards
     /// <returns>The coefficients with their standard errors, tests and intervals, the likelihood-ratio test, the concordance and the baselines.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
     /// <exception cref="ArgumentException">As the unweighted overload, or a weight, stratum or cluster span is neither empty nor one value per subject, or a weight is not positive and finite.</exception>
-    /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>, or lifelines' own loop, which an L1 penalty runs, gave up.</exception>
+    /// <exception cref="InvalidOperationException">The fit did not converge within <see cref="CoxOptions.MaximumIterations"/>,
+    /// stalled where no halving of its step kept the likelihood, or lifelines' own loop, which an L1 penalty runs, gave up.</exception>
     // S107: the six spans are lifelines' columns, one value per subject each; a record could not hold spans, and
     // arrays in one would copy what the caller already holds.
 #pragma warning disable S107

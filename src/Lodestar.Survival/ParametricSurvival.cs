@@ -15,101 +15,101 @@ public static class ParametricSurvival
     private static readonly ParametricOptions Defaults = new();
 
     /// <summary>Fits a model to right-censored durations, lifelines' <c>fit</c>.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="durations">One positive duration per subject.</param>
     /// <param name="eventObserved">Whether each duration ends in the event.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the iteration budget and the piecewise breakpoints; <see langword="null"/> for the defaults.</param>
     /// <returns>The fitted parameters with their inference, and the fitted curves.</returns>
     /// <exception cref="ArgumentException">The spans differ in length or are empty, a duration is not positive and finite, or the piecewise model has no breakpoint.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
-    public static ParametricFit Fit(
-        ParametricModel model, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ParametricOptions? options = null) =>
-        Fit(model, durations, eventObserved, [], [], options);
+    public static ParametricSummary Fit(
+        ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ParametricModel model, ParametricOptions? options = null) =>
+        Fit(durations, eventObserved, [], [], model, options);
 
     /// <summary>Fits a model to weighted, possibly late-entering, right-censored durations: lifelines' <c>weights</c> and <c>entry</c>.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="durations">One positive duration per subject.</param>
     /// <param name="eventObserved">Whether each duration ends in the event.</param>
     /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
     /// <param name="entries">Each subject's entry time, non-negative and at most its duration, or empty for none.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the iteration budget and the piecewise breakpoints; <see langword="null"/> for the defaults.</param>
     /// <returns>The fitted parameters with their inference, and the fitted curves.</returns>
     /// <exception cref="ArgumentException">As the unweighted overload, or a weight or entry span is neither empty nor one valid value per subject.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
-    public static ParametricFit Fit(
-        ParametricModel model,
+    public static ParametricSummary Fit(
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         ReadOnlySpan<double> weights,
         ReadOnlySpan<double> entries,
+        ParametricModel model,
         ParametricOptions? options = null) =>
         Run(model, Samples.Build(Censoring.Right, durations, durations, eventObserved, weights, entries, nameof(durations)), options);
 
     /// <summary>Fits a model to left-censored durations, lifelines' <c>fit_left_censoring</c>: a censored subject had the event by its time.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="durations">One positive duration per subject.</param>
     /// <param name="eventObserved">Whether each duration is the event's own time rather than an upper bound on it.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the iteration budget and the piecewise breakpoints; <see langword="null"/> for the defaults.</param>
     /// <returns>The fitted parameters with their inference, and the fitted curves.</returns>
-    /// <exception cref="ArgumentException">As <see cref="Fit(ParametricModel, ReadOnlySpan{double}, ReadOnlySpan{bool}, ParametricOptions)"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{bool}, ParametricModel, ParametricOptions)"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
-    public static ParametricFit FitLeftCensored(
-        ParametricModel model, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ParametricOptions? options = null) =>
-        FitLeftCensored(model, durations, eventObserved, [], [], options);
+    public static ParametricSummary FitLeftCensored(
+        ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, ParametricModel model, ParametricOptions? options = null) =>
+        FitLeftCensored(durations, eventObserved, [], [], model, options);
 
     /// <summary>Fits a model to weighted, possibly late-entering, left-censored durations.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="durations">One positive duration per subject.</param>
     /// <param name="eventObserved">Whether each duration is the event's own time rather than an upper bound on it.</param>
     /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
     /// <param name="entries">Each subject's entry time, non-negative, or empty for none.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the iteration budget and the piecewise breakpoints; <see langword="null"/> for the defaults.</param>
     /// <returns>The fitted parameters with their inference, and the fitted curves.</returns>
     /// <exception cref="ArgumentException">As the weighted right-censored overload.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
-    public static ParametricFit FitLeftCensored(
-        ParametricModel model,
+    public static ParametricSummary FitLeftCensored(
         ReadOnlySpan<double> durations,
         ReadOnlySpan<bool> eventObserved,
         ReadOnlySpan<double> weights,
         ReadOnlySpan<double> entries,
+        ParametricModel model,
         ParametricOptions? options = null) =>
         Run(model, Samples.Build(Censoring.Left, durations, durations, eventObserved, weights, entries, nameof(durations)), options);
 
     /// <summary>Fits a model to interval-censored times, lifelines' <c>fit_interval_censoring</c>: each event somewhere in <c>[lower, upper]</c>.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="lower">Each interval's lower bound, non-negative.</param>
     /// <param name="upper">Each interval's upper bound, at least its lower bound; infinite for a right-censored time. Equal bounds are an observed event.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the iteration budget and the piecewise breakpoints; <see langword="null"/> for the defaults.</param>
     /// <returns>The fitted parameters with their inference, and the fitted curves.</returns>
     /// <exception cref="ArgumentException">The spans differ in length or are empty, a bound is NaN or negative, an upper bound is below its lower one, or the piecewise model has no breakpoint.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
-    public static ParametricFit FitIntervalCensored(
-        ParametricModel model, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, ParametricOptions? options = null) =>
-        FitIntervalCensored(model, lower, upper, [], [], options);
+    public static ParametricSummary FitIntervalCensored(
+        ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, ParametricModel model, ParametricOptions? options = null) =>
+        FitIntervalCensored(lower, upper, [], [], model, options);
 
     /// <summary>Fits a model to weighted, possibly late-entering, interval-censored times.</summary>
-    /// <param name="model">The model.</param>
     /// <param name="lower">Each interval's lower bound, non-negative.</param>
     /// <param name="upper">Each interval's upper bound, at least its lower bound; infinite for a right-censored time.</param>
     /// <param name="weights">One positive, finite weight per subject, or empty for ones.</param>
     /// <param name="entries">Each subject's entry time, non-negative, or empty for none.</param>
+    /// <param name="model">The model.</param>
     /// <param name="options">The level, the iteration budget and the piecewise breakpoints; <see langword="null"/> for the defaults.</param>
     /// <returns>The fitted parameters with their inference, and the fitted curves.</returns>
     /// <exception cref="ArgumentException">As the unweighted overload, or a weight or entry span is neither empty nor one valid value per subject.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="model"/> names no model.</exception>
     /// <exception cref="InvalidOperationException">The fit did not converge.</exception>
-    public static ParametricFit FitIntervalCensored(
-        ParametricModel model,
+    public static ParametricSummary FitIntervalCensored(
         ReadOnlySpan<double> lower,
         ReadOnlySpan<double> upper,
         ReadOnlySpan<double> weights,
         ReadOnlySpan<double> entries,
+        ParametricModel model,
         ParametricOptions? options = null) =>
         Run(model, Samples.Build(Censoring.Interval, lower, upper, [], weights, entries, nameof(upper)), options);
 
@@ -127,7 +127,7 @@ public static class ParametricSurvival
     /// delta-method variance of <c>S</c> itself, where a Kaplan-Meier curve gives Greenwood's variance of <c>log S</c>;
     /// this keeps lifelines' reading, so its statistic is the one lifelines reports.
     /// </remarks>
-    public static TestResult CompareAt(double time, ParametricFit fitA, ParametricFit fitB)
+    public static TestResult CompareAt(double time, ParametricSummary fitA, ParametricSummary fitB)
     {
         Guard.NotNull(fitA);
         Guard.NotNull(fitB);
@@ -145,7 +145,7 @@ public static class ParametricSurvival
         return new TestResult(statistic, Distributions.ChiSquaredSf(statistic, 1.0));
     }
 
-    internal static ParametricFit Run(ParametricModel model, CensoredSample sample, ParametricOptions? options)
+    internal static ParametricSummary Run(ParametricModel model, CensoredSample sample, ParametricOptions? options)
     {
         if (model < ParametricModel.Exponential || model > ParametricModel.GeneralizedGamma)
         {
@@ -163,8 +163,10 @@ public static class ParametricSurvival
             theta => ParametricLikelihood.LogLikelihood(sample, new Univariate(shape, theta), theta.Length),
             shape.Start(sample.StartTimes),
             shape.LowerBounds,
-            settings.MaximumIterations);
-        return new ParametricFit(model, shape, parameters, logLikelihood, information, settings.ConfidenceLevel);
+            settings.MaximumIterations,
+            shape.MaximumReach);
+        ParametricLikelihood.RequireMaximum(sample, logLikelihood);
+        return new ParametricSummary(model, shape, parameters, logLikelihood, information, settings.ConfidenceLevel);
     }
 
     /// <summary>Every observation shares the model's parameters, as jets over them.</summary>
@@ -175,6 +177,8 @@ public static class ParametricSurvival
         public Jet CumulativeHazard(int observation, double t) => shape.CumulativeHazard(_variables, t);
 
         public Jet LogHazard(int observation, double t) => shape.LogHazard(_variables, t);
+
+        public Jet LogDensity(int observation, double t) => shape.LogDensity(_variables, t);
 
         public Jet LogOneMinusSurvival(int observation, double t) => shape.LogOneMinusSurvival(_variables, t);
     }

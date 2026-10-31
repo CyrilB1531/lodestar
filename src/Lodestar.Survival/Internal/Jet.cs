@@ -144,7 +144,9 @@ internal sealed class Jet
     public static Jet Log1mExp(Jet u)
     {
         double expm1 = NearZero.Expm1(u.Value);
-        return Apply(u, Special.Log1mExp(u.Value), 1.0 / expm1, -Math.Exp(u.Value) / (expm1 * expm1));
+        // −e^u/(e^u − 1)² as −1/((e^u − 1)(1 − e^−u)): past u = 709.78 both of the first form's terms overflowed to a NaN,
+        // and one left-censored subject far out took the whole Hessian with it (#1756).
+        return Apply(u, Special.Log1mExp(u.Value), 1.0 / expm1, -1.0 / (expm1 * -NearZero.Expm1(-u.Value)));
     }
 
     /// <summary><c>log(1 + u)</c>.</summary>
@@ -160,9 +162,27 @@ internal sealed class Jet
     /// <summary><c>log Φ̄(u)</c>, scipy's <c>norm.logsf</c>.</summary>
     public static Jet NormalLogSf(Jet u)
     {
-        double logSf = Special.NormalLogSf(u.Value);
-        double ratio = Math.Exp(Special.NormalLogPdf(u.Value) - logSf);
-        return Apply(u, logSf, -ratio, -ratio * (ratio - u.Value));
+        (double logSf, double hazard) = LogSfAndHazard(u.Value);
+        return LogSfJet(u, logSf, hazard);
+    }
+
+    /// <summary>log Φ̄(u) and the normal hazard φ(u)/Φ̄(u), each special function evaluated once.</summary>
+    private static (double LogSf, double Hazard) LogSfAndHazard(double u)
+    {
+        double logSf = Special.NormalLogSf(u);
+        return (logSf, Math.Exp(Special.NormalLogPdf(u) - logSf));
+    }
+
+    /// <summary>log Φ̄ as a jet: its derivative is minus the hazard h, its second −h(h − u).</summary>
+    private static Jet LogSfJet(Jet u, double logSf, double hazard) => Apply(u, logSf, -hazard, -hazard * (hazard - u.Value));
+
+    /// <summary><c>log Φ̄(u)</c> and the normal hazard <c>h = φ(u)/Φ̄(u)</c>, from one evaluation of each: h′ = h(h − u),
+    /// h″ = h′(h − u) + h(h′ − 1).</summary>
+    public static (Jet LogSf, Jet Hazard) NormalLogSfAndHazard(Jet u)
+    {
+        (double logSf, double hazard) = LogSfAndHazard(u.Value);
+        double first = hazard * (hazard - u.Value);
+        return (LogSfJet(u, logSf, hazard), Apply(u, hazard, first, (first * (hazard - u.Value)) + (hazard * (first - 1.0))));
     }
 
     /// <summary><c>log Φ(u)</c>, scipy's <c>norm.logcdf</c>.</summary>
@@ -175,39 +195,57 @@ internal sealed class Jet
     public static Jet LogGamma(Jet u) => Apply(u, Special.LogGamma(u.Value), Special.Digamma(u.Value), Trigamma.Of(u.Value));
 
     /// <summary>
-    /// <c>log Q(a, x)</c> or <c>log P(a, x)</c>, the regularized incomplete gamma, clipped to <c>[1e-35, 1 − 1e-35]</c>
-    /// as lifelines' <c>autograd_gamma</c> clips it.
+    /// <c>log Q(a, x)</c> or <c>log P(a, x)</c>, the regularized incomplete gamma, in <c>a</c> and <c>u = log x</c>, clipped
+    /// to <c>[1e-35, 1 − 1e-35]</c> as lifelines' <c>autograd_gamma</c> clips it.
     /// </summary>
     /// <remarks>
-    /// The derivatives in <c>x</c> are exact; those in <c>a</c> are central differences with Richardson's
-    /// extrapolation, where lifelines takes a single five-point difference: no closed form of them is needed to
-    /// reach the optimum, only one accurate enough that the gradient vanishes where the likelihood peaks.
+    /// In <c>u</c>, not <c>x</c>: the second derivative in x, of order <c>x^(a−2)</c>, overflowed at x = 1e-169 and a = 0.01
+    /// before the chain rule's x² took it back, and the Hessian read NaN (#1222). Those in <c>u</c> are exact; those in
+    /// <c>a</c> central differences with Richardson's extrapolation, where lifelines takes one five-point difference.
     /// </remarks>
-    public static Jet LogIncompleteGamma(Jet a, Jet x, bool upper)
+    public static Jet LogIncompleteGamma(Jet a, Jet logX, bool upper)
     {
         double av = a.Value;
-        double xv = x.Value;
+        double uv = logX.Value;
+        double xv = Math.Exp(uv);
         double value = Special.LogIncompleteGamma(av, xv, upper);
-        double dx = Special.LogIncompleteGammaDx(av, xv, value, upper);
-        double dxx = dx * (((av - 1.0) / xv) - 1.0 - dx);
-        double h = 1e-3 * Math.Max(1.0, Math.Abs(av));
-        double da = Richardson(s => Special.LogIncompleteGamma(av + s, xv, upper), h, out double daa);
-        double dax = Richardson(
-            s => Special.LogIncompleteGammaDx(av + s, xv, Special.LogIncompleteGamma(av + s, xv, upper), upper), h, out _);
-        bool clipped = value <= Special.LogClipLow || value >= Special.LogClipHigh;
-        return clipped
-            ? Apply(a, x, value, (0.0, 0.0), (0.0, 0.0, 0.0))
-            : Apply(a, x, value, (da, dx), (daa, dax, dxx));
+        double du = Special.LogIncompleteGammaDLogX(av, uv, value, upper);
+        double duu = du * (av - xv - du);
+        // Relative to a: log Q goes as log a below one, so 1e-3 absolute biased d/da by 2e-4 at a = 0.007 (#1222).
+        double h = 1e-3 * av;
+        // At a ± h and a ± h/2, each tail evaluated once for both differences.
+        double tailUp = Special.LogIncompleteGamma(av + h, xv, upper);
+        double tailDown = Special.LogIncompleteGamma(av - h, xv, upper);
+        double tailHalfUp = Special.LogIncompleteGamma(av + (h / 2.0), xv, upper);
+        double tailHalfDown = Special.LogIncompleteGamma(av - (h / 2.0), xv, upper);
+        double da = Richardson(value, (tailUp, tailDown, tailHalfUp, tailHalfDown), h, out _);
+        // The second at 3h: the tails' rounding over h² held H_λλ to 9e-6 at λ = 0.25; at |λ| = 0.35, 2e-6 at 3h and
+        // 7e-6 at 2h, whose stencil would share a ± h.
+        double wide = 3.0 * h;
+        Richardson(
+            value,
+            (Special.LogIncompleteGamma(av + wide, xv, upper), Special.LogIncompleteGamma(av - wide, xv, upper),
+             Special.LogIncompleteGamma(av + (wide / 2.0), xv, upper), Special.LogIncompleteGamma(av - (wide / 2.0), xv, upper)),
+            wide,
+            out double daa);
+        double dau = Richardson(
+            du,
+            (Special.LogIncompleteGammaDLogX(av + h, uv, tailUp, upper), Special.LogIncompleteGammaDLogX(av - h, uv, tailDown, upper),
+             Special.LogIncompleteGammaDLogX(av + (h / 2.0), uv, tailHalfUp, upper),
+             Special.LogIncompleteGammaDLogX(av - (h / 2.0), uv, tailHalfDown, upper)),
+            h,
+            out _);
+        return Special.Clips(value, out _)
+            ? Apply(a, logX, value, (0.0, 0.0), (0.0, 0.0, 0.0))
+            : Apply(a, logX, value, (da, du), (daa, dau, duu));
     }
 
-    /// <summary>The first and second derivative at zero by central differences at <c>h</c> and <c>h/2</c>, extrapolated.</summary>
-    private static double Richardson(Func<double, double> f, double h, out double second)
+    /// <summary>The first and second derivative at zero by central differences at <c>h</c> and <c>h/2</c>, extrapolated,
+    /// from <c>f(0)</c> and <c>f</c> at <c>h, −h, h/2, −h/2</c>.</summary>
+    private static double Richardson(
+        double f0, (double Up, double Down, double HalfUp, double HalfDown) at, double h, out double second)
     {
-        double f0 = f(0.0);
-        double fp = f(h);
-        double fm = f(-h);
-        double fp2 = f(h / 2.0);
-        double fm2 = f(-h / 2.0);
+        (double fp, double fm, double fp2, double fm2) = at;
         double firstCoarse = (fp - fm) / (2.0 * h);
         double firstFine = (fp2 - fm2) / h;
         double secondCoarse = (fp - (2.0 * f0) + fm) / (h * h);

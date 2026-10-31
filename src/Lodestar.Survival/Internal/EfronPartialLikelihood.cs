@@ -18,6 +18,11 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
     private readonly Sums _risk;
     private readonly Sums _tied;
 
+    /// <summary>Every weight is exp(η − shift), the shift the risk set's largest η so far, cancelling in the score's and
+    /// information's ratios and added back to each logarithm: one shift a stratum let a late risk set's sums underflow
+    /// past a spread of 745, and a design with a maximum read as separated (#1756).</summary>
+    private double _shift;
+
     /// <summary>The likelihood of the covariates as given, unstandardised, unweighted and unstratified.</summary>
     internal EfronPartialLikelihood(
         ReadOnlySpan<double> design, ReadOnlySpan<double> durations, ReadOnlySpan<bool> eventObserved, int featureCount)
@@ -44,39 +49,31 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
     public double Evaluate(ReadOnlySpan<double> coefficients, Span<double> score, Span<double> information)
     {
         double[] eta = LinearPredictor(coefficients);
-
-        // Every weight is exp(η − shift): the shift cancels in each ratio the score and the
-        // information take, and is added back to each logarithm, so no weight overflows.
-        double shift = double.NegativeInfinity;
-        foreach (double value in eta)
-        {
-            shift = Math.Max(shift, value);
-        }
-
         score.Clear();
         information.Clear();
         double logLikelihood = 0.0;
         foreach ((_, int start, int end) in _data.Strata)
         {
-            logLikelihood += Stratum(start, end, eta, shift, score, information);
+            logLikelihood += Stratum(start, end, eta, score, information);
         }
 
         return logLikelihood;
     }
 
     /// <summary>One stratum's terms, walked from its last time back to its first.</summary>
-    private double Stratum(int start, int end, double[] eta, double shift, Span<double> score, Span<double> information)
+    private double Stratum(int start, int end, double[] eta, Span<double> score, Span<double> information)
     {
         int p = _data.FeatureCount;
         Sums risk = _risk;
         Sums tied = _tied;
         risk.Clear();
+        _shift = double.NegativeInfinity;
         double logLikelihood = 0.0;
         int groupEnd = end;
         while (groupEnd > start)
         {
             int groupStart = GroupStart(start, groupEnd);
-            (int eventCount, double weightCount, double eventTerm) = AddGroup(groupStart, groupEnd, eta, shift);
+            (int eventCount, double weightCount, double eventTerm) = AddGroup(groupStart, groupEnd, eta);
             logLikelihood += eventTerm;
             if (eventCount > 0)
             {
@@ -88,7 +85,7 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
 
                 for (int l = 0; l < eventCount; l++)
                 {
-                    logLikelihood -= mean * (AccumulateTiedTerm(risk, tied, (double)l / eventCount, mean, score, information) + shift);
+                    logLikelihood -= mean * (AccumulateTiedTerm(risk, tied, (double)l / eventCount, mean, score, information) + _shift);
                 }
             }
 
@@ -100,7 +97,7 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
 
     /// <summary>Adds one time's subjects to the risk set and its events to the tied sums, walking backwards as lifelines does.</summary>
     /// <returns>The events at the time, their total weight, and their weighted linear predictors' sum.</returns>
-    private (int Events, double Weight, double EventTerm) AddGroup(int groupStart, int groupEnd, double[] eta, double shift)
+    private (int Events, double Weight, double EventTerm) AddGroup(int groupStart, int groupEnd, double[] eta)
     {
         int p = _data.FeatureCount;
         _tied.Clear();
@@ -112,7 +109,16 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
         {
             ReadOnlySpan<double> row = _data.Row(position);
             double w = _data.Weights[position];
-            double phi = w * Math.Exp(eta[position] - shift);
+            if (eta[position] > _shift)
+            {
+                // A new largest η rescales what the sums hold to it, so each risk set is weighed from its own largest.
+                double factor = double.IsNegativeInfinity(_shift) ? 0.0 : Math.Exp(_shift - eta[position]);
+                _risk.Scale(factor);
+                _tied.Scale(factor);
+                _shift = eta[position];
+            }
+
+            double phi = w * Math.Exp(eta[position] - _shift);
             _risk.Add(phi, row);
             if (!_data.Events[position])
             {
@@ -154,7 +160,6 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
     {
         int p = _data.FeatureCount;
         double denominator = risk.Zero - (fraction * tied.Zero);
-        double squared = denominator * denominator;
         double[] first = _adjustedFirst;
         for (int a = 0; a < p; a++)
         {
@@ -168,7 +173,9 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
             for (int b = 0; b < p; b++)
             {
                 double second = risk.Second[(a * p) + b] - (fraction * tied.Second[(a * p) + b]);
-                information[(a * p) + b] += mean * ((second / denominator) - (firstA * first[b] / squared));
+                // Each first moment over the denominator before the product: its square underflowed past a shift of 1e-168
+                // and read the information NaN, a design with a maximum refused as separated (#1756).
+                information[(a * p) + b] += mean * ((second / denominator) - (firstA / denominator * (first[b] / denominator)));
             }
         }
 
@@ -214,6 +221,20 @@ internal sealed class EfronPartialLikelihood : IPartialLikelihood
                 {
                     Second[(a * featureCount) + b] += weighted * row[b];
                 }
+            }
+        }
+
+        internal void Scale(double factor)
+        {
+            Zero *= factor;
+            for (int a = 0; a < First.Length; a++)
+            {
+                First[a] *= factor;
+            }
+
+            for (int a = 0; a < Second.Length; a++)
+            {
+                Second[a] *= factor;
             }
         }
 

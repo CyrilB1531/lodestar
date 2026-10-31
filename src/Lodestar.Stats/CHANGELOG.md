@@ -39,6 +39,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- The normal tail, the complementary error function behind it and the normal density keep their last digits, and Student's law from df `1e20` its first term in `1/df`, which moves `NormalPdf`, `NormalSf`, `NormalCdf`, the chi-squared tails at one degree of freedom and at a large df, the gamma tails at a large shape and Student's past df `1e20` by a few ulps. ([#1222](https://github.com/CyrilB1531/lodestar/issues/1222))
+- The chi-squared and gamma tails at a large shape, the quantiles searching them and the chi-squared density keep their last digits, through Temme's expansion near the mean and beside it, where they could miss them far into either tail. ([#1222](https://github.com/CyrilB1531/lodestar/issues/1222))
 - `Distributions.FisherSnedecorSf(1e-318, 20, 1e-320)` reads one, where it read `0.99994`. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
 - `Distributions.FisherSnedecorPdf`, `FisherSnedecorCdf`, `FisherSnedecorSf`, `FisherSnedecorQuantile`, `FisherSnedecorIsf`, `ChiSquaredPdf`, `ChiSquaredCdf`, `ChiSquaredSf`, `ChiSquaredQuantile` and `ChiSquaredIsf` take a df at its exact half where that half is not a double, so `Distributions.FisherSnedecorCdf(1e-5, 1e-310, 1.5e-323)` reads `1.48e-13`, where it read a third more. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
 - `Distributions.ChiSquaredCdf` and `ChiSquaredSf` no longer halve a statistic below `2⁻¹⁰²¹` before taking its tails, nor `ChiSquaredQuantile` and `ChiSquaredIsf` a root there, so `ChiSquaredSf(5e-324, 2e-300)` reads `7.4e-298`, where it read one. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))

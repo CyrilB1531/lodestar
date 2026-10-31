@@ -145,6 +145,16 @@ public sealed class LogRankFamilyEdgeTests
     }
 
     [Fact]
+    public void The_fixed_point_test_refuses_a_left_censored_curve()
+    {
+        // Its Greenwood sum would be read as a right-censored one's, and the statistic meant nothing (#1224).
+        KaplanMeierCurve left = KaplanMeier.EstimateLeftCensored(Durations, Events);
+
+        Assert.Equal("curveB", Assert.Throws<ArgumentException>(
+            () => KaplanMeier.CompareAt(1.0, KaplanMeier.Estimate(Durations, Events), left)).ParamName);
+    }
+
+    [Fact]
     public void The_concordance_index_refuses_mismatched_spans_a_nan_and_no_comparable_pair()
     {
         Assert.Throws<ArgumentException>(() => Concordance.Index([1.0, 2.0], [1.0]));

@@ -696,8 +696,7 @@ CURATED_WORDS = [
 
 
 def phonetic_words(rng: SeededRandom):
-    for w in CURATED_WORDS:
-        yield w
+    yield from CURATED_WORDS
     # Random pronounceable-ish alphabetic words, deterministic.
     letters = "abcdefghijklmnopqrstuvwxyz"
     for _ in range(350):
@@ -7412,8 +7411,8 @@ def generate_survival_concordance() -> dict:
         "cases": cases,
     }
 
-# The default precision stops lifelines 8.6e-6 relative from the maximum; at 1e-20 all five fixtures
-# are within 3.1e-13 of an independent Newton-Raphson (#684, the specification has the table).
+# The default precision stops lifelines short of the maximum, by up to 1.6e-3 relative on a coefficient near zero; at
+# 1e-20 the five random fixtures were within 3.1e-13 of an independent Newton-Raphson (#684's specification).
 COX_FIT_OPTIONS = {PRECISION: 1e-20, "r_precision": 0.0}
 
 
@@ -7451,7 +7450,7 @@ def _cox_fixture(rng: SeededRandom, name: str, rows: int, columns: list[str],
 
 
 def _cox_fixtures() -> list[dict]:
-    """Five designs, each catching what the others would not (the #684 specification)."""
+    """Five designs, each catching what the others would not (the #684 specification), and one Newton path (#1242)."""
     rng = SeededRandom(SEED + 68400)
     return [
         # Ties are where Efron and Breslow part company, so this one proves which is written.
@@ -7466,6 +7465,15 @@ def _cox_fixtures() -> list[dict]:
         # The smallest case where the inverse is not a closed formula.
         _cox_fixture(rng, "three covariates", 90, [NORMAL_COVARIATE, BINARY_COVARIATE, NORMAL_COVARIATE], 0.8, 5.0,
                      tied=True),
+        # Taken whole, Newton's steps went −37.0, −73.4, −55.1, −306.8 and the fit was refused as separated (#1242).
+        {"name": "a Newton step that lowers the likelihood", FEATURE_COUNT: 2,
+         DESIGN: [1.395, -1.425, -3.272, 0.641, 9.693, -7.341, -5.231, -0.804, 1.776, 16.172, 9.972, 3.932, -1.268,
+                  -3.321, -2.549, -3.959, -1.881, 0.621, 11.043, -5.489, 1.964, -0.639, 6.192, -4.899, -3.258, -2.64,
+                  -0.838, -2.002, 2.281, -3.899, 5.478, -2.117, -6.137, 5.748, -2.571, -6.402, -2.154, 0.036, -9.059,
+                  6.082, 4.451, 1.718, 4.752, -3.734, 1.286, -1.31],
+         DURATIONS: [1.0, 3.8, 38.2, 78.7, 0.1, 0.1, 0.2, 83.7, 0.2, 1.7, 0.3, 4.4, 15.1, 21.5, 81.3, 0.8, 0.1, 12540.7,
+                     2.0, 0.1, 0.1, 1.8, 4.0],
+         EVENTS: [int(c) for c in "01101100111111110111111"]},
     ]
 
 
@@ -7756,6 +7764,7 @@ MODEL_LOGLOGISTIC = "LogLogistic"
 MODEL_GG = "GeneralizedGamma"
 MODEL_PIECEWISE = "PiecewiseExponential"
 CENSOR_INTERVAL = "interval"
+CENSOR_LEFT = "left"
 ENTRY = "entry"
 AFT_ANCILLARY = "ancillary"
 AFT_FIT_INTERCEPT = "fitIntercept"
@@ -7776,7 +7785,7 @@ PARAM_HAZARD = "hazard"
 PARAM_MEDIAN = STRATEGY_MEDIAN
 PARAM_QUARTILE = "quartile"
 PARAMETRIC_MODELS = ["Exponential", MODEL_WEIBULL, MODEL_LOGNORMAL, MODEL_LOGLOGISTIC, MODEL_PIECEWISE, MODEL_GG]
-CENSORINGS = [CENSOR_RIGHT, "left", CENSOR_INTERVAL]
+CENSORINGS = [CENSOR_RIGHT, CENSOR_LEFT, CENSOR_INTERVAL]
 
 
 def _polish(negative_log_likelihood, start, args, steps: int = 60):
@@ -8201,6 +8210,65 @@ def _piecewise_tie_cases() -> list[dict]:
                              MODEL_PIECEWISE, CENSOR_RIGHT, data, [2.0, 5.0])]
 
 
+def _generalized_gamma_path_cases() -> list[dict]:
+    """Samples whose Newton path once failed (#1222): a trial step past |λ| = 31.6 took the shape's difference below zero,
+    a path through λ = 0.005 stalled on a Hessian the gamma at shape 1/λ² put at 7811 for −10, and a first step from
+    μ = 4.7 to −232 reached a clipped variate where the likelihood rises to 1e61."""
+    samples = [
+        ("a trial step past a shape of one thousandth",
+         [0.7190005176683579, 0.5105973383434291, 0.018549072995875517, 0.08048306054416043, 6.179461851514166,
+          3.16915212196106, 89.81791632440955, 0.3071898793907739, 18.874960963580282, 47.68874451432909,
+          7.337207507723286, 21.391979213453293, 1.154811972231668, 139.48589703935198, 0.5185801289446539,
+          0.7624234463033515, 1.3002108744687386, 6.80018382640676, 89.87033548768296, 0.887379454120534,
+          0.022558089497195233, 0.1524418684295064, 145.3159754078784, 0.06094758729486495, 0.4915041828745406,
+          15.532226818995154, 0.9239057583131601, 0.7374501373299077, 0.2729305125743883, 28.961284750720342,
+          0.01638267345573699, 0.06455074432193691, 0.13596231147494794, 0.2749570009626088],
+         "0111101011101111111111010011101011"),
+        ("a path through a lambda near zero",
+         [3.6987844130767615, 0.1910058282941651, 2.869229191151523, 0.5332272126373276, 0.07980753273003782,
+          1.4003456136586498, 0.9128418223163798, 1.0536041069808735, 1.5411983023817144, 1.034006749106699,
+          2.2252764824204454, 0.6787102306162764, 3.3250897323316475, 3.531934037936282, 15.352603299129994,
+          0.3999940304881517, 3.553049143463261, 1.9925085590150942, 0.6188849477174655, 12.8832502869021,
+          5.720010647200207, 17.932394284344667, 7.619142143832721, 0.300434811403222, 0.2784857315049448,
+          5.895481347754603, 1.823725246361152, 1.8303993161260468, 0.3415987335339826, 0.7009142529193125,
+          0.0949604912929742, 3.822577997124177, 2.509124768631968, 3.5769321328621952],
+         "1011011111111011110011011011011110"),
+        ("a first Newton step into the clipped variate",
+         [16.144077975953838, 33.14660918304568, 10.134406143922062, 13.335819482429185, 5.75705139791428,
+          13.345050830745569, 12.61712147941424, 17.694748007590245, 32.78054611965868, 35.64051495473169,
+          29.093421448070842, 8.916947648097052, 17.07798040059489, 65.60790106424766, 17.881719563847753,
+          28.815263483748183, 7.23257894720912, 6.983501320895218, 6.7603928852428385, 18.007216373429255,
+          39.953320647027944, 52.94434700795206, 19.760486131986973, 22.584815822282355, 14.70729528853374,
+          54.2991446568857, 51.648649933037944, 16.861301605004137, 39.584926868103295, 7.207205221738966,
+          37.00009436891611, 16.521861447951583, 23.169616369292196, 19.23279343617502, 22.84740621173397,
+          40.758343701536134, 12.460048308426204, 51.06703305278006, 30.88476102613436, 42.44367523936916,
+          114.93925915751845, 22.266056572189584, 42.87235721651335, 50.031435074654134, 31.9001116524059,
+          103.20832024513332, 15.690354857745382, 32.2645457696183, 41.31420513987525, 60.853412894586405,
+          9.28083728104971, 51.2698281132495, 12.336534355854559, 87.88701987320165, 15.335327948255356,
+          8.823413355756623, 42.25232392851087, 21.028696634476102, 7.929078557994187, 28.688386528937734,
+          40.81298857385081, 53.62032291119725, 39.64460817981138, 36.8777554911439, 3.9344645292997855,
+          71.34417816528696, 6.649131608014699],
+         "1100101011111011001111010001111010111010110111101101000111101011011"),
+    ]
+    cases = []
+    for label, durations, events in samples:
+        data = {DURATIONS: durations, EVENTS: [int(c) for c in events], PARAM_LOWER: list(durations),
+                PARAM_UPPER: list(durations), WEIGHTS: None, PARAM_ENTRIES: None}
+        cases.append(_univariate_case(f"{label}, {MODEL_GG}, {CENSOR_RIGHT}", MODEL_GG, CENSOR_RIGHT, data, None))
+    return cases
+
+
+def _far_left_censored_cases() -> list[dict]:
+    """A left-censored subject far past the fitted scale, whose cumulative hazard of 6.5e4 overflowed log(1 - S)'s second
+    derivative to a NaN and took the Hessian with it (#1756)."""
+    durations = [4.043001077850212, 0.9538238997435878, 5.391441377154375, 1.6719446967964804, 8.694814704981145,
+                 2.3365369212252824, 18.51736877590514, 1.6047968207102856]
+    data = {DURATIONS: durations, EVENTS: [0, 1, 0, 1, 0, 0, 0, 0], PARAM_LOWER: list(durations),
+            PARAM_UPPER: list(durations), WEIGHTS: None, PARAM_ENTRIES: None}
+    return [_univariate_case(f"a subject far past the scale, {MODEL_WEIBULL}, {CENSOR_LEFT}", MODEL_WEIBULL, CENSOR_LEFT,
+                             data, None)]
+
+
 def generate_survival_parametric() -> dict:
     """lifelines' parametric univariate fitters, right-, left- and interval-censored, polished to their maximum (#1172).
 
@@ -8210,7 +8278,12 @@ def generate_survival_parametric() -> dict:
     table and curves there. The generalized gamma's gradient stops near 3e-11, lifelines differentiating the incomplete
     gamma in its shape by finite differences, which is why its section is compared at 2e-9.
     """
-    univariate = _univariate_cases() + _piecewise_tie_cases()
+    univariate = _univariate_cases() + _piecewise_tie_cases() + _generalized_gamma_path_cases() + _far_left_censored_cases()
+    for case in univariate:
+        # Its λ is held by the likelihood's rounding to 4e-9: value-only gradients of −1.75e-9 and 2.3e-9 at this
+        # corpus' point and at Lodestar's (#1222). Only the parameters are compared more loosely.
+        if case["name"] == "heavy censoring, weighted, GeneralizedGamma, left":
+            case["parameterTolerance"] = 5e-9
     aft = _aft_cases()
     bfh, left = _curve_cases()
     fixed = _fixed_point_cases()

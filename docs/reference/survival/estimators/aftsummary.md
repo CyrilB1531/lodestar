@@ -32,7 +32,7 @@ For the model:
 - `LikelihoodRatioStatistic` is twice their difference, and `LikelihoodRatioPValue` its chi-squared
   tail on `LikelihoodRatioDegreesOfFreedom` degrees, the coefficients past the univariate model's two;
   `NaN` when there are none.
-- `Aic` is `−2 · LogLikelihood + 2k` over the `k` coefficients.
+- `Akaike` is `−2 · LogLikelihood + 2k` over the `k` coefficients.
 - `ConcordanceIndex` is Harrell's C between the durations and the predicted medians; `NaN` for an
   interval-censored fit.
 - `ConfidenceLevel` is the level the intervals were built at, and `Robust` says whether the standard
@@ -48,7 +48,7 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-AftSummary fit = AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, featureCount: 1);
+AftSummary fit = AcceleratedFailureTime.Fit(dose, months, died, featureCount: 1, AftModel.Weibull);
 
 string intercept = fit.ParameterNames[1];              // => lambda_
 int column = fit.CovariateIndices[1];                  // => -1
@@ -59,7 +59,7 @@ int degrees = fit.LikelihoodRatioDegreesOfFreedom;     // => 1
 ```
 
 **Remarks** — **every z statistic is measured from zero**, a coefficient that does not move its
-parameter. [`ParametricFit`](parametricfit.md)'s are measured from lifelines' comparison values
+parameter. [`ParametricSummary`](parametricsummary.md)'s are measured from lifelines' comparison values
 instead, because its parameters are not on the log scale.
 
 **An exponentiated coefficient multiplies the parameter, not the hazard.** For the Weibull, `lambda_`

@@ -28,12 +28,19 @@ internal abstract class UnivariateModel
         _ => new GeneralizedGamma(),
     };
 
+    /// <summary>A Newton step's largest move, relative to each parameter's size or one; unbounded but where a model sets it.</summary>
+    public virtual double MaximumReach => double.PositiveInfinity;
+
     /// <summary>A start inside the bounds; lifelines' <c>_create_initial_point</c> where it has one.</summary>
     public abstract double[] Start(double[] times);
 
     public abstract Jet CumulativeHazard(Jet[] p, double t);
 
     public abstract Jet LogHazard(Jet[] p, double t);
+
+    /// <summary><c>log h(t) − H(t)</c>, the log density; a model whose two share a tail overrides it, so the tail is not
+    /// computed only to cancel.</summary>
+    public virtual Jet LogDensity(Jet[] p, double t) => LogHazard(p, t) - CumulativeHazard(p, t);
 
     /// <summary><c>log(1 − S(t))</c>; lifelines' default is <c>log1p(−S)</c>, the same value as this.</summary>
     public virtual Jet LogOneMinusSurvival(Jet[] p, double t) => Jet.Log1mExp(CumulativeHazard(p, t));
@@ -137,6 +144,9 @@ internal abstract class UnivariateModel
             return Jet.NormalLogPdf(z) - Jet.Log(p[1]) - Math.Log(t) - Jet.NormalLogSf(z);
         }
 
+        public override Jet LogDensity(Jet[] p, double t) =>
+            Jet.NormalLogPdf((Math.Log(t) - p[0]) / p[1]) - Jet.Log(p[1]) - Math.Log(t);
+
         public override Jet LogOneMinusSurvival(Jet[] p, double t) => Jet.NormalLogCdf((Math.Log(t) - p[0]) / p[1]);
 
         // The upper normal quantile of p itself: 1 − p kept only log10(1/p) digits, and read +∞ at p = 1e-20.
@@ -236,6 +246,10 @@ internal abstract class UnivariateModel
     {
         public override string[] Names => ["mu_", "ln_sigma_", "lambda_"];
 
+        // Unbounded, the first step went from μ = 4.7 to −232, where the clipped variate lets the likelihood reach 1e61, and
+        // a fit with one maximum threw; three times reached it, and 4 of #1222's 400 samples with it.
+        public override double MaximumReach => 3.0;
+
         public override double[] CompareTo => [0.0, 0.0, 1.0];
 
         public override double[] LowerBounds => [double.NegativeInfinity, double.NegativeInfinity, double.NegativeInfinity];
@@ -251,43 +265,66 @@ internal abstract class UnivariateModel
         public override Jet CumulativeHazard(Jet[] p, double t)
         {
             Jet z = (Math.Log(t) - p[0]) / Jet.Exp(p[1]);
-            if (Math.Abs(p[2].Value) < double.Epsilon)
+            if (GeneralizedGammaUniform.Standardize(z, p[2]) is { } zeta)
             {
-                return -Jet.NormalLogSf(z);
+                return -GeneralizedGammaUniform.LogSurvival(zeta, p[2]);
             }
 
-            Jet inverseSquare = 1.0 / (p[2] * p[2]);
-            return -Jet.LogIncompleteGamma(inverseSquare, Clipped(Jet.Exp(p[2] * z) * inverseSquare), p[2].Value > 0.0);
+            (Jet inverseSquare, _, Jet logX) = GammaVariate(p, z);
+            return -Jet.LogIncompleteGamma(inverseSquare, logX, p[2].Value > 0.0);
         }
 
         public override Jet LogHazard(Jet[] p, double t)
         {
             Jet z = (Math.Log(t) - p[0]) / Jet.Exp(p[1]);
-            if (Math.Abs(p[2].Value) < double.Epsilon)
+            if (GeneralizedGammaUniform.Standardize(z, p[2]) is { } zeta)
             {
-                return Jet.NormalLogPdf(z) - p[1] - Math.Log(t) - Jet.NormalLogSf(z);
+                return GeneralizedGammaUniform.LogDensity(zeta, p[2]) - p[1] - Math.Log(t)
+                    - GeneralizedGammaUniform.LogSurvival(zeta, p[2]);
             }
 
-            bool positive = p[2].Value > 0.0;
+            (Jet density, Jet inverseSquare, Jet logX) = GammaLogDensity(p, z, t);
+            return density - Jet.LogIncompleteGamma(inverseSquare, logX, p[2].Value > 0.0);
+        }
+
+        public override Jet LogDensity(Jet[] p, double t)
+        {
+            Jet z = (Math.Log(t) - p[0]) / Jet.Exp(p[1]);
+            // The survival in log h and in H cancels, so neither branch computes it; the closed form holds at every z.
+            return GeneralizedGammaUniform.Zeta(z, p[2]) is { } zeta
+                ? GeneralizedGammaUniform.LogDensity(zeta, p[2]) - p[1] - Math.Log(t)
+                : GammaLogDensity(p, z, t).Density;
+        }
+
+        /// <summary>The gamma's shape 1/λ², log |λ|, and the clipped log of its variate <c>e^(λz)/λ²</c>.</summary>
+        private static (Jet InverseSquare, Jet LogLambda, Jet LogX) GammaVariate(Jet[] p, Jet z)
+        {
             Jet inverseSquare = 1.0 / (p[2] * p[2]);
-            Jet clipped = Clipped(Jet.Exp(p[2] * z) * inverseSquare);
-            Jet logLambda = Jet.Log(positive ? p[2] : -p[2]);
-            return logLambda - Math.Log(t) - p[1] - Jet.LogGamma(inverseSquare) - (2.0 * logLambda * inverseSquare) - clipped
-                + (z / p[2]) - Jet.LogIncompleteGamma(inverseSquare, clipped, positive);
+            Jet logLambda = Jet.Log(p[2].Value > 0.0 ? p[2] : -p[2]);
+            return (inverseSquare, logLambda, ClippedLogVariate((p[2] * z) - (2.0 * logLambda)));
+        }
+
+        /// <summary>The log density through the gamma at shape 1/λ², with that shape and the clipped log of its variate.</summary>
+        private static (Jet Density, Jet InverseSquare, Jet LogX) GammaLogDensity(Jet[] p, Jet z, double t)
+        {
+            (Jet inverseSquare, Jet logLambda, Jet logX) = GammaVariate(p, z);
+            Jet density = logLambda - Math.Log(t) - p[1] - Jet.LogGamma(inverseSquare) - (2.0 * logLambda * inverseSquare)
+                - Jet.Exp(logX) + (z / p[2]);
+            return (density, inverseSquare, logX);
         }
 
         public override double Percentile(double[] p, double probability) =>
             Math.Exp(p[0] + (Math.Exp(p[1]) * GeneralizedGammaQuantile.Standardized(p[2], probability)));
 
-        /// <summary>lifelines' <c>clip(·, 1e-300, 1e20)</c>, which stops the derivative outside it as numpy's does.</summary>
-        private static Jet Clipped(Jet value)
+        /// <summary>The log of lifelines' <c>clip(x, 1e-300, 1e20)</c>, which stops the derivative outside it as numpy's does.</summary>
+        private static Jet ClippedLogVariate(Jet logX)
         {
-            if (value.Value < 1e-300)
+            if (logX.Value < GeneralizedGammaUniform.LowestVariate)
             {
-                return Jet.Constant(1e-300, value.Size);
+                return Jet.Constant(GeneralizedGammaUniform.LowestVariate, logX.Size);
             }
 
-            return value.Value > 1e20 ? Jet.Constant(1e20, value.Size) : value;
+            return logX.Value > GeneralizedGammaUniform.HighestVariate ? Jet.Constant(GeneralizedGammaUniform.HighestVariate, logX.Size) : logX;
         }
     }
 }

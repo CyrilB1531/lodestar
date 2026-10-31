@@ -42,10 +42,12 @@ internal static class Densities
             return double.NaN;
         }
 
-        // The normal law from NormalLimitDf, as StudentSf takes it (#1690's review).
+        // The normal law from NormalLimitDf with its first term in 1/df, as StudentSf takes it (#1690's review, #1756).
         if (df >= Beta.NormalLimitDf)
         {
-            return Distributions.NormalPdf(t);
+            double normal = Distributions.NormalPdf(t);
+            double square = t * t;
+            return normal > 0.0 ? normal * (1.0 + (((square * square) - (2.0 * square) - 1.0) / (4.0 * df))) : normal;
         }
         if (double.IsInfinity(t))
         {

@@ -6,7 +6,7 @@ Tests whether two fitted survival functions differ at one time: lifelines'
 <!-- docs-declaration -->
 
 ```csharp
-public static TestResult CompareAt(double time, ParametricFit fitA, ParametricFit fitB)
+public static TestResult CompareAt(double time, ParametricSummary fitA, ParametricSummary fitB)
 ```
 
 **Parameters** — `time` is the time both fits are read at, positive and finite. `fitA` and `fitB` are
@@ -30,8 +30,8 @@ double[] armB = [2, 4, 7, 1, 6, 3, 9, 5, 4, 8];
 bool[] diedB = [true, true, true, true, false, true, true, true, true, false];
 
 TestResult atFive = ParametricSurvival.CompareAt(5.0,
-    ParametricSurvival.Fit(ParametricModel.Weibull, armA, diedA),
-    ParametricSurvival.Fit(ParametricModel.Weibull, armB, diedB));
+    ParametricSurvival.Fit(armA, diedA, ParametricModel.Weibull),
+    ParametricSurvival.Fit(armB, diedB, ParametricModel.Weibull));
 
 double statistic = Math.Round(atFive.Statistic, 6);   // => 5.84045
 double p = Math.Round(atFive.PValue, 6);              // => 0.015662
@@ -47,5 +47,5 @@ lifelines reports. The two differ by a factor of `S²` in each variance.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ParametricFit.SurvivalBounds`](parametricfit-survivalbounds.md),
+**See also** — [`ParametricSummary.SurvivalBounds`](parametricsummary-survivalbounds.md),
 [`KaplanMeier.CompareAt`](kaplanmeier-compareat.md), [`LogRank`](logrank.md).

@@ -10,15 +10,15 @@ internal static class ParametricOptionsSample
         Console.WriteLine("Parametric fitting options (Lodestar.Survival)");
 
         var pieces = new ParametricOptions { Breakpoints = [10.0, 20.0], ConfidenceLevel = 0.9 };
-        ParametricFit fit = ParametricSurvival.Fit(
-            ParametricModel.PiecewiseExponential, Trial.TreatmentDurations, Trial.TreatmentObserved, pieces);
+        ParametricSummary fit = ParametricSurvival.Fit(
+            Trial.TreatmentDurations, Trial.TreatmentObserved, ParametricModel.PiecewiseExponential, pieces);
         Console.WriteLine(
             $"  {pieces.Breakpoints.Length} breakpoints    : lambdas {string.Join(", ", fit.Parameters.Select(Inv.F3))} at {Inv.F3(fit.ConfidenceLevel)}");
 
         var tight = new ParametricOptions { MaximumIterations = 1 };
         try
         {
-            ParametricSurvival.Fit(ParametricModel.GeneralizedGamma, Trial.TreatmentDurations, Trial.TreatmentObserved, tight);
+            ParametricSurvival.Fit(Trial.TreatmentDurations, Trial.TreatmentObserved, ParametricModel.GeneralizedGamma, tight);
         }
         catch (InvalidOperationException)
         {
@@ -27,7 +27,7 @@ internal static class ParametricOptionsSample
 
         foreach (ParametricModel model in new[] { ParametricModel.Exponential, ParametricModel.LogLogistic })
         {
-            Console.WriteLine($"  {model,-16} : AIC {Inv.F3(ParametricSurvival.Fit(model, Trial.TreatmentDurations, Trial.TreatmentObserved).Aic)}");
+            Console.WriteLine($"  {model,-16} : AIC {Inv.F3(ParametricSurvival.Fit(Trial.TreatmentDurations, Trial.TreatmentObserved, model).Akaike)}");
         }
 
         Console.WriteLine();
