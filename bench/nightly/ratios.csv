@@ -12195,3 +12195,281 @@ date,commit,cpu,class,parameters,method,ratio
 2026-10-30,fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c,AMD EPYC 7763,VectorizerIncumbentBenchmarks,Documents=200,MlNet,14.5
 2026-10-30,fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c,AMD EPYC 7763,VectorizerIncumbentBenchmarks,Documents=1000,Lodestar,1.0
 2026-10-30,fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c,AMD EPYC 7763,VectorizerIncumbentBenchmarks,Documents=1000,MlNet,22.67
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=5000, Permutations=64, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=5000, Permutations=64, Device=CPUAc(...) GPU) [26]",GpuResident,48.04
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=5000, Permutations=64, Device=CPUAc(...) GPU) [26]",GpuWithHashing,50.81
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=5000, Permutations=128, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=5000, Permutations=128, Device=CPUAc(...) GPU) [26]",GpuResident,95.12
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=5000, Permutations=128, Device=CPUAc(...) GPU) [26]",GpuWithHashing,97.75
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=50000, Permutations=64, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=50000, Permutations=64, Device=CPUAc(...) GPU) [26]",GpuResident,49.32
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=50000, Permutations=64, Device=CPUAc(...) GPU) [26]",GpuWithHashing,49.83
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=50000, Permutations=128, Device=CPUAc(...) GPU) [26]",CpuBaseline,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=50000, Permutations=128, Device=CPUAc(...) GPU) [26]",GpuResident,98.13
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TiledMinHashSignaturesBenchmarks,"Documents=50000, Permutations=128, Device=CPUAc(...) GPU) [26]",GpuWithHashing,97.62
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_StudentCdf,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_StudentCdf,0.123
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_StudentCdf,0.14
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_StudentQuantile,3.033
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_StudentQuantile,2.31
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_StudentQuantile,0.488
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_FisherCdf,0.321
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_FisherCdf,0.054
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_FisherCdf,0.057
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_FisherQuantile,1.165
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_FisherQuantile,1.108
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_FisherQuantile,0.131
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_ChiSquaredCdf,0.012
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_ChiSquaredCdf,0.025
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_ChiSquaredCdf,0.031
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_ChiSquaredQuantile,0.151
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_ChiSquaredQuantile,0.194
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_ChiSquaredQuantile,0.16
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_NormalCdf,0.009
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_NormalCdf,0.009
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_NormalCdf,0.027
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,Lodestar_NormalQuantile,0.012
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MathNet_NormalQuantile,0.013
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionIncumbentBenchmarks,,MetaNumerics_NormalQuantile,0.074
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionTailBenchmarks,,ChiSquaredSfOneDf,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionTailBenchmarks,,ChiSquaredSfFourDf,0.45
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionTailBenchmarks,,ChiSquaredSfThreeDfFarTail,1.41
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionTailBenchmarks,,ChiSquaredSfHundredDf,2.48
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionTailBenchmarks,,ChiSquaredSfFractionalDf,3.81
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DistributionTailBenchmarks,,NormalQuantile,0.93
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=200, Regressors=1",Lodestar_Glm,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=200, Regressors=1",Accord_Glm,1.45
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=200, Regressors=3",Lodestar_Glm,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=200, Regressors=3",Accord_Glm,2.41
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=2000, Regressors=1",Lodestar_Glm,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=2000, Regressors=1",Accord_Glm,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=2000, Regressors=3",Lodestar_Glm,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmBenchmarks,"SampleSize=2000, Regressors=3",Accord_Glm,1.8
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmOffsetBenchmarks,SampleSize=200,Poisson,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmOffsetBenchmarks,SampleSize=200,PoissonWithExposure,2.01
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmOffsetBenchmarks,SampleSize=20000,Poisson,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlmOffsetBenchmarks,SampleSize=20000,PoissonWithExposure,1.9
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=50,Lodestar_Gls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=50,MathNet_Gls,2.11
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=200,Lodestar_Gls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=200,MathNet_Gls,2.81
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=500,Lodestar_Gls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=500,MathNet_Gls,3.36
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=1000,Lodestar_Gls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,GlsBenchmarks,SampleSize=1000,MathNet_Gls,2.73
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=100, Lags=4",Nonrobust,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=100, Lags=4",Hc0,0.29
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=100, Lags=4",Hac,0.54
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=100, Lags=4",Cluster,0.24
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Nonrobust,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Hc0,1.93
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Hac,4.23
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Cluster,1.66
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,MultinomialLogitBenchmarks,SampleSize=200,Lodestar,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,MultinomialLogitBenchmarks,SampleSize=200,Accord,6.58
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,MultinomialLogitBenchmarks,SampleSize=2000,Lodestar,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,MultinomialLogitBenchmarks,SampleSize=2000,Accord,5.41
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OlsBenchmarks,SampleSize=100,Lodestar_Ols,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OlsBenchmarks,SampleSize=100,Accord_Ols,7.26
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OlsBenchmarks,SampleSize=100,MathNet_Ols,0.84
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OlsBenchmarks,SampleSize=10000,Lodestar_Ols,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OlsBenchmarks,SampleSize=10000,Accord_Ols,9.94
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OlsBenchmarks,SampleSize=10000,MathNet_Ols,3.68
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,QuantileBenchmarks,,NormalQuantile,1.15
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,QuantileBenchmarks,,NormalQuantileFarTail,1.17
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,QuantileBenchmarks,,StudentQuantile,296352.22
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,QuantileBenchmarks,,StudentQuantileCauchyFarTail,48540.72
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=200,LodestarAutocorrelation,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=200,CortexAutocorrelation,2.63
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=200,LodestarPartialAutocorrelation,1.17
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=200,CortexPartialAutocorrelation,2.77
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=200,LodestarLjungBox,1.13
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=200,CortexLjungBox,2.65
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=2000,LodestarAutocorrelation,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=2000,CortexAutocorrelation,2.48
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=2000,LodestarPartialAutocorrelation,1.02
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=2000,CortexPartialAutocorrelation,2.5
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=2000,LodestarLjungBox,1.01
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SerialCorrelationBenchmarks,SampleSize=2000,CortexLjungBox,2.51
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,LodestarAugmentedDickeyFuller,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,LodestarAdfAutolag,4.03
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,CortexAugmentedDickeyFuller,3.55
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,LodestarKpss,0.52
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,CortexKpss,0.54
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,LodestarDecompose,0.2
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=200,CortexDecompose,0.39
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,LodestarAugmentedDickeyFuller,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,LodestarAdfAutolag,8.51
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,CortexAugmentedDickeyFuller,2.51
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,LodestarKpss,0.82
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,CortexKpss,0.83
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,LodestarDecompose,0.12
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StationarityBenchmarks,SampleSize=2000,CortexDecompose,0.25
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=100,LodestarWelchT,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=100,AccordWelchT,6.28
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=100,LodestarMannWhitney,0.35
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=100,AccordMannWhitney,3.89
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=100,LodestarChiSquare,0.02
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=100,AccordChiSquare,0.04
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=10000,LodestarWelchT,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=10000,AccordWelchT,2.636
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=10000,LodestarMannWhitney,12.97
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=10000,AccordMannWhitney,237.206
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=10000,LodestarChiSquare,0.002
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,StatsBenchmarks,SampleSize=10000,AccordChiSquare,0.004
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=200,Lodestar_Wls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=200,MathNet_Wls,0.42
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=2000,Lodestar_Wls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=2000,MathNet_Wls,0.89
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=20000,Lodestar_Wls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=20000,MathNet_Wls,1.75
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=200000,Lodestar_Wls,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,WeightedLeastSquaresBenchmarks,SampleSize=200000,MathNet_Wls,2.05
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DamerauLevenshteinBenchmarks,Length=12,Lodestar,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DamerauLevenshteinBenchmarks,Length=12,F23StringSimilarity,2.06
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DamerauLevenshteinBenchmarks,Length=120,Lodestar,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DamerauLevenshteinBenchmarks,Length=120,F23StringSimilarity,2.22
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DamerauLevenshteinBenchmarks,Length=1000,Lodestar,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,DamerauLevenshteinBenchmarks,Length=1000,F23StringSimilarity,2.84
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_OneHot,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Ordinal,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Impute,0.38
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_OneHotEncoding_Fit,1.73
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_OneHotEncoding_Read,6.18
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_ReplaceMissingValues_Read,4.44
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_OneHot,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Ordinal,0.4
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Impute,0.09
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_OneHotEncoding_Fit,5.43
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_OneHotEncoding_Read,5.32
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_ReplaceMissingValues_Read,1.45
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_OneHot,1.03
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Ordinal,0.85
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Impute,0.12
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_OneHotEncoding_Fit,0.8
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_OneHotEncoding_Read,2.97
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=Job-PVBJKR, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_ReplaceMissingValues_Read,1.9
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_OneHot,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Ordinal,0.88
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Impute,0.13
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_OneHotEncoding_Fit,0.43
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_OneHotEncoding_Read,1.16
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,EncoderIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_ReplaceMissingValues_Read,0.68
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=8,Distance_Utf16,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=8,Distance_CodePoint,3.15
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=32,Distance_Utf16,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=32,Distance_CodePoint,9.99
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=64,Distance_Utf16,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=64,Distance_CodePoint,18.3
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=128,Distance_Utf16,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,OsaBenchmarks,Length=128,Distance_CodePoint,0.96
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ProcessExtractBenchmarks,Limit=1,Extract,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ProcessExtractBenchmarks,Limit=1,ExtractOne,0.98
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ProcessExtractBenchmarks,Limit=5,Extract,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ProcessExtractBenchmarks,Limit=5,ExtractOne,0.98
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,RatcliffObershelpBenchmarks,Length=64,Similarity_Containment,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,RatcliffObershelpBenchmarks,Length=64,Similarity_NearDuplicate,14.39
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,RatcliffObershelpBenchmarks,Length=512,Similarity_Containment,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,RatcliffObershelpBenchmarks,Length=512,Similarity_NearDuplicate,36.57
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_MinMax,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_MaxAbs,1.09
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Robust,20.86
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Standard,1.12
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Standard_SparseFit,0.7
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_MaxAbs_SparseFit,0.61
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_MaxAbs_SparseClip,0.95
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_NormalizeMinMax_Fit,4.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_NormalizeMinMax_Read,20.63
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_NormalizeRobustScaling_Read,58.84
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_MinMax,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_MaxAbs,0.85
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Robust,9.55
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Standard,0.95
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Standard_SparseFit,0.22
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_MaxAbs_SparseFit,0.16
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_MaxAbs_SparseClip,0.24
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_NormalizeMinMax_Fit,32.1
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_NormalizeMinMax_Read,21.81
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_NormalizeRobustScaling_Read,33.75
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_MinMax,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_MaxAbs,0.94
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Robust,9.86
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Standard,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Standard_SparseFit,0.27
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_MaxAbs_SparseFit,0.2
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_MaxAbs_SparseClip,0.28
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_NormalizeMinMax_Fit,4.38
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_NormalizeMinMax_Read,11.43
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=Job-TSGYHD, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_NormalizeRobustScaling_Read,12.49
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_MinMax,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_MaxAbs,1.04
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Robust,10.47
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Standard,1.06
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Standard_SparseFit,0.22
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_MaxAbs_SparseFit,0.18
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_MaxAbs_SparseClip,0.29
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeMinMax_Fit,1.18
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeMinMax_Read,3.19
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,ScalerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeRobustScaling_Read,14.08
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,Lodestar_KFold,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,Lodestar_StratifiedKFold,2.4
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,Lodestar_TrainTest,0.06
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,MlNet_CrossValidationSplit,4.21
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,MlNet_CrossValidationSplit_Read,86.68
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,MlNet_TrainTestSplit,0.81
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=10000,MlNet_TrainTestSplit_Read,14.62
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,Lodestar_KFold,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,Lodestar_StratifiedKFold,2.19
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,Lodestar_TrainTest,0.07
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,MlNet_CrossValidationSplit,0.26
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,MlNet_CrossValidationSplit_Read,39.96
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,MlNet_TrainTestSplit,0.06
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,SplitterIncumbentBenchmarks,SampleCount=100000,MlNet_TrainTestSplit_Read,6.95
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Normalize,1.01
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Polynomial,1.75
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Discretize,5.2
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Discretize_64Bins,5.84
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Discretize_Fit,21.32
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Quantile,34.83
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Quantile_Fit,23.2
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Power,4.68
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_Power_Fit,40.51
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",Lodestar_KnnImpute,303.96
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_NormalizeLpNorm_Read,25.97
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=1000",MlNet_NormalizeBinning_Read,66.14
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Normalize,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Polynomial,5.96
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Discretize,9.82
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Discretize_64Bins,5.3
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Discretize_Fit,6.25
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Quantile,33.02
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Quantile_Fit,14.02
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Power,10.03
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_Power_Fit,51.51
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",Lodestar_KnnImpute,622.41
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_NormalizeLpNorm_Read,18.14
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=1000",MlNet_NormalizeBinning_Read,70.11
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Normalize,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Polynomial,3.46
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Discretize,7.46
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Discretize_64Bins,8.11
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Discretize_Fit,24.35
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Quantile,22.7
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Quantile_Fit,20.12
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Power,6.43
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_Power_Fit,30.64
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",Lodestar_KnnImpute,20.24
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_NormalizeLpNorm_Read,25.27
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=Job-UDACYX, InvocationCount=1, IterationCount=20, RunStrategy=Throughput, UnrollFactor=1, WarmupCount=5, RowCount=20000",MlNet_NormalizeBinning_Read,61.3
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Normalize,1.0
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Polynomial,0.96
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Discretize,4.65
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Discretize_64Bins,2.78
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Discretize_Fit,8.43
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Quantile,15.69
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Quantile_Fit,8.65
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Power,4.71
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_Power_Fit,20.19
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_KnnImpute,13.44
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeLpNorm_Read,3.36
+2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeBinning_Read,15.67
