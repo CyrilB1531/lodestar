@@ -10,13 +10,13 @@
 #
 # Install with --only-binary :all: so that no source distribution runs setup.py.
 rapidfuzz==3.14.6
-jellyfish==1.2.1
+jellyfish==1.3.0
 textdistance==4.6.3
 scikit-learn==1.9.1
-nltk==3.10.3
+nltk==3.10.4
 rake-nltk==1.0.6
-tokenizers==0.23.2
-numpy==2.5.3
+tokenizers==0.23.3
+numpy==2.5.4
 sentencepiece==0.2.2
 # sentencepiece_model_pb2 — the generated protobuf module the spiece.model and
 # tokenizer.json generators read, and that fetch_xlmr_vocab.py writes the XLM-R
@@ -28,7 +28,7 @@ protobuf==7.36.2
 # mapie -- the reference for Lodestar.Conformal's split-conformal corpus (#441).
 # Its own dependencies (numpy, scikit-learn, scipy) were already resolved here, so
 # the graph grows by one package rather than by a tree.
-mapie==1.5.0
+mapie==1.6.0
 
 # doublemetaphone -- the reference for Lodestar.Text's Double Metaphone (#177).
 # jellyfish, which oracles the other three phonetic encoders, exports no Double
@@ -72,7 +72,7 @@ statsmodels==0.15.0
 # IV2SLS, IVLIML and IVGMM with their covariances, first-stage diagnostics and overidentification
 # tests. NCSA, read from the wheel, which decision 0002's rule admits as permissive. It brings
 # pyhdfe and mypy_extensions (both MIT); pandas, scipy, statsmodels and formulaic were already here.
-linearmodels==7.0
+linearmodels==7.1
 
 # lifelines -- the reference for Lodestar.Survival's Kaplan-Meier, Nelson-Aalen and
 # log-rank (#569). MIT, read from the wheel rather than the PyPI classifier. Its own
@@ -100,7 +100,7 @@ rank_bm25==0.2.2
 # pytest — the only test runner in tools/. tools/generate_sonar_globalconfig.py
 # parses two foreign formats and writes a file the build reads; a drift check
 # proves that generator stable, never that it is right.
-pytest==9.1.1
+pytest==9.2.0
 
 # pyyaml -- tools/tests/test_bench_nightly_permissions.py parses a workflow file to
 # assert that `workflows: write` stays in the job that runs no repository code (#464), and
@@ -136,7 +136,7 @@ colorama==0.4.6
 # Pinned unconditionally for colorama's reason, which holds identically here:
 # tzdata is a standalone leaf (PyPI metadata lists no dependencies at all) and
 # on Linux pandas reads the system zoneinfo instead, so the wheel is inert.
-tzdata==2026.5
+tzdata==2026.6
 
 # datasketch -- the reference for MinHash and its banded LSH index (#602). MIT, read
 # from the wheel's METADATA rather than from PyPI's field, which decision 0005 found
