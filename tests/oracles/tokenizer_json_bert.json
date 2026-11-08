@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "TokenizerJsonLoader.LoadWordPiece over a stock BERT file",
   "library": "tokenizers",
-  "library_version": "0.23.2",
+  "library_version": "0.23.3",
   "reference_calls": [
    "tokenizers.Tokenizer.from_str(...).encode(text, add_special_tokens=False)",
    "tokenizers.Tokenizer.from_str(...).encode(text), padding and truncation off"

@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "SentencePieceModelLoader",
   "library": "sentencepiece",
-  "library_version": "0.2.2",
+  "library_version": "0.2.3",
   "model": "tiny_sp.model (self-trained unigram, identity normalizer)",
   "reference_calls": [
    "sentencepiece_model_pb2.ModelProto().ParseFromString(open('spiece.model','rb').read())",

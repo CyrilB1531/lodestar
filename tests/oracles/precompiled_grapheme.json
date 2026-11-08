@@ -1,7 +1,7 @@
 {
  "metadata": {
   "library": "tokenizers",
-  "library_version": "0.23.2",
+  "library_version": "0.23.3",
   "reference_calls": [
    "tokenizers.normalizers.Precompiled(charsmap).normalize_str"
   ],

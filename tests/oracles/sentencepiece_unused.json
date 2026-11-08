@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "SentencePieceTokenizer over UNUSED pieces",
   "library": "sentencepiece",
-  "library_version": "0.2.2",
+  "library_version": "0.2.3",
   "model": "tiny_sp.model with the unused pieces re-typed UNUSED",
   "reference_calls": [
    "sentencepiece.SentencePieceProcessor(model_proto=…).encode"

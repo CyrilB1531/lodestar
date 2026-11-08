@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "BPE byte_fallback",
   "library": "tokenizers",
-  "library_version": "0.23.2",
+  "library_version": "0.23.3",
   "count": 10
  },
  "cases": [

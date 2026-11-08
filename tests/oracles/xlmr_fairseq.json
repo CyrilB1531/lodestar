@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "SentencePieceTokenizer",
   "library": "sentencepiece",
-  "library_version": "0.2.2",
+  "library_version": "0.2.3",
   "model": "xlmr_fairseq.model (xlm-roberta-base vocabulary, fairseq layout, identity normalizer — see tools/fetch_xlmr_vocab.py)",
   "reference_calls": [
    "sentencepiece.SentencePieceProcessor(model_file='xlmr_fairseq.model').encode"

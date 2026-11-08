@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "PrecompiledNormalizer",
   "library": "sentencepiece",
-  "library_version": "0.2.2",
+  "library_version": "0.2.3",
   "reference_calls": [
    "sentencepiece.SentencePieceProcessor(model_file=…).normalize  (charsmap only)",
    "sentencepiece.SentencePieceProcessor(model_file=…).encode     (whole pipeline)"
