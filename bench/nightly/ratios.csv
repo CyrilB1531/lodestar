@@ -12561,3 +12561,13 @@ date,commit,cpu,class,parameters,method,ratio
 2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",Lodestar_KnnImpute,13.44
 2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeLpNorm_Read,3.36
 2026-11-01,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,TransformerIncumbentBenchmarks,"Job=ShortRun, InvocationCount=Default, IterationCount=3, RunStrategy=Default, UnrollFactor=16, WarmupCount=3, RowCount=20000",MlNet_NormalizeBinning_Read,15.67
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Estimate,1.0
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Fit,1.43
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,LeastSquaresRoutingBenchmarks,Regressors=4,MathNet_Qr,4.65
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Estimate,1.0
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Fit,4.79
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,LeastSquaresRoutingBenchmarks,Regressors=250,MathNet_Qr,7.89
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=10,FullScan,1.0
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=10,TreeNearest,0.66
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=2000,FullScan,1.0
+2026-11-02,3e48e17c68bff96a3371172656990689433f479e,AMD EPYC 7763,BkTreeNearestBenchmarks,Count=2000,TreeNearest,0.96
