@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "VocabTxtLoader",
   "library": "tokenizers",
-  "library_version": "0.23.2",
+  "library_version": "0.23.3",
   "reference_calls": [
    "transformers.BertTokenizer vocab.txt loading: rstrip('\\n') then vocab[token] = index",
    "tokenizers.Tokenizer(WordPiece(vocab, unk_token)) with BertNormalizer(lowercase) and BertPreTokenizer, .encode"

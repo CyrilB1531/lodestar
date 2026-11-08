@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "Unicode normalization forms",
   "library": "tokenizers",
-  "library_version": "0.23.2",
+  "library_version": "0.23.3",
   "count": 56
  },
  "cases": [

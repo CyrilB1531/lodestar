@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "SentencePiece",
   "library": "sentencepiece",
-  "library_version": "0.2.2",
+  "library_version": "0.2.3",
   "model": "tiny_sp.model (self-trained unigram, identity normalizer)",
   "unk_id": 0,
   "vocab": [

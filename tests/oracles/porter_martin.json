@@ -2,7 +2,7 @@
  "metadata": {
   "algorithm": "PorterStemmer",
   "library": "nltk",
-  "library_version": "3.10.3",
+  "library_version": "3.10.4",
   "mode": "MARTIN_EXTENSIONS",
   "reference_calls": [
    "nltk.stem.porter.PorterStemmer(mode=MARTIN_EXTENSIONS)"
