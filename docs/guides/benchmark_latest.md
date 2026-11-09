@@ -13,7 +13,7 @@ known reading", never "faster than the section above it".
 
 ### Lodestar.Gpu.Benchmarks.BitParallelEditDistanceBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -50,7 +50,7 @@ WarmupCount=3
 
 ### Lodestar.Gpu.Benchmarks.ChainedProductBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -87,7 +87,7 @@ WarmupCount=3
 
 ### Lodestar.Gpu.Benchmarks.CosineTopKSelectionBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -1069,7 +1069,7 @@ WarmupCount=3
 
 ### Lodestar.Survival.Benchmarks.CoxBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -1095,7 +1095,7 @@ WarmupCount=3
 
 ### Lodestar.Survival.Benchmarks.SurvivalBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -1481,7 +1481,7 @@ WarmupCount=3
 
 ### Lodestar.Text.Benchmarks.Bm25Benchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -3386,7 +3386,7 @@ WarmupCount=3
 
 ### Lodestar.Text.Benchmarks.SimilaritySketchBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -3551,7 +3551,7 @@ WarmupCount=3
 
 ### Lodestar.Text.Benchmarks.TokenPatternBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -3785,7 +3785,7 @@ LaunchCount=1
 
 ### Lodestar.Text.Benchmarks.VectorizerBenchmarks-report-github
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 24.04.5 LTS (Noble Numbat)
@@ -3877,7 +3877,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-cluster-weighted
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'scikit-learn': '1.9.1', 'numpy': '2.5.3'} (py 3.12.15)
@@ -3903,7 +3903,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-cox-extended
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'lifelines': '0.30.3', 'numpy': '2.5.3'} (py 3.12.15)
@@ -3935,7 +3935,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-cross-conformal
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'mapie': '1.5.0', 'numpy': '2.5.3'} (py 3.12.15)
@@ -3963,7 +3963,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-glm
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'scipy': '1.18.1', 'statsmodels': '0.15.0', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4021,7 +4021,7 @@ Note: Indel is len(a)+len(b)-2*LCS on both sides, so this compares the subsequen
 
 ### compare-iv
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'linearmodels': '7.0', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4172,7 +4172,7 @@ ratio > 1 means Lodestar is faster. cpu is the merge gate for this branch
 
 ### compare-nmf-transform
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'scikit-learn': '1.9.1', 'scipy': '1.18.1'} (py 3.12.15)
@@ -4198,7 +4198,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-ols
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'scipy': '1.18.1', 'statsmodels': '0.15.0', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4227,7 +4227,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-onehot
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'scikit-learn': '1.9.1', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4251,7 +4251,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-panel
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'linearmodels': '7.0', 'numpy': '2.5.3', 'pandas': '2.3.3'} (py 3.12.15)
@@ -4419,7 +4419,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-survival-aalen
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'lifelines': '0.30.3', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4445,7 +4445,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-survival-family
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'lifelines': '0.30.3', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4486,7 +4486,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-survival-parametric
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'lifelines': '0.30.3', 'numpy': '2.5.3'} (py 3.12.15)
@@ -4564,7 +4564,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-var
 
-_As of 2026-10-31, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
+_As of 2026-11-08, measured at commit `fd0cf96a1a303125ff7b6b7941a2ca17e5613a1c`._
 
 ```text
 Python: {'scipy': '1.18.1', 'statsmodels': '0.15.0', 'numpy': '2.5.3'} (py 3.12.15)
