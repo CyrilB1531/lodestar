@@ -68,14 +68,28 @@ public sealed class OlsSummary
     public double AdjustedRSquared { get; init; }
 
     /// <summary>The overall F statistic, against the null that every slope is zero.</summary>
+    /// <remarks>
+    /// Under a robust covariance whose tested block is short of full rank, as a cluster fit's is when its scores span fewer
+    /// directions than the slopes, this is <c>bᵀC⁺b</c> over the block's rank, <c>C⁺</c> read from the covariance's score
+    /// rows rather than the formed block; NaN when that rank is zero, as an exact fit's covariance is, or when the rounding
+    /// of the residuals can move the form by a millionth of itself.
+    /// </remarks>
     public double FStatistic { get; init; }
 
     /// <summary>The upper-tail probability of <see cref="FStatistic"/>.</summary>
     /// <remarks>
     /// On <see cref="ResidualDegreesOfFreedom"/> denominator degrees of freedom, except under
-    /// <see cref="Lodestar.Stats.Regression.CovarianceType.Cluster"/>, where it reads the cluster count less one.
+    /// <see cref="Lodestar.Stats.Regression.CovarianceType.Cluster"/>, where it reads the cluster count less one. The numerator
+    /// degrees of freedom are the rank of the tested covariance block, and the value NaN when that rank is zero.
     /// </remarks>
     public double FPValue { get; init; }
+
+    /// <summary>The numerator degrees of freedom <see cref="FPValue"/> reads: statsmodels' <c>df_num</c>.</summary>
+    /// <remarks>
+    /// The slopes tested, or, under a robust covariance whose tested block is short of full rank, that block's rank;
+    /// zero when the rank is.
+    /// </remarks>
+    public int FNumeratorDegreesOfFreedom { get; init; }
 
     /// <summary>Rows less fitted parameters — what the t statistics of a non-robust fit are read on.</summary>
     public int ResidualDegreesOfFreedom { get; init; }

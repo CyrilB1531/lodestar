@@ -16,7 +16,7 @@ the coefficients; `true` by default.
 **Returns** — [`OlsEstimate`](olsestimate.md): the coefficients, their standard errors and t
 statistics, and the residual sum of squares.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when a value of `design` or `response` is NaN or infinite, with the cell named.
 `ArgumentException` when `design` is not a whole number of rows, when `response` has a different
 length, when no residual degrees of freedom are left, or when a column of `design` lies within
 rounding of the span of the columns before it — the collinearity

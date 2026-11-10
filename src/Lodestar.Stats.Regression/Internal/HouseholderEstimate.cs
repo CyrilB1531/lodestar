@@ -13,7 +13,7 @@ internal static class HouseholderEstimate
     internal static (double[] Coefficients, double[] StandardErrors, double[] TStatistics, double ResidualSumOfSquares, int ResidualDegreesOfFreedom) Fit(
         ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount, bool withIntercept)
     {
-        int rowCount = LeastSquares.Rows(design, response, featureCount);
+        int rowCount = LeastSquares.FiniteRows(design, response, featureCount);
         int parameterCount = featureCount + (withIntercept ? 1 : 0);
         int residualDegreesOfFreedom = rowCount - parameterCount;
         if (residualDegreesOfFreedom < 1)

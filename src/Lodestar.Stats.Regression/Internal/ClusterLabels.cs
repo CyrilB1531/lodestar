@@ -19,18 +19,12 @@ internal sealed class ClusterLabels
     /// <summary>How many distinct clusters the rows fall in.</summary>
     public int Count { get; }
 
-    /// <summary>Renumbers the caller's labels, refusing a count that does not match the rows or a single cluster.</summary>
+    /// <summary>Renumbers the caller's labels, refusing a single cluster; every caller judged their length first.</summary>
     /// <param name="clusters">The caller's labels.</param>
     /// <param name="rowCount">Rows in the design.</param>
-    /// <exception cref="ArgumentException">The lengths differ, or every row shares one cluster.</exception>
+    /// <exception cref="ArgumentException">Every row shares one cluster.</exception>
     public static ClusterLabels Dense(ReadOnlySpan<int> clusters, int rowCount)
     {
-        if (clusters.Length != rowCount)
-        {
-            throw new ArgumentException(
-                $"design has {rowCount} rows and clusters holds {clusters.Length} labels.", nameof(clusters));
-        }
-
         var seen = new Dictionary<int, int>();
         var labels = new int[rowCount];
         for (int row = 0; row < rowCount; row++)
@@ -52,5 +46,18 @@ internal sealed class ClusterLabels
         }
 
         return new ClusterLabels(labels, seen.Count);
+    }
+
+    /// <summary>Refuses a label count that is not the row count, the shape refusal a fit makes before reading values.</summary>
+    /// <exception cref="ArgumentException">The lengths differ.</exception>
+    public static void RequireLength(int labelCount, int rowCount)
+    {
+        if (labelCount != rowCount)
+        {
+            // CA2208, S3928: "clusters" is the public parameter of every fit this check serves.
+#pragma warning disable CA2208, S3928
+            throw new ArgumentException($"design has {rowCount} rows and clusters holds {labelCount} labels.", "clusters");
+#pragma warning restore CA2208, S3928
+        }
     }
 }

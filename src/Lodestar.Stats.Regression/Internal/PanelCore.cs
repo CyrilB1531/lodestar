@@ -37,6 +37,16 @@ internal sealed class PanelFit
 
     public int? Bandwidth { get; set; }
 
+    /// <summary>The most rank its covariance can hold: <c>G − 1</c> clustered, the periods less one under Driscoll-Kraay.</summary>
+    /// <remarks>Read before the covariance set it, a zero would make every model test NaN; it throws instead.</remarks>
+    public int LargestRank
+    {
+        get => _largestRank ?? throw new InvalidOperationException("The panel covariance has not set its largest rank.");
+        set => _largestRank = value;
+    }
+
+    private int? _largestRank;
+
     /// <summary>The mean the regression's R² centres on, or zero without a constant.</summary>
     public double CentringMean { get; init; }
 
@@ -88,7 +98,7 @@ internal static class PanelCore
 
         (double residualVariance, double effectsVariance, double rho) = Decomposition(panel, coefficients, residuals);
         PanelFit decomposed = With(fit, residualVariance, effectsVariance, rho, null);
-        (decomposed.Covariance, decomposed.Bandwidth) =
+        (decomposed.Covariance, decomposed.Bandwidth, decomposed.LargestRank) =
             PanelCovariance.Estimate(x, k, residuals, spec(absorbed, effect, n));
         return decomposed;
     }
@@ -136,7 +146,7 @@ internal static class PanelCore
         {
             CentringMean = hasConstant ? Mean(y) : 0.0,
         };
-        (fit.Covariance, fit.Bandwidth) = PanelCovariance.Estimate(x, k, residuals, spec);
+        (fit.Covariance, fit.Bandwidth, fit.LargestRank) = PanelCovariance.Estimate(x, k, residuals, spec);
         return fit;
     }
 
@@ -188,7 +198,7 @@ internal static class PanelCore
         double[] coefficients = LeastSquares(x, y, k);
         double[] residuals = Residuals(y, x, k, coefficients);
         var fit = new PanelFit(y, x, k, coefficients, residuals, y.Length - k);
-        (fit.Covariance, fit.Bandwidth) =
+        (fit.Covariance, fit.Bandwidth, fit.LargestRank) =
             PanelCovariance.Estimate(x, k, residuals, spec([.. entities], [.. periods], clusters is null ? null : [.. clusters]));
         return fit;
     }
@@ -250,7 +260,7 @@ internal static class PanelCore
             Rho = sigmaU / (sigmaU + sigmaE),
             Theta = theta,
         };
-        (fit.Covariance, fit.Bandwidth) = PanelCovariance.Estimate(x, k, residuals, spec);
+        (fit.Covariance, fit.Bandwidth, fit.LargestRank) = PanelCovariance.Estimate(x, k, residuals, spec);
         return fit;
     }
 

@@ -35,4 +35,12 @@ public sealed class TableLengthTests
         Assert.Equal(Array.MaxLength, Lodestar.Internal.TableLength.MaxLength);
         Assert.Equal(0x7FFFFFC7L, Lodestar.Internal.TableLength.MaxByteLength);
     }
+
+    /// <summary>A row count computed past <c>int</c>, as HAC's 2n − 1 windows at n = 1.5e9, is refused, not wrapped (#1225).</summary>
+    [Fact]
+    public void A_row_count_past_int_is_refused_not_wrapped()
+    {
+        var error = Assert.Throws<ArgumentException>(() => Lodestar.Internal.TableLength.Of(2_999_999_999L, 1, "design"));
+        Assert.Equal("design", error.ParamName);
+    }
 }

@@ -26,7 +26,7 @@ estimate and at what confidence; `null` fits one at 0.95.
 **Returns** — the fitted model, with its standard errors, t statistics, p-values, confidence
 intervals and variance inflation factors.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive.
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when a value of `design` or `response` is NaN or infinite, with the cell named.
 `ArgumentException` when `design` is not a whole number of rows, when `response` or `clusters` has
 a different length, or when no residual degrees of freedom are left — every standard error here
 divides by that count, so a design that fits its rows exactly is refused rather than answered with

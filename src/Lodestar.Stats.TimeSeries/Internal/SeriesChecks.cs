@@ -5,6 +5,12 @@ namespace Lodestar.Stats.TimeSeries.Internal;
 /// <summary>The refusals the stationarity tests and the decomposition share.</summary>
 internal static class SeriesChecks
 {
+    /// <summary>2^1023, the largest power of two a double holds.</summary>
+    private const double LargestPowerOfTwo = 8.98846567431157953865e307;
+
+    /// <summary>The bias of a double's exponent field.</summary>
+    private const int ExponentBias = 1023;
+
     internal static void RefuseNonFinite(ReadOnlySpan<double> series)
     {
         for (int row = 0; row < series.Length; row++)
@@ -17,6 +23,57 @@ internal static class SeriesChecks
                     + "reference refuses too: a gapped series needs interpolating first.", nameof(series));
             }
         }
+    }
+
+    /// <summary>
+    /// The series times the power of two that brings its largest magnitude into <c>[1, 2)</c>, null when that power is
+    /// one and the series already is at unit scale, and that power.
+    /// </summary>
+    /// <remarks>
+    /// A power of two scales every value exactly, short of the subnormals, so a statistic invariant to the series' scale
+    /// is read at unit scale: no level column far from an intercept's is taken for collinear, and no difference overflows.
+    /// </remarks>
+    internal static (double[]? Scaled, double Factor) UnitScale(ReadOnlySpan<double> series)
+    {
+        double largest = 0.0;
+        foreach (double value in series)
+        {
+            largest = Math.Max(largest, Math.Abs(value));
+        }
+
+        double factor = UnitFactor(largest);
+        // S1244: the factor is a power of two, exactly one or not.
+#pragma warning disable S1244
+        if (factor == 1.0)
+#pragma warning restore S1244
+        {
+            return (null, factor);
+        }
+
+        var scaled = new double[series.Length];
+        for (int row = 0; row < series.Length; row++)
+        {
+            scaled[row] = series[row] * factor;
+        }
+
+        return (scaled, factor);
+    }
+
+    /// <summary>The power of two that brings <paramref name="largest"/> into <c>[1, 2)</c>, read off its exponent field.</summary>
+    /// <remarks>A subnormal stops short of unit scale at 2^1023, the largest power a double holds.</remarks>
+    private static double UnitFactor(double largest)
+    {
+        int field = (int)((BitConverter.DoubleToInt64Bits(largest) >> 52) & 0x7FF);
+        if (field == 0)
+        {
+            return largest > 0.0 ? LargestPowerOfTwo : 1.0;
+        }
+
+        // largest lies in [2^e, 2^(e+1)) for e = field − 1023, so the factor is 2^−e; 2^−1023 alone is subnormal.
+        int exponent = ExponentBias - (field - ExponentBias);
+        return exponent >= 1
+            ? BitConverter.Int64BitsToDouble((long)exponent << 52)
+            : BitConverter.Int64BitsToDouble(1L << 51);
     }
 
     internal static void RefuseConstant(ReadOnlySpan<double> series)

@@ -6949,6 +6949,14 @@ SERIAL = {
 # reference hands int64 labels to np.bincount as they are, so the gaps are empty bins.
 SERIAL_GROUPS = [7, 7, 3, 7, 0, 3, 3, 12, 0, 12, 7, 5, 5, 3, 0, 12, 5, 5, 5, 0]
 
+# Twelve rows of three regressors for the fits whose cluster covariance is short of full rank (#1223).
+FEW_CLUSTERS_DESIGN = [
+    1.0, 4.0, 0.5, 2.0, 3.0, 1.5, 3.0, 5.0, 2.5, 4.0, 2.0, 0.5,
+    5.0, 6.0, 3.5, 6.0, 1.0, 1.0, 7.0, 7.0, 4.5, 8.0, 3.0, 2.0,
+    9.0, 8.0, 5.5, 10.0, 4.0, 2.5, 11.0, 9.0, 6.5, 12.0, 5.0, 3.0,
+]
+FEW_CLUSTERS_RESPONSE = [8.9, 7.3, 14.2, 9.1, 18.4, 12.7, 22.1, 16.6, 27.2, 20.9, 31.3, 24.2]
+
 
 def _hac_cluster_fixtures() -> list[dict]:
     """HAC at two lag counts and past the row count, and one-way clusters, on OLS (#775)."""
@@ -6981,6 +6989,20 @@ def _hac_cluster_fixtures() -> list[dict]:
             "name": "ten clusters of two, 99%",
             COVARIANCE_TYPE: CLUSTER, GROUPS: [row // 2 for row in range(20)],
             **{**SERIAL, CONFIDENCE_LEVEL: 0.99},
+        },
+        {
+            # Two clusters and three slopes: the block has rank 1, so f_test takes the
+            # pseudo-inverse and reads the F on one numerator degree of freedom (#1223).
+            "name": "three regressors, two clusters, a block of rank one",
+            COVARIANCE_TYPE: CLUSTER, GROUPS: [0] * 6 + [1] * 6,
+            DESIGN: FEW_CLUSTERS_DESIGN, RESPONSE: FEW_CLUSTERS_RESPONSE,
+            FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
+        },
+        {
+            "name": "three regressors, three clusters, a block of rank two",
+            COVARIANCE_TYPE: CLUSTER, GROUPS: [2, 2, 2, 2, 5, 5, 5, 5, 8, 8, 8, 8],
+            DESIGN: FEW_CLUSTERS_DESIGN, RESPONSE: FEW_CLUSTERS_RESPONSE,
+            FEATURE_COUNT: 3, WITH_INTERCEPT: True, CONFIDENCE_LEVEL: 0.95,
         },
     ]
 
@@ -8867,14 +8889,22 @@ def _wls_fixtures() -> list[dict]:
     # A zigzag response rather than the line's: on the line the slope's z reaches 38,
     # where the reference's two-sided p-value underflows to zero and asserts nothing.
     zigzag = {**line, RESPONSE: [3.1, 1.9, 7.4, 5.2, 12.3, 8.1, 16.8, 10.9, 21.2, 14.7]}
+    fixtures.extend([
+        {
+            "name": "one regressor, uneven weights, zigzag, HAC 3",
+            COVARIANCE_TYPE: "HAC", HAC_LAGS: 3, WEIGHTS: uneven, **zigzag,
+        },
+        {
+            "name": "one regressor, uneven weights, zigzag, four clusters",
+            COVARIANCE_TYPE: CLUSTER, GROUPS: [2, 2, 4, 4, 4, 9, 9, 1, 1, 1],
+            WEIGHTS: uneven, **zigzag,
+        },
+    ])
     fixtures.append({
-        "name": "one regressor, uneven weights, zigzag, HAC 3",
-        COVARIANCE_TYPE: "HAC", HAC_LAGS: 3, WEIGHTS: uneven, **zigzag,
-    })
-    fixtures.append({
-        "name": "one regressor, uneven weights, zigzag, four clusters",
-        COVARIANCE_TYPE: CLUSTER, GROUPS: [2, 2, 4, 4, 4, 9, 9, 1, 1, 1],
-        WEIGHTS: uneven, **zigzag,
+        # Two clusters and three slopes, whitened: rank 1 as in the OLS corpus (#1223).
+        "name": "three regressors, inverse-level weights, two clusters",
+        COVARIANCE_TYPE: CLUSTER, GROUPS: [0] * 6 + [1] * 6, CONFIDENCE_LEVEL: 0.95,
+        **{**three, RESPONSE: FEW_CLUSTERS_RESPONSE},
     })
     return fixtures
 

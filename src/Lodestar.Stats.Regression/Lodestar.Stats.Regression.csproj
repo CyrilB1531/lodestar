@@ -20,16 +20,15 @@
 
   <!--
     Two edges, both to core packages and both real: the Student and Fisher tails that
-    turn an estimate into a p-value, and the thin QR that keeps a near-collinear design
-    from losing digits the normal equations would square away. Decision 0003 published
-    exactly those four members for this package and no others.
+    turn an estimate into a p-value, and the data types it forwards (#1142). The QR that
+    keeps a near-collinear design from losing digits is its own reflections; the last call
+    into Lodestar.Decomposition went with #1223.
 
     Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
     dependency on that project's declared version, which check_nuspec_dependencies.py asserts.
   -->
   <ItemGroup>
     <ProjectReference Include="../Lodestar.Stats/Lodestar.Stats.csproj" />
-    <ProjectReference Include="../Lodestar.Decomposition/Lodestar.Decomposition.csproj" />
     <ProjectReference Include="../Lodestar.Abstractions/Lodestar.Abstractions.csproj" />
   </ItemGroup>
 

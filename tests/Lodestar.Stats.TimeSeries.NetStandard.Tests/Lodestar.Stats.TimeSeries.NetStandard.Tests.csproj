@@ -43,8 +43,6 @@
                       SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Stats.Regression/Lodestar.Stats.Regression.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
-    <ProjectReference Include="../../src/Lodestar.Decomposition/Lodestar.Decomposition.csproj"
-                      SetTargetFramework="TargetFramework=netstandard2.0" />
     <ProjectReference Include="../../src/Lodestar.Abstractions/Lodestar.Abstractions.csproj"
                       SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>

@@ -24,8 +24,8 @@ public static class InstrumentalVariables
     /// <param name="design">The response, the exogenous and endogenous regressors and the excluded instruments.</param>
     /// <param name="options">The covariance, its kernel and scaling, and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
-    /// <exception cref="ArgumentException">A block's length is not its column count times the rows, the model is under-identified, no residual degree of freedom is left, the options ask for a cluster covariance or set a value this estimator does not read, the regressors or instruments are collinear, or the rows times the larger of the parameters and the instruments, or that plus one where a rank test or LIML appends a column, are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
+    /// <exception cref="ArgumentException">A block's length is not its column count times the rows, the model is under-identified, no residual degree of freedom is left, the options ask for a cluster covariance or set a value this estimator does not read, the regressors or instruments are collinear, a kernel covariance without a bandwidth meets scores whose automatic bandwidth is undefined — an exact fit — or the rows times the larger of the parameters and the instruments, or that plus one where a rank test or LIML appends a column, are more cells than one array holds.</exception>
     public static IvSummary TwoStageLeastSquares(IvDesign design, IvOptions? options = null) =>
         Fit(Estimator.TwoStageLeastSquares, design, default, clustered: false, options ?? new IvOptions());
 
@@ -34,7 +34,7 @@ public static class InstrumentalVariables
     /// <param name="clusters">One cluster label per row; any integers, at least two distinct.</param>
     /// <param name="options">The options; <see cref="IvOptions.CovarianceType"/> must be <see cref="IvCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As the unclustered overload, or <paramref name="clusters"/> is of the wrong length or names one cluster, or the options do not ask for it.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static IvSummary TwoStageLeastSquares(IvDesign design, ReadOnlySpan<int> clusters, IvOptions options)
@@ -47,7 +47,7 @@ public static class InstrumentalVariables
     /// <param name="design">The response, the regressors and the instruments.</param>
     /// <param name="options">The covariance, Fuller's <c>α</c> and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table and diagnostics, <see cref="IvSummary.Kappa"/> included.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, IvOptions?)"/>.</exception>
     /// <remarks><c>κ</c> is the smallest eigenvalue of the LIML problem, less <c>α/(n − L)</c> with Fuller's <c>α</c>; a just-identified model has <c>κ = 1</c> and fits 2SLS.</remarks>
     public static IvSummary Liml(IvDesign design, IvOptions? options = null) =>
@@ -58,7 +58,7 @@ public static class InstrumentalVariables
     /// <param name="clusters">One cluster label per row.</param>
     /// <param name="options">The options; <see cref="IvOptions.CovarianceType"/> must be <see cref="IvCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, ReadOnlySpan{int}, IvOptions)"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static IvSummary Liml(IvDesign design, ReadOnlySpan<int> clusters, IvOptions options)
@@ -71,8 +71,8 @@ public static class InstrumentalVariables
     /// <param name="design">The response, the regressors and the instruments.</param>
     /// <param name="options">The covariance, the second step's weight and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table and diagnostics, Hansen's J as <see cref="IvSummary.Overidentification"/>.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
-    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, IvOptions?)"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
+    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, IvOptions?)"/>, or the second step's score covariance is singular, as an exact first-step fit leaves it, or not finite, its scores having overflowed, naming <paramref name="design"/>.</exception>
     /// <remarks>
     /// The first step weights by <c>(ZᵀZ/n)⁻¹</c>, the second by the inverse of <see cref="IvOptions.GmmWeightType"/>'s score
     /// covariance at the first step's residuals: <c>iter_limit=2</c>, the reference's default. A kernel weight or covariance
@@ -86,8 +86,8 @@ public static class InstrumentalVariables
     /// <param name="clusters">One cluster label per row.</param>
     /// <param name="options">The options; the covariance or the weight must be <see cref="IvCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range.</exception>
-    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, ReadOnlySpan{int}, IvOptions)"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
+    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, ReadOnlySpan{int}, IvOptions)"/>, or a clustered weight is singular, naming <paramref name="clusters"/>: fewer clusters than instruments, or as many in a just-identified model; or the score covariance is not finite, its scores having overflowed, naming <paramref name="design"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static IvSummary Gmm(IvDesign design, ReadOnlySpan<int> clusters, IvOptions options)
     {
@@ -98,7 +98,7 @@ public static class InstrumentalVariables
     private static IvSummary Fit(
         Estimator estimator, IvDesign design, ReadOnlySpan<int> clusters, bool clustered, IvOptions options)
     {
-        IvProblem problem = Build(design, options.WithIntercept);
+        IvProblem problem = Build(design, options.WithIntercept, clustered ? clusters.Length : null);
         ClusterLabels? labels = CheckOptions(estimator, options, clusters, clustered, problem.N);
         var spec = new IvCovarianceSpec(options.CovarianceType, options.Debiased, options.Kernel, options.Bandwidth, labels);
 
@@ -106,11 +106,14 @@ public static class InstrumentalVariables
         if (estimator == Estimator.Gmm)
         {
             var weight = new IvCovarianceSpec(options.GmmWeightType, false, options.GmmWeightKernel, options.GmmWeightBandwidth, labels);
-            fit = IvCore.Gmm(problem, weight, spec);
+            string singularName = options.GmmWeightType == IvCovarianceType.Clustered ? nameof(clusters) : nameof(design);
+            fit = IvCore.Gmm(problem, weight, spec, singularName, nameof(design));
         }
         else
         {
             double kappa = estimator == Estimator.Liml ? IvCore.LimlKappa(problem) : 1.0;
+            // Just identified, κ is one exactly, which the eigenvalue reaches only to rounding; the rank cap reads it.
+            kappa = problem.L == problem.K ? 1.0 : kappa;
             kappa -= options.Fuller / (problem.N - problem.L);
             fit = IvCore.KClass(problem, kappa, spec);
         }
@@ -118,7 +121,7 @@ public static class InstrumentalVariables
         return IvDiagnostics.Summarise(problem, fit, spec, options.ConfidenceLevel, estimator == Estimator.Gmm, design.InstrumentCount);
     }
 
-    private static IvProblem Build(IvDesign design, bool withIntercept)
+    private static IvProblem Build(IvDesign design, bool withIntercept, int? labelCount)
     {
         ReadOnlySpan<double> response = design.Response;
         ReadOnlySpan<double> exogenous = design.Exogenous;
@@ -141,6 +144,17 @@ public static class InstrumentalVariables
                 + "it needs at least as many.",
                 nameof(design));
         }
+
+        if (labelCount is int labels)
+        {
+            ClusterLabels.RequireLength(labels, n);
+        }
+
+        // After the shape refusals, the labels' and the under-identification among them, and before any value (#1225).
+        FiniteValues.Require(response, nameof(design), "design.Response", 1);
+        FiniteValues.Require(exogenous, nameof(design), "design.Exogenous", exogenousCount);
+        FiniteValues.Require(endogenous, nameof(design), "design.Endogenous", endogenousCount);
+        FiniteValues.Require(instruments, nameof(design), "design.Instruments", instrumentCount);
 
         // Counted in long: with no rows every block length passes, and the int sums of the counts wrapped (#1614).
         long regressors = exogenousCount + (withIntercept ? 1L : 0L) + endogenousCount;

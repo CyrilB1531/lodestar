@@ -31,7 +31,7 @@ internal static class ReportText
         bool floatSupport = LooksLikeAFloatSupport(report);
         var text = new StringBuilder();
 
-        text.Append(new string(' ', width)).Append(' ');
+        text.Append(' ', width).Append(' ');
         foreach (string header in Headers)
         {
             text.Append(' ').Append(header.PadLeft(ColumnWidth));
@@ -54,8 +54,8 @@ internal static class ReportText
         {
             // The accuracy row leaves the precision and recall columns blank.
             text.Append("accuracy".PadLeft(width)).Append(' ');
-            text.Append(' ').Append(new string(' ', ColumnWidth));
-            text.Append(' ').Append(new string(' ', ColumnWidth));
+            text.Append(' ').Append(' ', ColumnWidth);
+            text.Append(' ').Append(' ', ColumnWidth);
             text.Append(' ').Append(Number(report.Accuracy, digits).PadLeft(ColumnWidth));
             text.Append(' ').Append(Support(report.TotalSupport, floatSupport).PadLeft(ColumnWidth));
             text.Append('\n');

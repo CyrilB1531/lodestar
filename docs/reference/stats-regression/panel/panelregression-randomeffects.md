@@ -23,7 +23,7 @@ covariance and the intercept; `null` takes the reference's defaults.
 **Returns** — a [`PanelSummary`](../paneldata/panelsummary.md) whose `Theta` holds each entity's
 quasi-demeaning weight, and whose variance components are the estimated ones.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence level is outside
+**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one, a value of `Response` or `Exogenous` is NaN or infinite, with the block and the cell named, or the confidence level is outside
 (0, 1). `ArgumentException` when a block's length is not its width times the rows, when two rows
 share an entity and a period, when no residual degree of freedom is left, when a Bartlett or Parzen
 bandwidth reaches past the periods, or when the options set a value this estimator does not read.

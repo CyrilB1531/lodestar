@@ -31,9 +31,13 @@ internal static class TableLength
 
     /// <summary>The cell count, refused rather than wrapped in <c>int</c> past the largest array (#1314).</summary>
     /// <exception cref="ArgumentException">The table holds more cells than one array can.</exception>
-    public static int Of(int rows, int columns, string paramName)
+    public static int Of(int rows, int columns, string paramName) => Of((long)rows, columns, paramName);
+
+    /// <summary>The cell count of a table whose row count is itself computed past <c>int</c>, refused as above.</summary>
+    /// <exception cref="ArgumentException">The table holds more cells than one array can.</exception>
+    public static int Of(long rows, int columns, string paramName)
     {
-        long length = (long)rows * columns;
+        long length = rows * columns;
         if (length > MaxLength)
         {
             throw new ArgumentException(
