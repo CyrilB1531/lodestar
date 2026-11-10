@@ -7,10 +7,12 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
+- The `Lodestar.Onnx` dependency floor rises from 0.1.0 to 0.1.2 and the `Lodestar.Embeddings` one from 0.8.0 to 0.8.1, for the truncation `GenerateAsync` inherits. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - The `Lodestar.Embeddings` dependency floor rises from 0.6.0 to 0.8.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
 ### Fixed
 
+- `OnnxEmbeddingGenerator.GenerateAsync` truncates a text to the model's configured `max_seq_length`, else 256, when its encoder sets no `MaxLength`, where it refused a text past the model's limit, and lowercases it where the configuration's `do_lower_case` is true. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - `OnnxEmbeddingGenerator.GenerateAsync` returns every failure in a faulted or cancelled task, as Microsoft.Extensions.AI's own generators do, where it threw from the call. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - Each `Embedding<float>` `OnnxEmbeddingGenerator` returns carries the generator's `ModelId` and a `CreatedAt` timestamp, where both were null. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - `OnnxEmbeddingGenerator.GenerateAsync` faults with a refused text under `values`, and `Dispose` says a later call faults its task rather than throwing. ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345), [#1346](https://github.com/CyrilB1531/lodestar/issues/1346))

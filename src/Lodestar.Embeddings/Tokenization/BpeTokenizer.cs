@@ -33,7 +33,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
 
     /// <summary>UTF-8 for decoding only: a byte sequence that is not well-formed becomes U+FFFD.</summary>
     /// <remarks>
-    /// Not <see cref="JsonArtifact.Utf8NoBom"/>, which throws and is shared with the
+    /// Not <see cref="ArtifactEncoding.Utf8NoBom"/>, which throws and is shared with the
     /// persistence layer, with <see cref="Encode"/>'s own byte conversion — where
     /// refusing is right — and with <see cref="FlushBytes"/>, which catches instead.
     /// The asymmetry is deliberate and matches the reference: strict on the way in,
@@ -660,8 +660,8 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         {
             return 0;
         }
-        int prefix = _continuingPrefix is null ? 0 : JsonArtifact.Utf8NoBom.GetByteCount(_continuingPrefix);
-        int suffix = _endOfWord is null ? 0 : JsonArtifact.Utf8NoBom.GetByteCount(_endOfWord);
+        int prefix = _continuingPrefix is null ? 0 : ArtifactEncoding.Utf8NoBom.GetByteCount(_continuingPrefix);
+        int suffix = _endOfWord is null ? 0 : ArtifactEncoding.Utf8NoBom.GetByteCount(_endOfWord);
         return ((long)prefix * piece.Length) + suffix;
     }
 
@@ -678,7 +678,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         }
 
         // At three bytes a UTF-16 unit at most, a piece this short cannot overflow GetByteCount's int.
-        long bytes = piece.Length <= int.MaxValue / 3 ? JsonArtifact.Utf8NoBom.GetByteCount(piece) : HugeByteCount(piece);
+        long bytes = piece.Length <= int.MaxValue / 3 ? ArtifactEncoding.Utf8NoBom.GetByteCount(piece) : HugeByteCount(piece);
         long capacity = bytes + DecorationBytes(piece);
         return capacity <= TableLength.MaxLength ? (int)capacity : throw PieceTooLong(capacity, TextParameter);
     }
@@ -688,7 +688,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     {
         try
         {
-            return JsonArtifact.Utf8NoBom.GetByteCount(piece);
+            return ArtifactEncoding.Utf8NoBom.GetByteCount(piece);
         }
         // The overflow is a plain ArgumentException, "Conversion buffer overflow." (measured on .NET 10, #1493); a lone
         // surrogate is an EncoderFallbackException, itself an ArgumentException, and keeps its own meaning.
@@ -791,7 +791,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// </remarks>
     private int ExpandToBytes(string symbol, Span<int> symbols)
     {
-        byte[] bytes = JsonArtifact.Utf8NoBom.GetBytes(symbol);
+        byte[] bytes = ArtifactEncoding.Utf8NoBom.GetBytes(symbol);
         for (int i = 0; i < bytes.Length; i++)
         {
             symbols[i] = _modelVocab[BytePieces.Name(bytes[i])];
@@ -859,7 +859,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
             return piece.Length;
         }
 
-        byte[] bytes = JsonArtifact.Utf8NoBom.GetBytes(piece);
+        byte[] bytes = ArtifactEncoding.Utf8NoBom.GetBytes(piece);
         for (int i = 0; i < bytes.Length; i++)
         {
             symbols[i] = ByteId(bytes[i]);
@@ -882,7 +882,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
     /// <summary>The piece as the byte alphabet renders it, which is how the vocabulary spells it.</summary>
     private static string MapBytes(string piece)
     {
-        byte[] bytes = JsonArtifact.Utf8NoBom.GetBytes(piece);
+        byte[] bytes = ArtifactEncoding.Utf8NoBom.GetBytes(piece);
         var mapped = new StringBuilder(bytes.Length);
         for (int i = 0; i < bytes.Length; i++)
         {
@@ -1226,7 +1226,7 @@ public sealed class BpeTokenizer : ISubwordTokenizer
         pending.Clear();
         try
         {
-            buffer.Append(JsonArtifact.Utf8NoBom.GetString(bytes));
+            buffer.Append(ArtifactEncoding.Utf8NoBom.GetString(bytes));
         }
         catch (DecoderFallbackException)
         {

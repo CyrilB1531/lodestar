@@ -40,7 +40,7 @@ counterpart, with every deliberate divergence.
 A satellite package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)),
 built for `net10.0` and `netstandard2.0`:
 
-- `Lodestar.Embeddings` 0.8.0 or later
+- `Lodestar.Embeddings` 0.8.1 or later
 - `Microsoft.ML.OnnxRuntime` 1.30.0 or later
 
 ## Documentation

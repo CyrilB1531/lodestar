@@ -423,9 +423,9 @@ public static class SentencePieceModelLoader
         // non-UTF-8 piece means the file is corrupt, not a token worth keeping.
 #if NETSTANDARD2_0
         byte[] copy = bytes.ToArray();
-        return JsonArtifact.Utf8NoBom.GetString(copy, 0, copy.Length);
+        return ArtifactEncoding.Utf8NoBom.GetString(copy, 0, copy.Length);
 #else
-        return JsonArtifact.Utf8NoBom.GetString(bytes);
+        return ArtifactEncoding.Utf8NoBom.GetString(bytes);
 #endif
     }
 }

@@ -75,6 +75,33 @@ public sealed class BatchEncoder
         }
     }
 
+    /// <summary>The copy <see cref="WithDefaultMaxLength"/> returns, on the ids this encoder resolved once (#1453).</summary>
+    private BatchEncoder(BatchEncoder source, EncodingOptions options)
+    {
+        _tokenizer = source._tokenizer;
+        _prefixIds = source._prefixIds;
+        _suffixIds = source._suffixIds;
+        _padId = source._padId;
+        _specialTokenCount = source._specialTokenCount;
+        Options = options;
+    }
+
+    /// <summary>An encoder that caps at <paramref name="maxLength"/> where this one sets no <see cref="EncodingOptions.MaxLength"/> of its own.</summary>
+    /// <param name="maxLength">The cap to take, special tokens included; a model's own limit, typically.</param>
+    /// <returns>A copy with that cap; this encoder itself when it already has one, or when its template is longer than <paramref name="maxLength"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxLength"/> is below 1.</exception>
+    /// <remarks>
+    /// Matches sentence-transformers setting a tokenizer's <c>model_max_length</c>. A template past the cap is left whole,
+    /// as sentence-transformers 6.2.0 leaves such a row, measured, and not refused, where an empty batch would fail too.
+    /// </remarks>
+    public BatchEncoder WithDefaultMaxLength(int maxLength)
+    {
+        Guard.NotLessThan(maxLength, 1);
+        return Options.MaxLength is not null || maxLength < _specialTokenCount
+            ? this
+            : new BatchEncoder(this, Options with { MaxLength = maxLength });
+    }
+
     /// <summary>The options this encoder was built with, as given, or <see cref="EncodingOptions"/>' defaults when none were.</summary>
     /// <remarks>
     /// Nothing is resolved into them: a null <c>MaxLength</c> stays null and means no truncation (#1446). The template's

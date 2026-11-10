@@ -23,6 +23,10 @@ public sealed class OnnxEmbeddingGeneratorTests
     private static readonly string EmbedderPath =
         Path.Combine(AppContext.BaseDirectory, "oracles", "tiny_embedder.onnx");
 
+    /// <summary>Six positions: a seventh token indexes past the table (<c>tools/build_tiny_models.py</c>).</summary>
+    private static readonly string PositionalPath =
+        Path.Combine(AppContext.BaseDirectory, "oracles", "tiny_positional.onnx");
+
     /// <summary>Two texts whose token sets differ, so a vector that leaked between them would move.</summary>
     private static readonly string[] Texts = ["the cat sat", "a dog ran"];
 
@@ -300,5 +304,105 @@ public sealed class OnnxEmbeddingGeneratorTests
             () => generator.GenerateAsync(["the cat sat on the mat"], cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("values", error.ParamName);
+    }
+
+    /// <summary>
+    /// The README's encoder sets no <c>MaxLength</c>: a text past the model's table is cut to it, as sentence-transformers
+    /// cuts it, not refused (#1257). Empty, at, one past and far past the limit in one batch.
+    /// </summary>
+    [Fact]
+    public async Task A_text_past_the_model_limit_is_truncated_not_refused()
+    {
+        const int Limit = 6;
+        string atLimit = string.Join(" ", Enumerable.Repeat("the", Limit - 2));
+        string[] texts = ["", atLimit, atLimit + " dog", string.Join(" ", Enumerable.Repeat("the", 600))];
+        using var reference = new OnnxTextEmbedder(PositionalPath, BatchCorpus.Tokenizer());
+        float[][] expected = reference.EmbedBatch(
+            texts, new EncodingOptions { MaxLength = Limit }, TestContext.Current.CancellationToken);
+
+        using var embedder = new OnnxTextEmbedder(PositionalPath, BatchCorpus.Tokenizer());
+        using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
+        GeneratedEmbeddings<Embedding<float>> actual = await generator.GenerateAsync(texts, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(texts.Length, actual.Count);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            Assert.Equal(expected[i], actual[i].Vector.ToArray());
+        }
+    }
+
+    /// <summary>An encoder that never cuts faults the task under <c>values</c>: the text is what cannot be fed (#1257).</summary>
+    [Fact]
+    public async Task A_text_past_the_model_limit_under_no_truncation_faults_under_values()
+    {
+        using var embedder = new OnnxTextEmbedder(PositionalPath, BatchCorpus.Tokenizer());
+        using var generator = new OnnxEmbeddingGenerator(
+            embedder,
+            new BatchEncoder(BatchCorpus.Tokenizer(), new EncodingOptions { Truncation = TruncationStrategy.None }));
+
+        ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(
+            () => generator.GenerateAsync([string.Join(" ", Enumerable.Repeat("the", 600))], cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal("values", error.ParamName);
+    }
+
+    /// <summary>
+    /// A model that states no maximum, with no sentence-transformers configuration beside it, cuts at 256, the
+    /// maintainer's default (Cyril 2026-11-10); an empty batch runs nothing (#1257).
+    /// </summary>
+    [Fact]
+    public async Task A_model_with_no_limit_cuts_at_256_and_an_empty_batch_is_empty()
+    {
+        string[] farPast = [string.Join(" ", Enumerable.Repeat("the dog", 300))];
+        using var reference = Embedder();
+        float[][] expected = reference.EmbedBatch(
+            farPast, new EncodingOptions { MaxLength = 256 }, TestContext.Current.CancellationToken);
+        float[][] uncut = reference.EmbedBatch(
+            farPast,
+            new BatchEncoder(BatchCorpus.Tokenizer(), new EncodingOptions { MaxLength = 1000 }),
+            TestContext.Current.CancellationToken);
+
+        using var embedder = Embedder();
+        using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
+
+        GeneratedEmbeddings<Embedding<float>> actual = await generator.GenerateAsync(farPast, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Null(embedder.MaxSequenceLength);
+        Assert.Equal(expected[0], actual[0].Vector.ToArray());
+        Assert.NotEqual(uncut[0], actual[0].Vector.ToArray());
+        Assert.Empty(await generator.GenerateAsync([], cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>The <c>max_seq_length</c> a sentence-transformers export states beside the model is the cut (#1257).</summary>
+    [Fact]
+    public async Task A_configured_max_seq_length_beside_the_model_is_the_cut()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"lodestar-1257-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(root, "onnx"));
+        string modelPath = Path.Combine(root, "onnx", "model.onnx");
+        File.Copy(EmbedderPath, modelPath);
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "modules.json"),
+                """[{"path": "", "type": "sentence_transformers.models.Transformer"}]""",
+                TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "sentence_bert_config.json"),
+                """{"max_seq_length": 300, "do_lower_case": false}""",
+                TestContext.Current.CancellationToken);
+            string[] farPast = [string.Join(" ", Enumerable.Repeat("the dog", 300))];
+            using var embedder = new OnnxTextEmbedder(modelPath, BatchCorpus.Tokenizer());
+            float[][] expected = embedder.EmbedBatch(
+                farPast, new EncodingOptions { MaxLength = 300 }, TestContext.Current.CancellationToken);
+            using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
+
+            GeneratedEmbeddings<Embedding<float>> actual = await generator.GenerateAsync(farPast, cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.Equal(expected[0], actual[0].Vector.ToArray());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 }

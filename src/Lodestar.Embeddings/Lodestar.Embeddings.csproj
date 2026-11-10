@@ -9,6 +9,7 @@
     <RootNamespace>Lodestar.Embeddings</RootNamespace>
     <!-- Pulls in the shared persistence plumbing (and System.Text.Json on ns2.0). -->
     <LodestarIncludesPersistence>true</LodestarIncludesPersistence>
+    <LodestarIncludesTokenizersLowercase>true</LodestarIncludesTokenizersLowercase>
 
     <PackageId>Lodestar.Embeddings</PackageId>
     <Description>Sub-word tokenizers (WordPiece, SentencePiece, BPE and byte-level BPE), batch encoding, pooling and SIMD kNN search for .NET. No external dependency: ONNX inference lives in Lodestar.Onnx, so a caller who only tokenizes never restores a native runtime.</Description>

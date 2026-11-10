@@ -21,7 +21,9 @@ finished, as Microsoft.Extensions.AI's own OpenAI generator fills them.
 **Exceptions** — every one of these comes back in the returned task, never from the call itself.
 `ArgumentNullException` when `values` is null. `ArgumentException` when `options`
 asks for a dimension the loaded model does not produce, or when the encoder refuses a text in
-`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None` — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)). `OperationCanceledException` when
+`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None`, or a configured `only_second` refuses one past the configured length — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)), or when the encoder's own `MaxLength` lets a sequence past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md), naming `encoder`. `InvalidOperationException` when the sentence-transformers configuration beside
+the model is refused, as [`EmbedBatch`](../../onnx/inference/onnxtextembedder-embedbatch.md) refuses
+it ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)). `OperationCanceledException` when
 `cancellationToken` is already cancelled, or is cancelled between sub-batches — it is the batch path
 underneath that observes it, so the point at which it fires is that path's, not this one's.
 `ObjectDisposedException` after
@@ -70,6 +72,15 @@ different width cannot be produced; asking for one the model does not produce is
 than silently ignored. The check only fires when the model declares a fixed output axis — most
 exports declare a symbolic one, and there the request is left alone, because refusing it would mean
 guessing.
+
+**A text past the model's limit is cut, not refused.** An encoder built without a `MaxLength`
+truncates where [`OnnxTextEmbedder.EmbedBatch`](../../onnx/inference/onnxtextembedder-embedbatch.md)
+does: at the length the sentence-transformers configuration exported beside the model states, else at
+256, never past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md) — its
+fixed sequence axis, else its position-embedding table — special tokens kept, under its own
+`Truncation`, so `TruncationStrategy.None` refuses the text, as a configured `only_second` truncation does. A true `do_lower_case` in that file
+lowercases each text first, as `EmbedBatch` does
+([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
 
 **`ModelId` is not read.** It selects among the models a service hosts, and this generator holds
 exactly one — the file its embedder was opened on.
