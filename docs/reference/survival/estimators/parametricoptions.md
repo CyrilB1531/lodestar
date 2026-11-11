@@ -26,7 +26,7 @@ using Lodestar.Survival;
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-ParametricFit pieces = ParametricSurvival.Fit(ParametricModel.PiecewiseExponential, months, died,
+ParametricSummary pieces = ParametricSurvival.Fit(months, died, ParametricModel.PiecewiseExponential,
     new ParametricOptions { Breakpoints = [10.0] });
 
 string second = pieces.ParameterNames[1];   // => lambda_1_
@@ -45,7 +45,7 @@ Reading `Breakpoints` returns a copy: the array the `init` validated cannot be r
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ParametricSurvival.Fit`](parametricsurvival-fit.md), [`ParametricFit`](parametricfit.md).
+**See also** — [`ParametricSurvival.Fit`](parametricsurvival-fit.md), [`ParametricSummary`](parametricsummary.md).
 
 ## Members
 

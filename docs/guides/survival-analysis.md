@@ -184,12 +184,12 @@ using Lodestar.Survival;
 double[] months = [12, 5, 20, 3, 15, 9, 8, 14, 2, 18];
 bool[] died = [true, true, false, true, true, true, true, false, true, true];
 
-ParametricFit weibull = ParametricSurvival.Fit(ParametricModel.Weibull, months, died);
+ParametricSummary weibull = ParametricSurvival.Fit(months, died, ParametricModel.Weibull);
 double median = weibull.MedianSurvivalTime;
 
 // One covariate per patient: 1 if on the new treatment.
 double[] treated = [0, 1, 1, 0, 1, 0, 1, 1, 0, 0];
-AftSummary aft = AcceleratedFailureTime.Fit(AftModel.Weibull, treated, months, died, featureCount: 1);
+AftSummary aft = AcceleratedFailureTime.Fit(treated, months, died, featureCount: 1, AftModel.Weibull);
 double timeRatio = aft.ExpCoefficients[0];   // how much the treatment stretches survival time
 ```
 

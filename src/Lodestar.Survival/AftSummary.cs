@@ -59,20 +59,22 @@ public sealed class AftSummary
     /// <summary>The log-likelihood at the fit, less the penalty on its summed scale: lifelines' <c>log_likelihood_</c>.</summary>
     public double LogLikelihood { get; private init; }
 
-    /// <summary>The log-likelihood of the univariate model, no covariate at all: lifelines' null model.</summary>
+    /// <summary>The log-likelihood of the univariate model, no covariate at all: lifelines' null model; <c>NaN</c> where that
+    /// model has no maximum.</summary>
     public double NullLogLikelihood { get; private init; }
 
-    /// <summary><c>2 · (LogLikelihood − NullLogLikelihood)</c>.</summary>
+    /// <summary><c>2 · (LogLikelihood − NullLogLikelihood)</c>; <c>NaN</c> where the null model has no maximum.</summary>
     public double LikelihoodRatioStatistic { get; private init; }
 
-    /// <summary>The chi-squared upper tail of the likelihood-ratio statistic.</summary>
+    /// <summary>The chi-squared upper tail of the likelihood-ratio statistic; <c>NaN</c> where the statistic is, or where no
+    /// coefficient lies past the univariate model's two.</summary>
     public double LikelihoodRatioPValue { get; private init; }
 
     /// <summary>The number of coefficients past the univariate model's two.</summary>
     public int LikelihoodRatioDegreesOfFreedom { get; private init; }
 
     /// <summary><c>−2 · LogLikelihood + 2 · k</c>, over the <c>k</c> coefficients.</summary>
-    public double Aic { get; private init; }
+    public double Akaike { get; private init; }
 
     /// <summary>Harrell's concordance index between the times and the predicted medians; NaN for an interval-censored fit, which lifelines does not score.</summary>
     public double ConcordanceIndex { get; private init; }
@@ -137,7 +139,7 @@ public sealed class AftSummary
             LikelihoodRatioStatistic = statistic,
             LikelihoodRatioPValue = freedom > 0 ? Distributions.ChiSquaredSf(statistic, freedom) : double.NaN,
             LikelihoodRatioDegreesOfFreedom = freedom,
-            Aic = (-2.0 * logLikelihood) + (2.0 * k),
+            Akaike = (-2.0 * logLikelihood) + (2.0 * k),
             ConcordanceIndex = concordance,
             ConfidenceLevel = settings.ConfidenceLevel,
             Robust = settings.Robust,

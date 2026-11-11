@@ -11,13 +11,13 @@ internal static class AftOptionsSample
 
         (double[] design, double[] weeks, bool[] observed) = AcceleratedFailureTimeSample.Arms();
         var options = new AftOptions { Ancillary = true, Penalizer = 0.1, Robust = true, ConfidenceLevel = 0.9, MaximumIterations = 50 };
-        AftSummary fit = AcceleratedFailureTime.Fit(AftModel.LogNormal, design, weeks, observed, 1, options);
+        AftSummary fit = AcceleratedFailureTime.Fit(design, weeks, observed, 1, AftModel.LogNormal, options);
         Console.WriteLine(
             $"  {fit.Coefficients.Count} coefficients   : penalizer {Inv.F3(options.Penalizer)}, robust {options.Robust}, "
             + $"ancillary {options.Ancillary}, {options.MaximumIterations} steps at most, level {Inv.F3(options.ConfidenceLevel)}");
 
         var through = new AftOptions { FitIntercept = false };
-        AftSummary origin = AcceleratedFailureTime.Fit(AftModel.LogNormal, design, weeks, observed, 1, through);
+        AftSummary origin = AcceleratedFailureTime.Fit(design, weeks, observed, 1, AftModel.LogNormal, through);
         Console.WriteLine($"  no intercept     : {origin.Coefficients.Count} coefficients (intercept {through.FitIntercept})");
         Console.WriteLine();
     }

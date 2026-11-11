@@ -9,14 +9,14 @@ namespace Lodestar.Survival;
 /// <c>_compare_to_values</c> — one for a Weibull shape, zero for a log-normal mean — not from zero. A class rather than
 /// a record, as <see cref="CoxSummary"/> is: it carries the model it evaluates its curves with.
 /// </remarks>
-public sealed class ParametricFit
+public sealed class ParametricSummary
 {
     private readonly UnivariateModel _shape;
     private readonly double[] _parameters;
     private readonly double[] _covariance;
     private readonly double _z;
 
-    internal ParametricFit(
+    internal ParametricSummary(
         ParametricModel model, UnivariateModel shape, double[] parameters, double logLikelihood, double[] information, double level)
     {
         int k = parameters.Length;
@@ -30,7 +30,7 @@ public sealed class ParametricFit
         ParameterNames = Array.AsReadOnly(shape.Names);
         ConfidenceLevel = level;
         LogLikelihood = logLikelihood;
-        Aic = (-2.0 * logLikelihood) + (2.0 * k);
+        Akaike = (-2.0 * logLikelihood) + (2.0 * k);
         var errors = new double[k];
         var z = new double[k];
         var p = new double[k];
@@ -81,7 +81,7 @@ public sealed class ParametricFit
     public double LogLikelihood { get; }
 
     /// <summary>Akaike's criterion, <c>−2 · LogLikelihood + 2k</c>.</summary>
-    public double Aic { get; }
+    public double Akaike { get; }
 
     /// <summary>The level the intervals were built at.</summary>
     public double ConfidenceLevel { get; }

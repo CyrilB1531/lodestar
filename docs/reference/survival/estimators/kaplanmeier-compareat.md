@@ -16,7 +16,8 @@ two curves from [`KaplanMeier.Estimate`](kaplanmeier-estimate.md).
 degree of freedom and its upper-tail p-value.
 
 **Exceptions** — `ArgumentNullException` when a curve is `null`, and `ArgumentException` when one
-holds no step or not one estimate per step. `ArgumentOutOfRangeException` when
+holds no step or not one estimate per step, or is not a right-censored curve from `Estimate`, the product of its
+steps' `1 − d/n`: a curve from `EstimateLeftCensored` is refused. `ArgumentOutOfRangeException` when
 `time` is negative or `NaN`.
 
 **Example** — Freireich's arms at week 10, where the log-rank test reads the whole curve instead.

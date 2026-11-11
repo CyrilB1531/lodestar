@@ -24,6 +24,10 @@ public sealed record AalenOptions
         }
     }
 
+    /// <summary>The cells of kept matrices past which the risk sets' checkpoints thin out, the fit's memory bound; lowered
+    /// only by the tests, to reach that path on a small design.</summary>
+    internal long CheckpointCells { get; init; } = 1L << 22;
+
     /// <summary>Whether a baseline column of ones is added after the covariates, lifelines' <c>fit_intercept</c>. Default true.</summary>
     public bool FitIntercept { get; init; } = true;
 

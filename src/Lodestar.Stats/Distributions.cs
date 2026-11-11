@@ -18,7 +18,7 @@ public static class Distributions
     /// <summary>The upper tail of Student's <em>t</em>: <c>P(T &gt; t)</c>.</summary>
     /// <param name="t">The statistic.</param>
     /// <param name="df">Degrees of freedom; must be positive, and <c>+∞</c> is the standard normal law.</param>
-    /// <returns><c>scipy.stats.t.sf(t, df)</c>; from <c>df = 1e20</c> the normal law's tail, and to <c>df = 1e-12</c> its first
+    /// <returns><c>scipy.stats.t.sf(t, df)</c>; from <c>df = 1e20</c> the normal law's tail with its first term in 1/df, and to <c>df = 1e-12</c> its first
     /// order, <c>½ − (df/2) asinh(t/√df)</c>, within 1.3e-19 of the law and one half at every finite <c>t</c> to df 1e-20.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="df"/> is not positive.</exception>
     /// <remarks>
@@ -139,7 +139,15 @@ public static class Distributions
     /// <summary>The standard normal density.</summary>
     /// <param name="z">The point; <c>NaN</c> answers <c>NaN</c>.</param>
     /// <returns><c>scipy.stats.norm.pdf(z)</c>.</returns>
-    public static double NormalPdf(double z) => Math.Exp(-0.5 * z * z) / Math.Sqrt(2.0 * Math.PI);
+    public static double NormalPdf(double z)
+    {
+        // z²'s rounding restored as a factor, as the tail restores it: dropped, it cost 2·(z²/2)ε, 19 ulps at z = 25.3.
+        double square = z * z;
+        double density = Math.Exp(-0.5 * square);
+        return density > 0.0
+            ? density * (1.0 + (0.5 * ExactProduct.Residual(square, z, z))) / Math.Sqrt(2.0 * Math.PI)
+            : density / Math.Sqrt(2.0 * Math.PI);
+    }
 
     /// <summary>The standard normal's lower tail: <c>P(Z ≤ z)</c>.</summary>
     /// <param name="z">The point; <c>NaN</c> answers <c>NaN</c>.</param>
@@ -165,7 +173,7 @@ public static class Distributions
     /// <summary>Student's <em>t</em> density.</summary>
     /// <param name="t">The point; <c>NaN</c> answers <c>NaN</c>.</param>
     /// <param name="df">Degrees of freedom; must be positive, and <c>+∞</c> is the standard normal law.</param>
-    /// <returns><c>scipy.stats.t.pdf(t, df)</c>; from <c>df = 1e20</c> the normal density. Where <c>t²/df</c> overflows scipy
+    /// <returns><c>scipy.stats.t.pdf(t, df)</c>; from <c>df = 1e20</c> the normal density with its first term in 1/df. Where <c>t²/df</c> overflows scipy
     /// reads zero and this the density itself: <c>StudentPdf(1e140, 1e-30)</c> is 5e-171.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="df"/> is not positive.</exception>
     public static double StudentPdf(double t, double df)

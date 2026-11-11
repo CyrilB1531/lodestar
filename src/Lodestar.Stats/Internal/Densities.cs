@@ -42,10 +42,12 @@ internal static class Densities
             return double.NaN;
         }
 
-        // The normal law from NormalLimitDf, as StudentSf takes it (#1690's review).
+        // The normal law from NormalLimitDf with its first term in 1/df, as StudentSf takes it (#1690's review, #1756).
         if (df >= Beta.NormalLimitDf)
         {
-            return Distributions.NormalPdf(t);
+            double normal = Distributions.NormalPdf(t);
+            double square = t * t;
+            return normal > 0.0 ? normal * (1.0 + (((square * square) - (2.0 * square) - 1.0) / (4.0 * df))) : normal;
         }
         if (double.IsInfinity(t))
         {
@@ -276,7 +278,8 @@ internal static class Densities
             return ChiSquared(x, ExactHalf.Lifted(df)) * ExactHalf.Drop;
         }
         double prefactor = Gamma.Prefactor(a, x / 2.0);
-        return x >= 2.0 || (prefactor >= LongExponent && x >= SubnormalHalving)
+        // Gamma.Prefactor's three factors hold at any size, where its exponential lost 74 ulps to log Γ below 1e-30 (#1756).
+        return x >= 2.0 || (prefactor >= LongExponent && x >= SubnormalHalving) || Gamma.ReadsPowerPrefactor(a, x / 2.0)
             ? prefactor / x
             : LongChiSquared(x, a, prefactor);
     }
@@ -300,12 +303,12 @@ internal static class Densities
         }
         if (a < StirlingShape)
         {
-            // At a chi-squared shape 1/Γ(a) as the tails take it, a product, not Lanczos' log Γ, good to about 1e-15.
+            // 1/Γ(a) as the tails take it, within an ulp: e^(−log Γ(a)) held 59 ulps of ChiSquaredPdf(6.2e-24, 14.1) (Review A, pass 44).
             // a − 1 is exact from a shape of one half; below, it rounded and |log x| times that, 1.9e-14 at (1e-300, 0.3).
             double power = a < 0.5 ? Math.Pow(x, a) / x : Math.Pow(x, a - 1.0);
-            return power * Gamma.ExpOverGamma(a, (-x / 2.0) - (a * Beta.Ln2));
+            return power * Gamma.ReciprocalGamma(a) * Math.Exp(-x / 2.0) * Math.Pow(2.0, -a);
         }
-        return prefactor >= FrontFloor ? prefactor / x : Math.Exp(Gamma.LogStirlingPrefactor(a, x / 2.0) - Math.Log(x));
+        return prefactor >= FrontFloor ? prefactor / x : Gamma.StirlingPrefactorOver(a, x / 2.0, x);
     }
 
     /// <summary><c>y^(a−1) · (1−y)^b (y/f) / B(a, b)</c> where Front underflowed: the power by Math.Pow, the rest by one exponential.</summary>

@@ -8,9 +8,25 @@ internal static class Special
     /// <summary>autograd_gamma clips the regularized incomplete gamma to <c>[1e-35, 1 − 1e-35]</c> before its logarithm.</summary>
     private const double ClipLow = 1e-35;
 
-    public static double LogClipLow { get; } = Math.Log(ClipLow);
+    private static readonly double LogClipLow = Math.Log(ClipLow);
 
-    public static double LogClipHigh { get; } = NearZero.Log1P(-ClipLow);
+    /// <summary>Whether that clip holds a probability given by its log, read as autograd reads the probability itself:
+    /// one past 1 − 1e-35, which rounds to one, so a survival within ε of one clips; <paramref name="clipped"/> its log.</summary>
+    public static bool Clips(double logValue, out double clipped)
+    {
+        // Only a log within an ulp or two of zero exponentiates to one; the rest are judged in logs, with no exp.
+        if (logValue <= LogClipLow || (logValue > -1e-15 && Math.Exp(logValue) >= 1.0 - ClipLow))
+        {
+            clipped = ClippedLog(Math.Exp(logValue));
+            return true;
+        }
+
+        clipped = logValue;
+        return false;
+    }
+
+    /// <summary>The log of a probability clipped to <c>[1e-35, 1 − 1e-35]</c>, as autograd_gamma clips it.</summary>
+    private static double ClippedLog(double value) => Math.Log(Math.Min(Math.Max(value, ClipLow), 1.0 - ClipLow));
 
     /// <summary>Where Mills' ratio's asymptotic series takes over, and its terms past the first: 25!!/30^26, the first left
     /// out, is 3e-26; the generalized gamma's deep tail reads the same.</summary>
@@ -93,17 +109,36 @@ internal static class Special
         return result + Math.Log(x) - (0.5 / x) - series;
     }
 
-    /// <summary><c>log Q(a, x)</c> or <c>log P(a, x)</c> through the published chi-squared tails, clipped as lifelines clips them.</summary>
+    /// <summary><c>log Q(a, x)</c> or <c>log P(a, x)</c> through the published chi-squared tails, their values clipped as
+    /// lifelines clips them.</summary>
     public static double LogIncompleteGamma(double a, double x, bool upper)
     {
-        double value = upper ? Distributions.ChiSquaredSf(2.0 * x, 2.0 * a) : Distributions.ChiSquaredCdf(2.0 * x, 2.0 * a);
-        return Math.Log(Math.Min(Math.Max(value, ClipLow), 1.0 - ClipLow));
+        // A tail past one half is log1p of the other: its own log kept ε/H of H = −log Q, 7e-5 at H = 2.6e-13, and flipped
+        // a curvature's sign (#1756). Which is small is guessed from x against the median, near a − 1/3, and checked.
+        bool guessed = upper == x > a - (1.0 / 3.0);
+        double first = Tail(a, x, guessed ? upper : !upper);
+        if (!(first > 0.5))
+        {
+            return guessed ? ClippedLog(first) : OneLess(first);
+        }
+
+        double second = Tail(a, x, guessed ? !upper : upper);
+        return guessed ? OneLess(second) : ClippedLog(second);
     }
 
-    /// <summary>The derivative of <see cref="LogIncompleteGamma"/> in <c>x</c>, given its value: the gamma density over the tail.</summary>
-    public static double LogIncompleteGammaDx(double a, double x, double logValue, bool upper)
+    private static double Tail(double a, double x, bool upper) =>
+        upper ? Distributions.ChiSquaredSf(2.0 * x, 2.0 * a) : Distributions.ChiSquaredCdf(2.0 * x, 2.0 * a);
+
+    /// <summary>The clipped log of one less <paramref name="other"/>: within ε of one it rounds to one, which the clip
+    /// holds, as autograd's own tail does.</summary>
+    private static double OneLess(double other) =>
+        1.0 - other >= 1.0 - ClipLow ? ClippedLog(1.0) : NearZero.Log1P(-other);
+
+    /// <summary>The derivative of <see cref="LogIncompleteGamma"/> in <c>log x</c>, given its value: x times the gamma
+    /// density over the tail, <c>x^a e^(−x) / (Γ(a) Q)</c>, formed from <c>log x</c> so no power of x leaves the doubles.</summary>
+    public static double LogIncompleteGammaDLogX(double a, double logX, double logValue, bool upper)
     {
-        double density = Math.Exp(((a - 1.0) * Math.Log(x)) - x - LogGamma(a) - logValue);
+        double density = Math.Exp((a * logX) - Math.Exp(logX) - LogGamma(a) - logValue);
         return upper ? -density : density;
     }
 }

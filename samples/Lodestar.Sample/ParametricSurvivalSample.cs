@@ -9,29 +9,29 @@ internal static class ParametricSurvivalSample
     {
         Console.WriteLine("Parametric survival (Lodestar.Survival)");
 
-        ParametricFit right = ParametricSurvival.Fit(ParametricModel.Weibull, Trial.TreatmentDurations, Trial.TreatmentObserved);
+        ParametricSummary right = ParametricSurvival.Fit(Trial.TreatmentDurations, Trial.TreatmentObserved, ParametricModel.Weibull);
         Console.WriteLine($"  right-censored   : lambda {Inv.F4(right.Parameters[0])}, rho {Inv.F4(right.Parameters[1])}");
 
         // Read the censored subjects as having had the event by their time instead, then as an interval of a week.
-        ParametricFit left = ParametricSurvival.FitLeftCensored(ParametricModel.Weibull, Trial.TreatmentDurations, Trial.TreatmentObserved);
+        ParametricSummary left = ParametricSurvival.FitLeftCensored(Trial.TreatmentDurations, Trial.TreatmentObserved, ParametricModel.Weibull);
         double[] lower = [.. Trial.TreatmentDurations.Select((d, i) => Trial.TreatmentObserved[i] ? d : d - 1.0)];
         double[] upper = [.. Trial.TreatmentDurations.Select((d, i) => Trial.TreatmentObserved[i] ? d : d + 1.0)];
-        ParametricFit interval = ParametricSurvival.FitIntervalCensored(ParametricModel.Weibull, lower, upper);
+        ParametricSummary interval = ParametricSurvival.FitIntervalCensored(lower, upper, ParametricModel.Weibull);
         Console.WriteLine($"  left / interval  : lambda {Inv.F4(left.Parameters[0])} / {Inv.F4(interval.Parameters[0])}");
 
         // Half the weight on the first nine subjects, and the last three entering the study at week five.
         double[] weights = [.. Trial.TreatmentDurations.Select((_, i) => i < 9 ? 0.5 : 1.0)];
         double[] entries = [.. Trial.TreatmentDurations.Select((_, i) => i >= 18 ? 5.0 : 0.0)];
-        ParametricFit weighted = ParametricSurvival.Fit(
-            ParametricModel.Weibull, Trial.TreatmentDurations, Trial.TreatmentObserved, weights, entries);
-        ParametricFit leftWeighted = ParametricSurvival.FitLeftCensored(
-            ParametricModel.Weibull, Trial.TreatmentDurations, Trial.TreatmentObserved, weights, entries);
-        ParametricFit intervalWeighted = ParametricSurvival.FitIntervalCensored(ParametricModel.Weibull, lower, upper, weights, entries);
+        ParametricSummary weighted = ParametricSurvival.Fit(
+            Trial.TreatmentDurations, Trial.TreatmentObserved, weights, entries, ParametricModel.Weibull);
+        ParametricSummary leftWeighted = ParametricSurvival.FitLeftCensored(
+            Trial.TreatmentDurations, Trial.TreatmentObserved, weights, entries, ParametricModel.Weibull);
+        ParametricSummary intervalWeighted = ParametricSurvival.FitIntervalCensored(lower, upper, weights, entries, ParametricModel.Weibull);
         Console.WriteLine(
             $"  weighted, entry  : lambda {Inv.F4(weighted.Parameters[0])}, {Inv.F4(leftWeighted.Parameters[0])}, "
             + $"{Inv.F4(intervalWeighted.Parameters[0])}");
 
-        ParametricFit control = ParametricSurvival.Fit(ParametricModel.Weibull, Trial.ControlDurations, Trial.ControlObserved);
+        ParametricSummary control = ParametricSurvival.Fit(Trial.ControlDurations, Trial.ControlObserved, ParametricModel.Weibull);
         Console.WriteLine($"  differ at 10     : p {Inv.F4(ParametricSurvival.CompareAt(10.0, right, control).PValue)}");
         Console.WriteLine();
     }

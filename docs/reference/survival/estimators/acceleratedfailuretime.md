@@ -18,7 +18,7 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-AftSummary fit = AcceleratedFailureTime.Fit(AftModel.Weibull, dose, months, died, featureCount: 1);
+AftSummary fit = AcceleratedFailureTime.Fit(dose, months, died, featureCount: 1, AftModel.Weibull);
 
 double perUnit = Math.Round(fit.ExpCoefficients[0], 6);   // => 0.57744
 double concordance = fit.ConcordanceIndex;                // => 0.9
@@ -39,7 +39,7 @@ only: the intercept is [`AftOptions.FitIntercept`](aftoptions.md)'s to add.
 
 **The fit is lifelines' likelihood taken to its maximum**, by Newton's method on exact derivatives,
 from the univariate fit lifelines itself starts from; lifelines' optimiser stops short of it, so a
-default lifelines fit differs in about the sixth significant figure. Reference behaviour is
+default lifelines fit can differ from the third significant figure, `1.3e-3` on #1160's samples. Reference behaviour is
 `lifelines` 0.30.3's `WeibullAFTFitter`, `LogNormalAFTFitter` and `LogLogisticAFTFitter`, with
 their weights, delayed entry, ridge penalty and robust errors. Thread-safe.
 

@@ -6,13 +6,13 @@ Fits an accelerated failure time regression to interval-censored times: lifeline
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary FitIntervalCensored(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, int featureCount, AftOptions options = null)
+public static AftSummary FitIntervalCensored(ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 <!-- docs-declaration -->
 
 ```csharp
-public static AftSummary FitIntervalCensored(AftModel model, ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftOptions options = null)
+public static AftSummary FitIntervalCensored(ReadOnlySpan<double> design, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, ReadOnlySpan<double> weights, ReadOnlySpan<double> entries, int featureCount, AftModel model, AftOptions options = null)
 ```
 
 The second overload takes lifelines' `weights_col` and `entry_col`.
@@ -31,7 +31,8 @@ with a `ConcordanceIndex` of `NaN`.
 finite, a bound is `NaN` or negative, an upper bound is below its lower one, a weight or entry span is
 neither empty nor one valid value per subject, or the primary parameter has no column at all.
 `ArgumentOutOfRangeException` when `model` names no model, or `featureCount` is negative.
-`InvalidOperationException` when the fit does not converge, or its parameters are not identified.
+`InvalidOperationException` when the fit does not converge, its parameters are not identified, or
+every observation is a probability and the likelihood reaches one only in the limit of a point mass, so it has no maximum.
 `ArgumentException` also when the parameters are too many for their square to fit in one array ([#1311](https://github.com/CyrilB1531/lodestar/issues/1311)).
 `ArgumentException` naming `featureCount` also when the parameters are more than one array holds,
 and naming `design` when the design is more cells than one array holds or its length only matches
@@ -46,7 +47,7 @@ double[] dose = [1.0, 2.0, 0.5, 3.0, 0.0, 1.5, 0.0, 2.5, 1.0, 0.5];
 double[] lastClear = [2, 4, 0, 6, 3, 8, 5, 1, 7, 10];
 double[] firstSeen = [4, 6, 3, 9, 3, double.PositiveInfinity, 7, 4, 10, double.PositiveInfinity];
 
-AftSummary fit = AcceleratedFailureTime.FitIntervalCensored(AftModel.Weibull, dose, lastClear, firstSeen, featureCount: 1);
+AftSummary fit = AcceleratedFailureTime.FitIntervalCensored(dose, lastClear, firstSeen, featureCount: 1, AftModel.Weibull);
 
 double perUnit = Math.Round(fit.Coefficients[0], 6);   // => -0.017618
 bool unscored = double.IsNaN(fit.ConcordanceIndex);    // => True

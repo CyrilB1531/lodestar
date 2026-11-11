@@ -50,7 +50,7 @@ public sealed class FittedImmutabilityTests
     [Fact]
     public void An_aft_summary_hands_out_no_array_it_reads_back()
     {
-        AftSummary summary = AcceleratedFailureTime.Fit(AftModel.Weibull, Design, Durations, Events, 1);
+        AftSummary summary = AcceleratedFailureTime.Fit(Design, Durations, Events, 1, AftModel.Weibull);
 
         Assert.IsNotType<double[]>(summary.Coefficients);
         Assert.IsNotType<double[]>(summary.StandardErrors);
@@ -59,7 +59,7 @@ public sealed class FittedImmutabilityTests
     [Fact]
     public void A_parametric_fit_hands_out_no_array_it_reads_back()
     {
-        ParametricFit fit = ParametricSurvival.Fit(ParametricModel.Weibull, Durations, Events);
+        ParametricSummary fit = ParametricSurvival.Fit(Durations, Events, ParametricModel.Weibull);
 
         Assert.IsNotType<double[]>(fit.Parameters);
         Assert.IsNotType<string[]>(fit.ParameterNames);

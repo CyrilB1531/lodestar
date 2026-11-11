@@ -462,14 +462,14 @@ jobs:
       # integration puts them in is not worth a CI round-trip to discover.
       # Neither bucket has anything here to analyse.
       #
-      # cpd.exclusions covers three paths, the stemmer directory, TemmeSeries.Table.cs and
-      # Stats' TemmeSeries.Lows.cs, whose tables CPD cannot tell apart: it normalises every literal to one token
+      # cpd.exclusions covers four paths, the stemmer directory, TemmeSeries.Table.cs,
+      # Stats' TemmeSeries.Lows.cs and its Normal.Table.cs, whose tables CPD cannot tell apart: it normalises every literal to one token
       # before it compares, so two runs of literals of similar length are identical
       # to it however different they are. The stemmer directory also holds code
       # beside its tables, hidden with them: every stemmer's steps, their shared
       # workers and PorterStemmer. Temme's table file holds the table alone, its
       # code in TemmeSeries.cs, under the gate; the low parts' file its two
-      # one-line accessors and two constants beside them.
+      # one-line accessors and two constants beside them; Normal's table file its tables alone.
       #
       # The stemmers, measured on #574: the 105-token run it reported over Danish
       # and Swedish is `$LIT or $LIT ... ; private static readonly string[]
@@ -545,7 +545,7 @@ jobs:
             /d:sonar.coverage.exclusions="tools/**,bench/**,samples/**,tests/**,.claude/**" \
             /d:sonar.exclusions="tests/oracles/**,samples/Lodestar.DocSnippets/Generated/**,tools/tests/**,assets/**,.claude/**" \
             /d:sonar.test.exclusions="tests/oracles/**" \
-            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**,src/Shared/TemmeSeries.Table.cs,src/Lodestar.Stats/Internal/TemmeSeries.Lows.cs"
+            /d:sonar.cpd.exclusions="src/Lodestar.Text/Stemming/**,src/Shared/TemmeSeries.Table.cs,src/Lodestar.Stats/Internal/TemmeSeries.Lows.cs,src/Lodestar.Stats/Internal/Normal.Table.cs"
 
       - name: Build the solution
         run: dotnet build Lodestar.slnx --configuration Release
@@ -928,6 +928,11 @@ jobs:
 
       - name: Verify the vendored GPT-2 vocabulary
         run: python tools/fetch_gpt2_bpe.py --check
+
+      # Lodestar.Stats' erfcx table is generated, and excluded from the duplication gate: a hand edit, or a generator
+      # changed without regenerating, fails here. Standard library only.
+      - name: Verify the normal tail's table
+        run: python tools/generate_normal_table.py --check
 
   oracles-fresh:
     name: Oracles are reproducible

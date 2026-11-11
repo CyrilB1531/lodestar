@@ -1,4 +1,4 @@
-# ParametricFit.Percentile
+# ParametricSummary.Percentile
 
 The time by which the fitted survival falls to a level: lifelines' `percentile`.
 
@@ -22,7 +22,7 @@ using Lodestar.Survival;
 double[] months = [5, 8, 12, 3, 15, 9, 20, 6, 11, 14];
 bool[] died = [true, true, false, true, true, true, false, true, true, false];
 
-ParametricFit fit = ParametricSurvival.Fit(ParametricModel.Weibull, months, died);
+ParametricSummary fit = ParametricSurvival.Fit(months, died, ParametricModel.Weibull);
 
 double quarterLeft = Math.Round(fit.Percentile(0.25), 6);    // => 16.57602
 double median = Math.Round(fit.MedianSurvivalTime, 6);       // => 11.032146
@@ -35,4 +35,4 @@ its incomplete gamma function.
 
 **Applies to** — net10.0, netstandard2.0.
 
-**See also** — [`ParametricFit`](parametricfit.md), [`AftSummary.PredictPercentile`](aftsummary-predictpercentile.md).
+**See also** — [`ParametricSummary`](parametricsummary.md), [`AftSummary.PredictPercentile`](aftsummary-predictpercentile.md).

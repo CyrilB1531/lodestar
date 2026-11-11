@@ -2,8 +2,8 @@ namespace Lodestar.Survival;
 
 /// <summary>The Nelson-Aalen estimator of a cumulative hazard function.</summary>
 /// <remarks>
-/// Reference behavior: <c>lifelines.NelsonAalenFitter</c> 0.30.3, with its smoothing
-/// left off — the plain estimator, which is what the fitter reports by default.
+/// Reference behavior: <c>lifelines.NelsonAalenFitter</c> 0.30.3 at its default
+/// <c>nelson_aalen_smoothing=True</c>: <c>d</c> tied events at <c>n</c> at risk add <c>Σ 1/(n − i)</c>, not <c>d/n</c>.
 /// Right-censored data only. Thread-safe.
 /// </remarks>
 public static class NelsonAalen

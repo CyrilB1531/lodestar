@@ -75,6 +75,43 @@ internal sealed class AftDesign
         return design.ToArray();
     }
 
+    /// <summary>Each coefficient's column mean, and the index of its block's intercept, −1 for an intercept itself or a
+    /// block without one.</summary>
+    public (double[] Means, int[] Intercepts) Centres(double[] columnMeans)
+    {
+        var means = new double[Size];
+        var intercepts = new int[Size];
+        for (int j = 0; j < Size; j++)
+        {
+            bool primary = j < PrimaryColumns.Length;
+            int[] block = primary ? PrimaryColumns : AncillaryColumns;
+            int offset = primary ? 0 : PrimaryColumns.Length;
+            int column = block[j - offset];
+            int intercept = Array.IndexOf(block, Intercept);
+            intercepts[j] = column == Intercept || intercept < 0 ? -1 : offset + intercept;
+            means[j] = intercepts[j] >= 0 ? columnMeans[column] : 0.0;
+        }
+
+        return (means, intercepts);
+    }
+
+    /// <summary>Each design column's mean, which the deviations and the centring both read.</summary>
+    public double[] ColumnMeans(ReadOnlySpan<double> design, int rows)
+    {
+        var means = new double[FeatureCount];
+        for (int column = 0; column < FeatureCount; column++)
+        {
+            double sum = 0.0;
+            for (int i = 0; i < rows; i++)
+            {
+                sum += design[(i * FeatureCount) + column];
+            }
+            means[column] = sum / rows;
+        }
+
+        return means;
+    }
+
     /// <summary>A row's value in design column <paramref name="column"/>, one for the intercept.</summary>
     public double Value(ReadOnlySpan<double> design, int row, int column) =>
         column == Intercept ? 1.0 : design[(row * FeatureCount) + column];
@@ -90,10 +127,10 @@ internal sealed class AftDesign
     }
 
     /// <summary>
-    /// Adds <c>weight</c> times a term differentiated in the two predictors to the gradient and Hessian over the
-    /// coefficients: <c>∂/∂β = Σ ∂/∂η · x</c>, each predictor linear in its own block.
+    /// Adds <c>weight</c> times a term differentiated in the two predictors to the gradient and the Hessian's upper triangle
+    /// over the coefficients, the Hessian skipped where null: <c>∂/∂β = Σ ∂/∂η · x</c>, each predictor linear in its own block.
     /// </summary>
-    public void Spread(ReadOnlySpan<double> design, int row, Jet term, double weight, double[] gradient, double[] hessian)
+    public void Spread(ReadOnlySpan<double> design, int row, Jet term, double weight, double[] gradient, double[]? hessian)
     {
         int k = Size;
         int p = PrimaryColumns.Length;
@@ -110,18 +147,53 @@ internal sealed class AftDesign
 
         double g0 = weight * term.Gradient[0];
         double g1 = weight * term.Gradient[1];
+        for (int a = 0; a < k; a++)
+        {
+            gradient[a] += (a < p ? g0 : g1) * u[a];
+        }
+
+        if (hessian is null)
+        {
+            return;
+        }
+
+        // The upper triangle alone, each block's run apart: Mirror fills the rest once an evaluation, where every cell and
+        // a branch per cell took a 300-covariate fit past lifelines' time (Review A, pass 45).
         double h00 = weight * term.Hessian[0];
         double h01 = weight * term.Hessian[1];
         double h11 = weight * term.Hessian[3];
         for (int a = 0; a < k; a++)
         {
-            bool primaryA = a < p;
-            gradient[a] += (primaryA ? g0 : g1) * u[a];
-            double within = primaryA ? h00 : h11;
-            for (int b = 0; b < k; b++)
+            int offset = a * k;
+            double ua = u[a];
+            if (a < p)
             {
-                double h = primaryA == (b < p) ? within : h01;
-                hessian[(a * k) + b] += h * u[a] * u[b];
+                AddRun(hessian.AsSpan(offset + a, p - a), h00 * ua, u.Slice(a, p - a));
+                AddRun(hessian.AsSpan(offset + p, k - p), h01 * ua, u.Slice(p));
+            }
+            else
+            {
+                AddRun(hessian.AsSpan(offset + a, k - a), h11 * ua, u.Slice(a));
+            }
+        }
+    }
+
+    private static void AddRun(Span<double> target, double factor, ReadOnlySpan<double> u)
+    {
+        for (int b = 0; b < target.Length; b++)
+        {
+            target[b] += factor * u[b];
+        }
+    }
+
+    /// <summary>Copies the upper triangle <see cref="Spread"/> accumulates onto the lower one.</summary>
+    public static void Mirror(double[] hessian, int k)
+    {
+        for (int a = 0; a < k; a++)
+        {
+            for (int b = a + 1; b < k; b++)
+            {
+                hessian[(b * k) + a] = hessian[(a * k) + b];
             }
         }
     }
@@ -148,7 +220,7 @@ internal sealed class AftDesign
     /// Each coefficient's column deviation, pandas' <c>std</c>, one for a constant column; and which coefficients
     /// lifelines leaves unpenalised: a constant column, the intercept among them, in a block of more than one.
     /// </summary>
-    public (double[] Deviations, bool[] Unpenalised) Scales(ReadOnlySpan<double> design, int rows)
+    public (double[] Deviations, bool[] Unpenalised) Scales(ReadOnlySpan<double> design, int rows, double[] columnMeans)
     {
         var deviations = new double[Size];
         var unpenalised = new bool[Size];
@@ -156,7 +228,7 @@ internal sealed class AftDesign
         {
             bool primary = j < PrimaryColumns.Length;
             int column = primary ? PrimaryColumns[j] : AncillaryColumns[j - PrimaryColumns.Length];
-            double deviation = column == Intercept ? 0.0 : Deviation(design, rows, column);
+            double deviation = column == Intercept ? 0.0 : Deviation(design, rows, column, columnMeans[column]);
             bool constant = deviation < 1e-8;
             deviations[j] = constant ? 1.0 : deviation;
             unpenalised[j] = constant && (primary ? PrimaryColumns.Length : AncillaryColumns.Length) > 1;
@@ -165,20 +237,13 @@ internal sealed class AftDesign
         return (deviations, unpenalised);
     }
 
-    private double Deviation(ReadOnlySpan<double> design, int rows, int column)
+    private double Deviation(ReadOnlySpan<double> design, int rows, int column, double mean)
     {
         if (rows < 2)
         {
             return 0.0;
         }
 
-        double sum = 0.0;
-        for (int i = 0; i < rows; i++)
-        {
-            sum += design[(i * FeatureCount) + column];
-        }
-
-        double mean = sum / rows;
         double squares = 0.0;
         for (int i = 0; i < rows; i++)
         {
