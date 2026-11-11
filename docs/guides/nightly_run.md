@@ -1,6 +1,6 @@
 # Nightly benchmark run
 
-<!-- nightly-baseline: 3e48e17c68bff96a3371172656990689433f479e -->
+<!-- nightly-baseline: 3dc12cb55643ed5d23038116d508c7210d9ff247 -->
 <!-- nightly-owed: TiledCosineTopKBenchmarks TiledSparseDenseProductBenchmarks -->
 <!-- nightly-cut: TiledCosineTopKBenchmarks TiledSparseDenseProductBenchmarks -->
 
@@ -16,8 +16,8 @@ against a baseline measured in the same run, on the same VM, in the same minute,
 
 ## This run
 
-- Commit: `3e48e17c68bff96a3371172656990689433f479e`
-- Previous run: `3e48e17c68bff96a3371172656990689433f479e`
+- Commit: `3dc12cb55643ed5d23038116d508c7210d9ff247`
+- Previous run: `3dc12cb55643ed5d23038116d508c7210d9ff247`
 - Runner: Linux / X64 (GitHub hosted)
 
 ## Asked for last
