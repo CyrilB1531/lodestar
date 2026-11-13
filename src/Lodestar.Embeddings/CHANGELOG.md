@@ -7,6 +7,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Added
 
+- `BatchEncoder.WithDefaultMaxLength` gives an encoder a cap only where it sets none of its own. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - `TokenizerJsonLoader.LoadWordPiece` reads a stock BERT `tokenizer.json` — the default `BertNormalizer` and a `BertPreTokenizer` as `BasicTokenization`, its post-processor into the new `WordPieceVocabulary.PrefixTokens` and `SuffixTokens` (`SentencePieceVocabulary` gains both for `LoadUnigram`), its truncation and padding accepted unread — where it refused all-MiniLM-L6-v2's file for reasons no longer true. ([#1210](https://github.com/CyrilB1531/lodestar/issues/1210))
 
 ### Changed

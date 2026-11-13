@@ -261,6 +261,10 @@ internal static class Lot3Embeddings
             + $"prefix [{string.Join(", ", options.Template.PrefixTokens)}], "
             + $"suffix [{string.Join(", ", options.Template.SuffixTokens)}]");
 
+        // The cap a model states, taken only by an encoder that sets none.
+        BatchEncoder capped = new BatchEncoder(subword, options with { MaxLength = null }).WithDefaultMaxLength(4);
+        Console.WriteLine($"  WithDefaultMax   : [{string.Join(", ", capped.Encode(SampleText))}]");
+
         // The templates a model family expects, and the one that wraps nothing.
         Console.WriteLine($"  templates        : Bert {SpecialTokenTemplate.Bert.SpecialTokenCount}, "
             + $"Roberta {SpecialTokenTemplate.Roberta.SpecialTokenCount}, "

@@ -7,6 +7,8 @@
     <Version>$(LodestarOnnxVersion)</Version>
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Lodestar.Onnx</RootNamespace>
+    <LodestarIncludesTokenizersLowercase>true</LodestarIncludesTokenizersLowercase>
+    <LodestarIncludesArtifactLimits>true</LodestarIncludesArtifactLimits>
 
     <PackageId>Lodestar.Onnx</PackageId>
     <Description>ONNX Runtime inference for Lodestar: runs a transformer encoder exported to ONNX and pools its token outputs into a sentence embedding. Split out of Lodestar.Embeddings so the tokenizers, the pooling and the kNN index reach a caller who does not want a native runtime.</Description>
@@ -17,6 +19,12 @@
        package carries none, so ONNX Runtime gets a satellite of its own (#1528). -->
   <ItemGroup>
     <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+  </ItemGroup>
+
+  <!-- SentenceTransformersConfig reads the sentence-transformers configuration with it; in-box on net10.0, declared
+       here on netstandard2.0 rather than reached through Lodestar.Embeddings' own reference (#1257). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <!--

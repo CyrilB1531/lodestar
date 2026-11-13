@@ -64,15 +64,23 @@ order is restored before returning, so it is a performance switch and never an
 observable one. `EmbedBatch` takes a `CancellationToken`, observed while
 tokenizing and between sub-batches.
 
-`MaxLength` left null asks the model for its maximum. Most exports declare none
-— `torch.onnx.export` with `dynamic_axes` writes a symbolic sequence dimension —
-so it is read from the graph's position-embedding table instead: 512 rows for
+`MaxLength` left null takes the length sentence-transformers configures: the
+`max_seq_length`, or a `model_max_length` its tokenizer kwargs set, of the
+configuration it reads for the Transformer module whose folder holds the model
+or the `onnx/` it sits in (`ONNX/` too, on a file system that ignores case),
+when a `modules.json` lists that folder — and 256 when none states one (256 is
+also `all-MiniLM-L6-v2`'s own). It never passes `MaxSequenceLength`, the model's hard
+limit: its fixed sequence axis, or the rows of the graph's position-embedding
+table, since most exports declare none — `torch.onnx.export` with `dynamic_axes`
+writes a symbolic sequence dimension. That table holds 512 rows for
 `all-MiniLM-L6-v2`, and a RoBERTa-style table of 514 rows, whose first two
-positions are the padding offset, reads 512. That is the model's hard limit, not
-sentence-transformers' configured one: it truncates to `max_seq_length` from
-`sentence_bert_config.json` (256 for `all-MiniLM-L6-v2`), a file the graph does
-not carry. Pass that value as `MaxLength` to match it exactly. A model with no
-table the reader recognises is not truncated at all.
+positions are the padding offset, reads 512. A configuration sentence-transformers
+refuses to load — not JSON, or a length that is not an integer — is
+refused by the text overloads, and so are a zero and `true`; `Embed` and the
+overload taking an `EncodedBatch` never read it. An encoder you build yourself
+is treated the same way when its `MaxLength` is null. A true `do_lower_case` in
+that file lowercases each text before it is encoded, as sentence-transformers
+does ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
 
 The single-sequence entry point is still there for a caller who owns the
 tokenization:

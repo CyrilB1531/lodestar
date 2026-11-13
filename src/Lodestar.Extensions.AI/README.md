@@ -43,8 +43,8 @@ counterpart, with every deliberate divergence.
 An interop package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main/docs/decisions/0003-the-package-layout-tiers-boundaries-and-edges.md)),
 built for `net10.0` and `netstandard2.0`:
 
-- `Lodestar.Onnx` 0.1.0 or later
-- `Lodestar.Embeddings` 0.8.0 or later
+- `Lodestar.Onnx` 0.1.2 or later
+- `Lodestar.Embeddings` 0.8.1 or later
 - `Microsoft.Extensions.AI.Abstractions` 10.10.0 or later
 
 ## Documentation

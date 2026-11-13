@@ -23,7 +23,8 @@ abandons the run.
 
 **Exceptions** — `ArgumentNullException` when `texts`, `encoder` or `batch` is null.
 `ArgumentException` when the encoder refuses a text — as it refuses one over `MaxLength` under
-`TruncationStrategy.None` — naming `texts`, or, from the overload taking `options`, when
+`TruncationStrategy.None` — naming `texts`, as a text past the configured length is under a configured
+`only_second` truncation, which cuts no single text, or, from the overload taking `options`, when
 [`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them; and when a sequence is
 past [`MaxSequenceLength`](onnxtextembedder.md) — a static export's fixed sequence axis or the
 position-embedding table — naming `options`, `encoder` or `batch`
@@ -34,7 +35,9 @@ than the runtime's largest array holds, `0x7FEFFFFF` before .NET 6, naming the s
 [#1581](https://github.com/CyrilB1531/lodestar/issues/1581)); below that bound the memory the
 chunk takes is what [`Embed`](onnxtextembedder-embed.md) describes.
 `InvalidOperationException` from the overload taking only texts, when the
-embedder was built without a tokenizer: the other two overloads are the way to supply one. All
+embedder was built without a tokenizer: the other two overloads are the way to supply one. Both text
+overloads throw it when the sentence-transformers configuration or the `modules.json` in the Transformer module's folder — the model's, or the parent of the `onnx/` it sits in — cannot be read — a directory, unreadable, longer than 256 MiB, opening with a byte-order mark or not UTF-8 —, is not JSON, holds an integer of more than 4300 digits, as Python's `json` refuses, or is not what sentence-transformers loads: a configuration that is not a JSON object, or whose tokenizer kwargs or `processing_kwargs` are not one, a `processing_kwargs` bucket `dict.update` refuses, a `null`, `0` or `false` `common` among them, a `truncation` transformers does not know, a `modules.json` that is not a list of modules with a string path and type or lists a path outside the model's folder, or a `max_seq_length`, `model_max_length` or `max_length` that is neither `null` nor an integer of at least 1, `true` and a zero among them. A key the module's constructor does not take, which sentence-transformers refuses, is read past
+([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)). All
 three throw it when the model output is not shaped for the batch it was fed, or declares its first two
 axes as the input's two swapped ([#1424](https://github.com/CyrilB1531/lodestar/issues/1424)), and `NotSupportedException` when its elements
 are not float, float16 or bfloat16, as [`Embed`](onnxtextembedder-embed.md) does.
@@ -59,8 +62,7 @@ float[][] vectors = embedder.EmbedBatch(
 [
     "the cat sat on the mat",
     "a dog lay on the rug",
-],
-new EncodingOptions { MaxLength = 256 });   // max_seq_length, as sentence-transformers truncates
+]);   // a null MaxLength: max_seq_length beside the model, else 256
 ```
 
 **Remarks** — three overloads for one operation, and the choice is about **who owns the
@@ -78,18 +80,33 @@ positions the mean leaves out, and the rows run in chunks of the fixed batch siz
 with masked rows whose vectors are dropped; the vectors are the ones a dynamic export of the same
 model gives ([#1258](https://github.com/CyrilB1531/lodestar/issues/1258)). A sequence past the fixed
 axis cannot be fed, and is refused rather than truncated: a `MaxLength` above it names `options`, an
-encoder producing one names `encoder`, a batch holding one names `batch`. The same holds for
+encoder whose own `MaxLength` produces one names `encoder`, a batch holding one names `batch`. The same holds for
 [`Embed`](onnxtextembedder-embed.md), and for a sequence past the position-embedding table a
 dynamic export's `MaxSequenceLength` is read from.
 
-**Where a null `MaxLength` truncates.** The overload taking `EncodingOptions` takes it from
-[`MaxSequenceLength`](onnxtextembedder.md): the model's declared sequence axis when fixed, else the
-positions its position-embedding table can index — 512 for `all-MiniLM-L6-v2`. That is the
-model's hard limit, not sentence-transformers' own: it truncates to `max_seq_length` from
-`sentence_bert_config.json` (256 for that model), which no ONNX graph carries, so a text between
-the two lengths embeds differently. Passing `max_seq_length` as `MaxLength`, as the example does,
-matches sentence-transformers exactly. A model with neither a fixed axis nor a readable table is
-not truncated. The overload taking a `BatchEncoder` truncates exactly as that encoder does.
+**Where a null `MaxLength` truncates.** At the length sentence-transformers configures, read when a text
+overload first runs, from the configuration sentence-transformers reads for the model's Transformer module — the folder holding the
+model, or the `onnx/` it sits in, when a `modules.json` lists it there, at `""` in its own or under its name in its
+parent's — the first of the seven legacy names Python finds true, a `model_max_length` in its `tokenizer_args` or
+`processor_kwargs` over its `max_seq_length`, and a `max_length` or a `truncation` that cuts nothing in its
+`processing_kwargs`, its `text` and `common` buckets merged key by key, `common`'s winning, over both — and at 256 when none states one — the length the [constructor](onnxtextembedder.md) describes —
+never past [`MaxSequenceLength`](onnxtextembedder.md): the model's declared sequence axis when
+fixed, else the positions its position-embedding table can index, 512 for `all-MiniLM-L6-v2`.
+That model's export states 256, so the example cuts where sentence-transformers cuts. A
+configured length past the table is capped at it, where sentence-transformers feeds it and fails
+in the graph. A model with neither a fixed axis nor a readable table takes the configured length
+or 256 as it is. Both text overloads cut alike: the one taking a `BatchEncoder` applies the same
+default to an encoder with a null `MaxLength`, through
+[`WithDefaultMaxLength`](../../embeddings/tokenization/batchencoder-withdefaultmaxlength.md), and
+leaves the encoder you passed unchanged; a `MaxLength` the encoder sets is kept
+([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
+
+**Lowercasing.** When that file's `do_lower_case` is true — by Python's truth, so `1` or a non-empty
+string count and `0`, `""` or `null` do not — both text overloads lowercase each text before encoding it,
+as sentence-transformers does by prepending the tokenizers' `Lowercase` normalizer: each code point's own
+lowercase, `İ` to `i̇`, no final sigma. Divergence: a special token written into the text in capitals,
+such as `[SEP]`, is lowercased with it, where the tokenizer would match it before its normalizer
+([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
 
 Order is preserved, so the *n*th vector belongs to the *n*th text however the batch was padded
 internally.

@@ -106,7 +106,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         const int MaxCharsForBound = (int.MaxValue / 3) - 1;
         if (text.Length <= MaxCharsForBound)
         {
-            int bound = JsonArtifact.Utf8NoBom.GetMaxByteCount(text.Length);
+            int bound = ArtifactEncoding.Utf8NoBom.GetMaxByteCount(text.Length);
             if (bound <= TableLength.MaxByteLength)
             {
                 return bound;
@@ -116,7 +116,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         int exact;
         try
         {
-            exact = JsonArtifact.Utf8NoBom.GetByteCount(text);
+            exact = ArtifactEncoding.Utf8NoBom.GetByteCount(text);
         }
         // A lone surrogate is an EncoderFallbackException, an ArgumentException too, and is not a length (#1493).
         catch (Exception e) when (e is (ArgumentException or OverflowException) and not System.Text.EncoderFallbackException)
@@ -166,7 +166,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         byte[]? output = null;
         try
         {
-            int length = JsonArtifact.Utf8NoBom.GetBytes(text, 0, text.Length, input, 0);
+            int length = ArtifactEncoding.Utf8NoBom.GetBytes(text, 0, text.Length, input, 0);
             output = ArrayPool<byte>.Shared.Rent(length);
             var bytes = new ReadOnlySpan<byte>(input, 0, length);
             int written = 0;
@@ -186,7 +186,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
                 at += matched;
             }
 
-            return JsonArtifact.Utf8NoBom.GetString(output, 0, written);
+            return ArtifactEncoding.Utf8NoBom.GetString(output, 0, written);
         }
         finally
         {
@@ -227,7 +227,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
         byte[]? output = null;
         try
         {
-            int length = JsonArtifact.Utf8NoBom.GetBytes(text, 0, text.Length, input, 0);
+            int length = ArtifactEncoding.Utf8NoBom.GetBytes(text, 0, text.Length, input, 0);
             output = ArrayPool<byte>.Shared.Rent(length);
             var bytes = new ReadOnlySpan<byte>(input, 0, length);
             int written = 0;
@@ -257,7 +257,7 @@ public sealed class PrecompiledNormalizer : IEquatable<PrecompiledNormalizer>
                 }
             }
 
-            return JsonArtifact.Utf8NoBom.GetString(output, 0, written);
+            return ArtifactEncoding.Utf8NoBom.GetString(output, 0, written);
         }
         finally
         {

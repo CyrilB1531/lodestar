@@ -153,6 +153,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/MillsSeries.cs" Link="Internal/MillsSeries.cs" />
   </ItemGroup>
 
+  <!-- tokenizers' Lowercase normalizer, one copy for Lodestar.Embeddings' WordPiece and Lodestar.Onnx's
+       do_lower_case (#1257). -->
+  <ItemGroup Condition="'$(LodestarIncludesTokenizersLowercase)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/TokenizersLowercase.cs" Link="Internal/TokenizersLowercase.cs" />
+  </ItemGroup>
+
   <!-- A product's exact rounding, a fused multiply-add on net10.0 and Dekker's split product on
        netstandard2.0: Lodestar.Stats' incomplete beta takes its shape exponent with it, and its normal
        tail the exact exponent past z = 6 (#1690). -->
@@ -166,13 +172,18 @@
        See docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md. -->
   <ItemGroup Condition="'$(LodestarIncludesPersistence)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactHeader.cs" Link="Internal/Persistence/ArtifactHeader.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactLimits.cs" Link="Internal/Persistence/ArtifactLimits.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/JsonArtifact.cs" Link="Internal/Persistence/JsonArtifact.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactIo.cs" Link="Internal/Persistence/ArtifactIo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/Base64Numbers.cs" Link="Internal/Persistence/Base64Numbers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/Buffers.cs" Link="Internal/Persistence/Buffers.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/StreamFill.cs" Link="Internal/Persistence/StreamFill.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/SpillBuffer.cs" Link="Internal/Persistence/SpillBuffer.cs" />
+  </ItemGroup>
+  <!-- The byte cap, the strict UTF-8 and the stream fill alone, also compiled into Lodestar.Onnx, whose model-side
+       configuration reader bounds, reads and decodes a file as artifacts are, without the rest of the plumbing (#1257). -->
+  <ItemGroup Condition="'$(LodestarIncludesPersistence)' == 'true' OR '$(LodestarIncludesArtifactLimits)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactLimits.cs" Link="Internal/Persistence/ArtifactLimits.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/ArtifactEncoding.cs" Link="Internal/Persistence/ArtifactEncoding.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Persistence/StreamFill.cs" Link="Internal/Persistence/StreamFill.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(LodestarIncludesPersistence)' == 'true' AND '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Text.Json" />
