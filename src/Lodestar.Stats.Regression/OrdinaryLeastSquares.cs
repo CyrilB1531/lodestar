@@ -22,7 +22,7 @@ public static class OrdinaryLeastSquares
     /// <param name="featureCount">How many regressors each row carries.</param>
     /// <param name="options">Whether to fit an intercept and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="options"/> sets <see cref="OlsOptions.HacLags"/> or <see cref="OlsOptions.SmallSampleCorrection"/> for a type that does not read it or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, there are no residual degrees of freedom left, a column of the design, intercept included, is collinear with the columns before it, or a copy of the design the fit makes — the VIFs' on their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is more cells than one array holds.</exception>
     /// <remarks>
     /// Solved through the normal equations when a bound on the column-scaled design's condition number
@@ -38,7 +38,7 @@ public static class OrdinaryLeastSquares
     {
         Guard.NotLessThan(featureCount, 1);
         OlsOptions settings = options ?? new OlsOptions();
-        int rowCount = LeastSquares.Rows(design, response, featureCount);
+        int rowCount = LeastSquares.FiniteRows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
 
         RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
@@ -59,7 +59,7 @@ public static class OrdinaryLeastSquares
     /// <param name="featureCount">How many regressors each row carries.</param>
     /// <param name="options">Whether to fit an intercept, the correction and the confidence; its <see cref="OlsOptions.CovarianceType"/> must be <see cref="CovarianceType.Cluster"/>.</param>
     /// <returns>The fitted model, with cluster-robust standard errors, z statistics, p-values, intervals and VIFs.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, no residual degrees of freedom are left, a column of the design, intercept included, is collinear with the columns before it, or a copy of the design the fit makes — the VIFs' on their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is more cells than one array holds.</exception>
     /// <remarks>
     /// <c>statsmodels</c>' <c>fit(cov_type="cluster", cov_kwds={"groups": clusters})</c>. The labels only say which rows
@@ -75,6 +75,8 @@ public static class OrdinaryLeastSquares
         Guard.NotLessThan(featureCount, 1);
         Guard.NotNull(options);
         int rowCount = LeastSquares.Rows(design, response, featureCount);
+        ClusterLabels.RequireLength(clusters.Length, rowCount);
+        LeastSquares.RequireFinite(design, response, featureCount);
         int parameterCount = featureCount + (options.WithIntercept ? 1 : 0);
         RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
         ClusterLabels? labels = CheckCovariance(options, clusters, clustered: true, rowCount, nameof(options));
@@ -90,12 +92,12 @@ public static class OrdinaryLeastSquares
 
     /// <summary>Refuses the options a covariance type does not take, and makes the cluster labels dense.</summary>
     /// <param name="settings">The options, defaults resolved.</param>
-    /// <param name="clusters">The labels the caller passed; empty through an overload without them.</param>
+    /// <param name="clusters">The labels the caller passed, their length judged with the design's; empty through an overload without them.</param>
     /// <param name="clustered">Whether the call came through an overload taking labels.</param>
     /// <param name="rowCount">Rows in the design.</param>
     /// <param name="optionsName">The public parameter the options arrived in, named by the exception.</param>
     /// <returns>The labels renumbered from zero in first-seen order, or <see langword="null"/> for an unclustered call.</returns>
-    /// <exception cref="ArgumentException">The options and the overload disagree, or the labels are of the wrong length or name one cluster.</exception>
+    /// <exception cref="ArgumentException">The options and the overload disagree, or the labels name one cluster.</exception>
     internal static ClusterLabels? CheckCovariance(
         OlsOptions settings, ReadOnlySpan<int> clusters, bool clustered, int rowCount, string optionsName)
     {
@@ -204,7 +206,8 @@ public static class OrdinaryLeastSquares
         double residualStandardError = Math.Sqrt(residualVariance);
 
         bool robust = fit.RobustMatrix is not null;
-        double[]? covariance = robust ? RobustSandwich(fit, rowCount, settings) : null;
+        SandwichParts? sandwich = robust ? RobustSandwich(fit, rowCount, settings) : null;
+        double[]? covariance = sandwich?.Covariance;
 
         double[] standardErrors = covariance is null
             ? LeastSquares.StandardErrors(inverseUpper, parameterCount, residualVariance)
@@ -233,10 +236,13 @@ public static class OrdinaryLeastSquares
 
         double rSquared = 1.0 - (residualSumOfSquares / totalSumOfSquares);
         int modelDegreesOfFreedom = parameterCount - (settings.WithIntercept ? 1 : 0);
-        double fStatistic = covariance is null
-            ? rSquared / modelDegreesOfFreedom / ((1.0 - rSquared) / residualDegreesOfFreedom)
-            : RobustCovariance.Wald(
-                covariance, coefficients, parameterCount, settings.WithIntercept);
+        // Cluster scores sum to zero, so G clusters span G − 1 directions; the F reads its denominator on that count.
+        int? clusterDegreesOfFreedom = fit.Clusters is { } grouped ? grouped.Count - 1 : null;
+        (double fStatistic, int numeratorDegreesOfFreedom) = sandwich is null
+            ? (rSquared / modelDegreesOfFreedom / ((1.0 - rSquared) / residualDegreesOfFreedom), modelDegreesOfFreedom)
+            : RobustCovariance.Wald(sandwich, coefficients, settings.WithIntercept);
+
+        int denominatorDegreesOfFreedom = clusterDegreesOfFreedom ?? residualDegreesOfFreedom;
 
         return new OlsSummary
         {
@@ -253,37 +259,88 @@ public static class OrdinaryLeastSquares
             RSquared = rSquared,
             AdjustedRSquared = AdjustedRSquared(rSquared, rowCount, parameterCount, settings.WithIntercept),
             FStatistic = fStatistic,
-            // A cluster fit reads its F on G − 1 denominator degrees of freedom, statsmodels' df_resid_inference.
-            FPValue = Distributions.FisherSf(
-                fStatistic, modelDegreesOfFreedom, fit.Clusters is { } groups ? groups.Count - 1 : residualDegreesOfFreedom),
+            // Rank zero, an exact fit's zero covariance, leaves no numerator degree of freedom to read a tail on.
+            FPValue = numeratorDegreesOfFreedom < 1
+                ? double.NaN
+                : Distributions.FisherSf(fStatistic, numeratorDegreesOfFreedom, denominatorDegreesOfFreedom),
+            FNumeratorDegreesOfFreedom = numeratorDegreesOfFreedom,
             ResidualDegreesOfFreedom = residualDegreesOfFreedom,
             ResidualStandardError = residualStandardError,
         };
     }
 
     /// <summary>The robust covariance a fit asked for: its filling, the shared bread, and the type's small-sample factor.</summary>
-    private static double[] RobustSandwich(SolvedFit fit, int rowCount, OlsOptions settings)
+    private static SandwichParts RobustSandwich(SolvedFit fit, int rowCount, OlsOptions settings)
     {
         double[] matrix = fit.RobustMatrix!;
         int parameterCount = fit.Coefficients.Length;
         double degreesOfFreedomFactor = (double)rowCount / (rowCount - parameterCount);
+        if (settings.CovarianceType == CovarianceType.Cluster)
+        {
+            ClusterLabels clusters = fit.Clusters
+                ?? throw new InvalidOperationException("A Cluster fit reached its covariance without its labels.");
+            (double[] clustered, int spanning, double[] sums) =
+                RobustCovariance.ClusterMeat(matrix, fit.RowResiduals, clusters.Labels, parameterCount, clusters.Count);
+            double? clusterCorrection = settings.SmallSampleCorrection ?? true
+                ? (double)clusters.Count / (clusters.Count - 1) * ((rowCount - 1.0) / (rowCount - parameterCount))
+                : null;
+            int clusterRank = Interpolates(matrix, parameterCount, rowCount) ? 0 : Math.Max(0, spanning - 1);
+            return RobustCovariance.Sandwich(
+                clustered, fit.InverseUpper, parameterCount, clusterCorrection, clusterRank, ClusterScores(fit, rowCount, sums, clusters));
+        }
+
         (double[] meat, double? correction) = settings.CovarianceType switch
         {
             CovarianceType.Hac => (
                 RobustCovariance.HacMeat(matrix, fit.RowResiduals, rowCount, parameterCount, settings.HacLags!.Value),
                 settings.SmallSampleCorrection == true ? degreesOfFreedomFactor : (double?)null),
-            CovarianceType.Cluster => (
-                RobustCovariance.ClusterMeat(matrix, fit.RowResiduals, fit.Clusters!.Labels, parameterCount, fit.Clusters.Count),
-                settings.SmallSampleCorrection ?? true
-                    ? (double)fit.Clusters.Count / (fit.Clusters.Count - 1) * ((rowCount - 1.0) / (rowCount - parameterCount))
-                    : (double?)null),
             _ => (
                 RobustCovariance.HeteroskedasticMeat(matrix, fit.InverseUpper, fit.RowResiduals, rowCount, parameterCount, settings.CovarianceType),
                 settings.CovarianceType == CovarianceType.Hc1 ? degreesOfFreedomFactor : (double?)null),
         };
 
-        return RobustCovariance.Sandwich(meat, fit.InverseUpper, parameterCount, correction);
+        return RobustCovariance.Sandwich(
+            meat, fit.InverseUpper, parameterCount, correction, Interpolates(matrix, parameterCount, rowCount) ? 0 : null,
+            RowScores(fit, rowCount, settings));
     }
+
+    // The score rows are built only by a test short of full rank; each closure is made here, off the fit's own frame.
+    private static Func<ScoreRows> ClusterScores(SolvedFit fit, int rowCount, double[] sums, ClusterLabels clusters) =>
+        () => new ScoreRows(
+            sums,
+            RobustCovariance.AbsoluteClusterSums(
+                fit.RobustMatrix!, Magnitudes(fit, fit.RobustMatrix!, rowCount), clusters.Labels, fit.Coefficients.Length, clusters.Count),
+            clusters.Count);
+
+    private static Func<ScoreRows> RowScores(SolvedFit fit, int rowCount, OlsOptions settings)
+    {
+        CovarianceType type = settings.CovarianceType;
+        int? lags = settings.HacLags;
+        return () => type == CovarianceType.Hac
+            ? HacScores(fit, fit.RobustMatrix!, rowCount, lags!.Value)
+            : RobustCovariance.HeteroskedasticScores(
+                fit.RobustMatrix!, fit.InverseUpper, fit.RowResiduals, Magnitudes(fit, fit.RobustMatrix!, rowCount), rowCount,
+                fit.Coefficients.Length, type);
+    }
+
+    private static double[] Magnitudes(SolvedFit fit, double[] matrix, int rowCount) =>
+        RobustCovariance.ResidualMagnitudes(matrix, fit.RowResiduals, fit.Coefficients, rowCount);
+
+    private static ScoreRows HacScores(SolvedFit fit, double[] matrix, int rowCount, int lags)
+    {
+        int parameterCount = fit.Coefficients.Length;
+        (double[] rows, int count) = RobustCovariance.HacScores(matrix, fit.RowResiduals, rowCount, parameterCount, lags, absolute: false);
+        (double[] sizes, _) = RobustCovariance.HacScores(matrix, Magnitudes(fit, matrix, rowCount), rowCount, parameterCount, lags, absolute: true);
+        return new ScoreRows(rows, sizes, count);
+    }
+
+    /// <summary>Whether no more rows than parameters carry a regressor that is not zero, so the fit interpolates them.</summary>
+    /// <remarks>
+    /// A row of zeros, as a zero weight leaves, scores zero; the others, as many as the parameters, are fitted exactly,
+    /// so every residual and the covariance with them are zero in exact arithmetic, whatever rounding leaves (pass 8).
+    /// </remarks>
+    private static bool Interpolates(double[] matrix, int parameterCount, int rowCount) =>
+        IvScores.Spanning(matrix, parameterCount, rowCount, stopPast: parameterCount) <= parameterCount;
 
     /// <summary>Fits a linear model and reports the estimates and their standard errors, without the inference table.</summary>
     /// <param name="design">The regressors, row-major: <paramref name="featureCount"/> values per row, with no constant column of your own.</param>
@@ -291,7 +348,7 @@ public static class OrdinaryLeastSquares
     /// <param name="featureCount">How many regressors each row carries.</param>
     /// <param name="withIntercept">Whether to fit a constant, prepended to the coefficients. Default true.</param>
     /// <returns>The coefficients, their standard errors and t statistics, and the residual sum of squares.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, there are no residual degrees of freedom left, a column of <paramref name="design"/> lies within rounding of the span of the columns before it, or the design it forms, rows times parameters, is more cells than one array holds.</exception>
     /// <remarks>
     /// Always the Householder reflections <see cref="Fit(ReadOnlySpan{double}, ReadOnlySpan{double}, int, OlsOptions)"/> falls back to, for a caller fitting many regressions and

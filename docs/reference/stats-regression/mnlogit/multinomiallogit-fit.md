@@ -16,7 +16,8 @@ tolerance; `null` takes the reference's defaults.
 **Returns** — [`MultinomialLogitSummary`](multinomiallogitsummary.md): the coefficients per non-reference category with
 their standard errors, z statistics, p-values and intervals, and the whole-model table.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one. `ArgumentException`
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one, or when a value of
+`design` is NaN or infinite, with the cell named. `ArgumentException`
 when `design` is not a whole number of rows or `response` has another length, when the response
 holds fewer than two distinct labels, when no residual degree of freedom is left, or when the
 Hessian is not positive definite. A category the regressors separate perfectly and a regressor that

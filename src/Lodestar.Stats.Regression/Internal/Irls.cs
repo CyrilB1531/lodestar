@@ -72,13 +72,13 @@ internal static class Irls
             (coefficients, inverseUpper) = LeastSquares.SolveByReflectionsInPlace(
                 scaled, rowCount, parameterCount, working);
 
-            if (!AllFinite(coefficients))
+            if (FiniteValues.FirstNonFinite(coefficients) >= 0)
             {
                 throw new ArgumentException(
                     $"the weighted least squares of IRLS iteration {iteration} solved to a "
-                    + "non-finite coefficient. The usual cause is a rank-deficient or collinear "
-                    + "design, whose zero pivot in the QR leaves the system without a unique "
-                    + "solution: look for a dependent regressor before reading this fit.",
+                    + "non-finite coefficient: the working weights or response overflowed. A "
+                    + "collinear design is refused before this, and a NaN or infinite regressor "
+                    + "before the fit; rescale the regressors.",
                     nameof(design));
             }
 
@@ -240,25 +240,6 @@ internal static class Irls
         }
 
         return eta;
-    }
-
-    /// <summary>Whether every solved coefficient is a number the next iteration can use.</summary>
-    /// <remarks>
-    /// <c>double.IsFinite</c> is not on netstandard2.0, so the two halves are asked separately
-    /// rather than through a polyfill for one call site.
-    /// </remarks>
-    private static bool AllFinite(double[] values)
-    {
-        for (int i = 0; i < values.Length; i++)
-        {
-            double value = values[i];
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /// <summary>Keeps a mean away from the boundary its family's link cannot take.</summary>

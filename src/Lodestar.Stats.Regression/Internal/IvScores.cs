@@ -18,6 +18,10 @@ internal static class IvScores
         return s;
     }
 
+    /// <summary><see cref="Robust"/>, and how many rows carry a score (see <see cref="Spanning"/>), for a cap that reads it.</summary>
+    public static (double[] S, int Spanning) RobustSpanned(double[] scores, int columns, int rows) =>
+        (Robust(scores, columns, rows), Spanning(scores, columns, rows));
+
     /// <summary>The kernel estimator: <c>Γ₀ + Σⱼ wⱼ(Γⱼ + Γⱼᵀ)</c> over the rows in order, divided by <c>n</c>.</summary>
     /// <remarks>
     /// Each lag's <c>Γⱼ = Σₜ uₜuₜ₋ⱼᵀ</c> is summed whole before its weight applies, the reference's order: smoothing each
@@ -61,7 +65,18 @@ internal static class IvScores
     }
 
     /// <summary>The one-way cluster estimator: the outer products of each cluster's summed scores, divided by <c>n</c>.</summary>
-    public static double[] Clustered(double[] scores, int columns, int rows, ClusterLabels clusters)
+    public static double[] Clustered(double[] scores, int columns, int rows, ClusterLabels clusters) =>
+        Outer(Sums(scores, columns, rows, clusters), columns, clusters.Count, rows);
+
+    /// <summary><see cref="Clustered"/>, and how many cluster sums are not zero, for a cap that reads it.</summary>
+    public static (double[] S, int Spanning) ClusteredSpanned(double[] scores, int columns, int rows, ClusterLabels clusters)
+    {
+        double[] sums = Sums(scores, columns, rows, clusters);
+        return (Outer(sums, columns, clusters.Count, rows), Spanning(sums, columns, clusters.Count));
+    }
+
+    /// <summary>Each cluster's summed scores, one row per cluster.</summary>
+    public static double[] Sums(double[] scores, int columns, int rows, ClusterLabels clusters)
     {
         var sums = new double[clusters.Count * columns];
         for (int row = 0; row < rows; row++)
@@ -73,9 +88,47 @@ internal static class IvScores
             }
         }
 
-        double[] s = Dense.Gram(sums, columns, clusters.Count);
+        return sums;
+    }
+
+    /// <summary>The outer products of <paramref name="count"/> summed scores, divided by <paramref name="rows"/>.</summary>
+    public static double[] Outer(double[] sums, int columns, int count, int rows)
+    {
+        double[] s = Dense.Gram(sums, columns, count);
         Scale(s, 1.0 / rows);
         return s;
+    }
+
+    /// <summary>How many of a block's <paramref name="count"/> rows are not zero throughout.</summary>
+    /// <remarks>
+    /// Only those reach the outer products, so they bound its rank: a cluster of zero rows, or of zero weights, adds
+    /// nothing, and counting it would let rounding lift the measured rank past what the sums span (Review A pass 5 on #1223).
+    /// </remarks>
+    /// <param name="block">The rows, row-major.</param>
+    /// <param name="columns">Values per row.</param>
+    /// <param name="count">How many rows to look at.</param>
+    /// <param name="stopPast">A count past which the caller needs no exact number, so the scan stops there.</param>
+    public static int Spanning(ReadOnlySpan<double> block, int columns, int count, int stopPast = int.MaxValue)
+    {
+        int spanning = 0;
+        for (int row = 0; row < count; row++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                if (block[(row * columns) + j] is not 0.0)
+                {
+                    spanning++;
+                    break;
+                }
+            }
+
+            if (spanning > stopPast)
+            {
+                return spanning;
+            }
+        }
+
+        return spanning;
     }
 
     /// <summary>The weights of lags <c>0..</c> for a kernel at a bandwidth, as the reference tabulates them.</summary>
@@ -132,6 +185,7 @@ internal static class IvScores
     /// The pilot lag <c>⌈4(n/100)^e⌉</c>, the rate <c>1/(2q+1)</c> and the constants are each kernel's, as the reference
     /// sets them; the result is capped at <c>n − 1</c>.
     /// </remarks>
+    /// <exception cref="ArgumentException">The bandwidth is 0/0, refused under <see cref="OptionsParameter"/>, where it can be given.</exception>
     public static int OptimalBandwidth(ReadOnlySpan<double> series, KernelType kernel)
     {
         int n = series.Length;
@@ -154,6 +208,18 @@ internal static class IvScores
 
         double rate = 1.0 / ((2.0 * q) + 1.0);
         double gamma = c * Math.Pow(Math.Pow(sq / s0, 2.0), rate);
+        if (double.IsNaN(gamma))
+        {
+            // Casting NaN to int is unspecified: 0 on net10, int.MinValue on .NET Framework (#1269).
+            // CA2208, S3928: the name is InstrumentalVariables' options, the one public parameter this helper serves.
+#pragma warning disable CA2208, S3928
+            throw new ArgumentException(
+                "The automatic kernel bandwidth is undefined: every autocovariance of the scores is zero, an exact fit, or they "
+                + "overflowed. Give the bandwidth in the options.",
+                OptionsParameter);
+#pragma warning restore CA2208, S3928
+        }
+
         return (int)Math.Min(Math.Ceiling(gamma * Math.Pow(n, rate)), n - 1);
     }
 
@@ -162,6 +228,9 @@ internal static class IvScores
     /// <c>PanelRegression</c>, which a block past one array is blamed on.
     /// </summary>
     internal const string DesignParameter = "design";
+
+    /// <summary>The public parameter of <c>InstrumentalVariables</c> that a missing bandwidth is fixed through.</summary>
+    internal const string OptionsParameter = "options";
 
     /// <summary>Whether a block holds a constant, or a set of columns spanning one, and where: <c>has_constant</c>.</summary>
     /// <remarks>
@@ -268,27 +337,8 @@ internal static class IvScores
         return augmented;
     }
 
-    private static int RankOfTall(double[] rowMajor, int columns, int rows)
-    {
-        var columnMajor = new double[rows * columns];
-        for (int row = 0; row < rows; row++)
-        {
-            for (int j = 0; j < columns; j++)
-            {
-                columnMajor[(j * rows) + row] = rowMajor[(row * columns) + j];
-            }
-        }
-
-        double[] singular = JacobiSpectrum.SingularValues(columnMajor, rows, columns);
-        double tolerance = singular[0] * Math.Max(rows, columns) * 2.220446049250313e-16;
-        int rank = 0;
-        foreach (double value in singular)
-        {
-            rank += value > tolerance ? 1 : 0;
-        }
-
-        return rank;
-    }
+    private static int RankOfTall(double[] rowMajor, int columns, int rows) =>
+        CovarianceRank.SpectrumRank(LeastSquares.ColumnMajor(rowMajor, rows, columns), rows, columns);
 
     private static int LeastVaryingColumn(double[] block, int columns, int rows)
     {

@@ -30,8 +30,8 @@ above zero per row, for a log link only; pass an empty span for either one you d
 **Returns** — the fitted model, with its standard errors, z statistics, p-values, confidence
 intervals, deviance and the rest of the table `GlmSummary` carries.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one, or when `family`
-is not a declared `GlmFamily` member; a setting outside its own range throws from
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is below one, when a value of `design`
+is NaN or infinite, with the cell named, or when `family` is not a declared `GlmFamily` member; a setting outside its own range throws from
 [`GlmOptions`](glmoptions.md) itself. `ArgumentException` when `design` is empty or is not a whole
 number of rows, when the lengths disagree, when a response value is outside its family — a
 `Binomial` response that is not `0` or `1`, a count one that is negative, fractional or

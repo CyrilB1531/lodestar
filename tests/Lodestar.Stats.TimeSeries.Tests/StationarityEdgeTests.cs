@@ -19,6 +19,97 @@ public sealed class StationarityEdgeTests
         Assert.Contains("row 3", error.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The statistic is invariant to the series' scale, and is read at unit scale: at 1e16 and 1e-20 main called the lagged
+    /// design rank-deficient, and neighbours at ±1e308 overflowed their difference (#1225).
+    /// </summary>
+    [Theory]
+    [InlineData(1e16)]
+    [InlineData(1e-20)]
+    [InlineData(1e307)]
+    public void Adf_reads_a_series_at_any_scale(double scale)
+    {
+        double[] walk = RandomWalk();
+        DickeyFullerResult unit = Stationarity.AugmentedDickeyFuller(walk);
+
+        DickeyFullerResult scaled = Stationarity.AugmentedDickeyFuller([.. walk.Select(v => v * scale)]);
+
+        Assert.Equal(unit.UsedLag, scaled.UsedLag);
+        Assert.Equal(unit.Statistic, scaled.Statistic, Math.Abs(unit.Statistic) * 1e-12);
+    }
+
+    [Fact]
+    public void Adf_reads_a_power_of_two_scaling_exactly()
+    {
+        double[] walk = RandomWalk();
+        DickeyFullerResult unit = Stationarity.AugmentedDickeyFuller(walk);
+
+        DickeyFullerResult scaled = Stationarity.AugmentedDickeyFuller([.. walk.Select(v => v * Math.Pow(2, 900))]);
+
+        Assert.Equal(unit.UsedLag, scaled.UsedLag);
+        Assert.Equal(unit.Statistic, scaled.Statistic);
+    }
+
+    /// <summary>
+    /// The lag search compares its candidates at unit scale, so at scales where the caller's residual sums overflow or
+    /// underflow it still picks the lag it picks at scale one (Review A pass 6 on #1225).
+    /// </summary>
+    [Theory]
+    [InlineData(1e154)]
+    [InlineData(1e160)]
+    [InlineData(1e-162)]
+    [InlineData(1e-200)]
+    public void Adf_searches_the_lag_alike_at_any_scale(double scale)
+    {
+        double[] walk = AutoregressiveWalk();
+        DickeyFullerResult unit = Stationarity.AugmentedDickeyFuller(walk);
+
+        DickeyFullerResult scaled = Stationarity.AugmentedDickeyFuller([.. walk.Select(v => v * scale)]);
+
+        Assert.True(unit.UsedLag > 0, $"{unit.UsedLag}");
+        Assert.Equal(unit.UsedLag, scaled.UsedLag);
+        Assert.Equal(unit.Statistic, scaled.Statistic, Math.Abs(unit.Statistic) * 1e-12);
+        Assert.True(double.IsFinite(scaled.InformationCriterion), $"{scaled.InformationCriterion}");
+    }
+
+    /// <summary>Two hundred steps of a walk whose increments follow an AR(1), seeded, so the search keeps lags.</summary>
+    private static double[] AutoregressiveWalk()
+    {
+        // SonarLint S2245, CA5394: a seeded Random builds a reproducible series; no security use.
+#pragma warning disable S2245, CA5394
+        var random = new Random(5);
+        var walk = new double[200];
+        double level = 0.0;
+        double step = 0.0;
+        for (int i = 0; i < walk.Length; i++)
+        {
+            step = (0.6 * step) + random.NextDouble() - 0.5;
+            level += step;
+            walk[i] = level;
+        }
+#pragma warning restore S2245, CA5394
+
+        return walk;
+    }
+
+    /// <summary>Sixty steps of a random walk, seeded.</summary>
+    private static double[] RandomWalk()
+    {
+        // SonarLint S2245, CA5394: a seeded Random builds a reproducible series; no security use.
+#pragma warning disable S2245, CA5394
+        var random = new Random(3);
+        var walk = new double[60];
+        double level = 0.0;
+        for (int i = 0; i < walk.Length; i++)
+        {
+            level += random.NextDouble() - 0.5;
+            walk[i] = level;
+        }
+#pragma warning restore S2245, CA5394
+
+        return walk;
+    }
+
     [Fact]
     public void Adf_refuses_a_constant_series()
     {

@@ -19,7 +19,7 @@ public static class WeightedLeastSquares
     /// <param name="featureCount">How many regressors each row carries.</param>
     /// <param name="options">Whether to fit an intercept, which covariance, and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a weight is negative, <c>NaN</c> or infinite.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, a weight is negative, <c>NaN</c> or infinite, or a value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> or <paramref name="weights"/> has a different length, <paramref name="options"/> sets an option its covariance type does not read or asks for <see cref="CovarianceType.Hac"/> without lags or <see cref="CovarianceType.Cluster"/> without labels, no residual degrees of freedom are left, fewer rows carry a positive weight than there are parameters, a column of the weighted design, intercept included, is collinear with the columns before it, or a copy of the design the fit makes — the VIFs' on their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is more cells than one array holds.</exception>
     /// <remarks>
     /// Every row and its response is scaled by the square root of its weight and fitted as
@@ -37,9 +37,11 @@ public static class WeightedLeastSquares
         Guard.NotLessThan(featureCount, 1);
         OlsOptions settings = options ?? new OlsOptions();
         int rowCount = LeastSquares.Rows(design, response, featureCount);
+        RequireWeightsLength(weights, rowCount);
+        LeastSquares.RequireFinite(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         OrdinaryLeastSquares.RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
-        CheckWeights(weights, rowCount, parameterCount);
+        CheckWeights(weights, parameterCount);
         OrdinaryLeastSquares.CheckCovariance(settings, default, clustered: false, rowCount, nameof(options));
 
         return OrdinaryLeastSquares.Summarise(
@@ -59,7 +61,7 @@ public static class WeightedLeastSquares
     /// <param name="featureCount">How many regressors each row carries.</param>
     /// <param name="options">Whether to fit an intercept, the correction and the confidence; its <see cref="OlsOptions.CovarianceType"/> must be <see cref="CovarianceType.Cluster"/>.</param>
     /// <returns>The fitted model, with cluster-robust standard errors, z statistics, p-values, intervals and VIFs.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or a weight is negative, <c>NaN</c> or infinite.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, a weight is negative, <c>NaN</c> or infinite, or a value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/>, <paramref name="weights"/> or <paramref name="clusters"/> has a different length, <paramref name="clusters"/> names fewer than two clusters, <paramref name="options"/> asks for another covariance, no residual degrees of freedom are left, fewer rows carry a positive weight than there are parameters, a column of the weighted design, intercept included, is collinear with the columns before it, or a copy of the design the fit makes — the VIFs' on their QR fallback, or with its intercept on the reflection fallback or for a robust covariance — is more cells than one array holds.</exception>
     /// <remarks>
     /// The scores the clusters sum are the weighted rows times their weighted residuals, as <c>statsmodels</c> reads them.
@@ -75,9 +77,12 @@ public static class WeightedLeastSquares
         Guard.NotLessThan(featureCount, 1);
         Guard.NotNull(options);
         int rowCount = LeastSquares.Rows(design, response, featureCount);
+        RequireWeightsLength(weights, rowCount);
+        ClusterLabels.RequireLength(clusters.Length, rowCount);
+        LeastSquares.RequireFinite(design, response, featureCount);
         int parameterCount = featureCount + (options.WithIntercept ? 1 : 0);
         OrdinaryLeastSquares.RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
-        CheckWeights(weights, rowCount, parameterCount);
+        CheckWeights(weights, parameterCount);
         ClusterLabels? labels = OrdinaryLeastSquares.CheckCovariance(options, clusters, clustered: true, rowCount, nameof(options));
 
         return OrdinaryLeastSquares.Summarise(
@@ -90,8 +95,8 @@ public static class WeightedLeastSquares
             weights);
     }
 
-    /// <summary>Refuses the weights the reference would crash on, propagate as NaN, or answer with a pseudo-inverse.</summary>
-    private static void CheckWeights(ReadOnlySpan<double> weights, int rowCount, int parameterCount)
+    /// <summary>Refuses a weight count that is not the row count, a shape refusal made before any value is read.</summary>
+    private static void RequireWeightsLength(ReadOnlySpan<double> weights, int rowCount)
     {
         if (weights.Length != rowCount)
         {
@@ -99,7 +104,12 @@ public static class WeightedLeastSquares
                 $"design has {rowCount} rows and weights holds {weights.Length} values.",
                 nameof(weights));
         }
+    }
 
+    /// <summary>Refuses the weights the reference would crash on, propagate as NaN, or answer with a pseudo-inverse.</summary>
+    /// <remarks>Their length is judged with the design's, before any value is read (<see cref="RequireWeightsLength"/>).</remarks>
+    private static void CheckWeights(ReadOnlySpan<double> weights, int parameterCount)
+    {
         int positive = 0;
         for (int i = 0; i < weights.Length; i++)
         {

@@ -17,7 +17,8 @@ internal static class OlsSummarySample
         OlsSummary summary = OrdinaryLeastSquares.Fit(design, response, featureCount: 2);
 
         Console.WriteLine($"  R2 / adjusted    : {Inv.F4(summary.RSquared)} / {Inv.F4(summary.AdjustedRSquared)}");
-        Console.WriteLine($"  F / p            : {Inv.F1(summary.FStatistic)} / {Inv.E3(summary.FPValue)}");
+        Console.WriteLine(
+            $"  F / p            : {Inv.F1(summary.FStatistic)} / {Inv.E3(summary.FPValue)} on {summary.FNumeratorDegreesOfFreedom} d.f.");
         Console.WriteLine(
             $"  residual s.e.    : {Inv.F4(summary.ResidualStandardError)} on {summary.ResidualDegreesOfFreedom} d.f.");
 

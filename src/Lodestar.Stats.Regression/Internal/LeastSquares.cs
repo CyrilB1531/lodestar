@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Lodestar.Stats.Regression.Internal;
 
 /// <summary>The least-squares arithmetic the OLS and the GLM both need.</summary>
@@ -34,6 +36,25 @@ internal static class LeastSquares
         }
 
         return rowCount;
+    }
+
+    /// <summary>The row count of a design and a real-valued response, with a value that is not finite refused too.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">A value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
+    /// <exception cref="ArgumentException">What <see cref="Rows"/> refuses.</exception>
+    public static int FiniteRows(
+        ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount)
+    {
+        int rowCount = Rows(design, response, featureCount);
+        RequireFinite(design, response, featureCount);
+        return rowCount;
+    }
+
+    /// <summary>Refuses a value of the design or the response that is not finite, once every block's length is judged.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">A value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
+    public static void RequireFinite(ReadOnlySpan<double> design, ReadOnlySpan<double> response, int featureCount)
+    {
+        FiniteValues.Require(design, nameof(design), nameof(design), featureCount);
+        FiniteValues.Require(response, nameof(response), nameof(response), 1);
     }
 
     /// <summary>The design matrix, with an intercept column prepended when asked.</summary>
@@ -425,10 +446,25 @@ internal static class LeastSquares
     }
 
     /// <summary>Householder reflections reducing a column-major <paramref name="a"/> to R in its upper triangle, applied to <paramref name="projected"/> too when one is given.</summary>
-    public static void Triangularize(double[] a, int rowCount, int columnCount, double[]? projected)
+    /// <param name="a">The block, column-major; R on return.</param>
+    /// <param name="rowCount">Its rows.</param>
+    /// <param name="columnCount">Its columns.</param>
+    /// <param name="projected">Columns of <paramref name="rowCount"/> values, column-major, that receive <c>Qᵀ</c>, or null.</param>
+    /// <param name="projectedColumns">How many columns <paramref name="projected"/> holds.</param>
+    /// <param name="pivots">
+    /// Where given, each step first brings in the column whose remaining part is longest, and to the diagonal its
+    /// largest remaining entry, Powell and Reid's pivoting; this records which column it placed where.
+    /// </param>
+    public static void Triangularize(
+        double[] a, int rowCount, int columnCount, double[]? projected, int projectedColumns = 1, int[]? pivots = null)
     {
         for (int k = 0; k < columnCount; k++)
         {
+            if (pivots is not null)
+            {
+                Pivot(a, rowCount, columnCount, k, pivots, projected, projectedColumns);
+            }
+
             int diagonal = (k * rowCount) + k;
             ReadOnlySpan<double> below = a.AsSpan(diagonal, rowCount - k);
             double norm = Math.Sqrt(Reflections.Dot(below, below));
@@ -439,14 +475,10 @@ internal static class LeastSquares
             double scale = norm * (norm + Math.Abs(a[diagonal] + alpha));
             if (scale > 0.0)
             {
-                for (int column = k + 1; column < columnCount; column++)
-                {
-                    Reflections.Reflect(below, scale, a.AsSpan((column * rowCount) + k, rowCount - k));
-                }
-
+                ReflectColumns(below, scale, a, rowCount, k, k + 1, columnCount);
                 if (projected is not null)
                 {
-                    Reflections.Reflect(below, scale, projected.AsSpan(k, rowCount - k));
+                    ReflectColumns(below, scale, projected, rowCount, k, 0, projectedColumns);
                 }
             }
 
@@ -454,6 +486,81 @@ internal static class LeastSquares
 #pragma warning disable S4143
             a[diagonal] = alpha;
 #pragma warning restore S4143
+        }
+    }
+
+    /// <summary>Reflects rows <paramref name="k"/> on of columns <paramref name="first"/> to <paramref name="end"/> of a column-major <paramref name="target"/>.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ReflectColumns(ReadOnlySpan<double> below, double scale, double[] target, int rowCount, int k, int first, int end)
+    {
+        for (int column = first; column < end; column++)
+        {
+            Reflections.Reflect(below, scale, target.AsSpan((column * rowCount) + k, rowCount - k));
+        }
+    }
+
+    /// <summary>Swaps into column <paramref name="k"/> the longest from it on, then into row <paramref name="k"/> its largest entry.</summary>
+    /// <remarks>
+    /// With a zero on the diagonal a reflection swaps two rows by subtraction, losing the smaller row's value against the
+    /// larger's: a tested coefficient at 1e-14 beside a residual at 0.3 kept three digits (Review A pass 12).
+    /// </remarks>
+    private static void Pivot(double[] a, int rowCount, int columnCount, int k, int[] pivots, double[]? projected, int projectedColumns)
+    {
+        if (k == 0)
+        {
+            for (int column = 0; column < columnCount; column++)
+            {
+                pivots[column] = column;
+            }
+        }
+
+        int longest = k;
+        double length = -1.0;
+        for (int column = k; column < columnCount; column++)
+        {
+            ReadOnlySpan<double> rest = a.AsSpan((column * rowCount) + k, rowCount - k);
+            double squared = Reflections.Dot(rest, rest);
+            if (squared > length)
+            {
+                (longest, length) = (column, squared);
+            }
+        }
+
+        if (longest != k)
+        {
+            for (int row = 0; row < rowCount; row++)
+            {
+                (a[(k * rowCount) + row], a[(longest * rowCount) + row]) = (a[(longest * rowCount) + row], a[(k * rowCount) + row]);
+            }
+
+            (pivots[k], pivots[longest]) = (pivots[longest], pivots[k]);
+        }
+
+        int largest = k;
+        for (int row = k + 1; row < rowCount; row++)
+        {
+            if (Math.Abs(a[(k * rowCount) + row]) > Math.Abs(a[(k * rowCount) + largest]))
+            {
+                largest = row;
+            }
+        }
+
+        if (largest != k)
+        {
+            SwapRows(a, rowCount, columnCount, k, largest);
+            if (projected is not null)
+            {
+                SwapRows(projected, rowCount, projectedColumns, k, largest);
+            }
+        }
+    }
+
+    private static void SwapRows(double[] columnMajor, int rowCount, int columnCount, int first, int second)
+    {
+        for (int column = 0; column < columnCount; column++)
+        {
+            int at = column * rowCount;
+            (columnMajor[at + first], columnMajor[at + second]) = (columnMajor[at + second], columnMajor[at + first]);
         }
     }
 

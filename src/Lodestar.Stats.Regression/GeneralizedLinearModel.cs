@@ -26,7 +26,7 @@ public static class GeneralizedLinearModel
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="featureCount"/> is below one, or <paramref name="family"/> is not a declared
-    /// member. A setting outside its own range throws from <see cref="GlmOptions"/> itself.
+    /// member, or a value of <paramref name="design"/> is NaN or infinite. A setting outside its own range throws from <see cref="GlmOptions"/>.
     /// </exception>
     /// <exception cref="InvalidOperationException">IRLS did not converge and the option says throw.</exception>
     public static GlmSummary Fit(
@@ -37,7 +37,9 @@ public static class GeneralizedLinearModel
         GlmOptions? options = null)
     {
         Guard.NotLessThan(featureCount, 1);
-        return FitCore(design, response, null, featureCount, family, options ?? new GlmOptions());
+        int rowCount = LeastSquares.Rows(design, response, featureCount);
+        FiniteValues.Require(design, nameof(design), nameof(design), featureCount);
+        return FitCore(design, response, null, rowCount, featureCount, family, options ?? new GlmOptions());
     }
 
     /// <summary>Fits one model whose linear predictor carries a fixed offset, an exposure, or both, and reports its inference table.</summary>
@@ -67,22 +69,36 @@ public static class GeneralizedLinearModel
         Guard.NotLessThan(featureCount, 1);
         GlmOptions settings = options ?? new GlmOptions();
         int rowCount = LeastSquares.Rows(design, response, featureCount);
+        if (!offset.IsEmpty)
+        {
+            RequireLength(offset.Length, rowCount, nameof(offset));
+        }
+
+        if (!exposure.IsEmpty)
+        {
+            RequireLength(exposure.Length, rowCount, nameof(exposure));
+        }
+
+        // After every length, before the link, as in the other overload: a design NaN is refused before any option is read (#1225).
+        FiniteValues.Require(design, nameof(design), nameof(design), featureCount);
         GlmLink link = ResolveLink(family, settings.Link, nameof(options));
-        return FitCore(design, response, CombineOffset(offset, exposure, rowCount, link), featureCount, family, settings);
+        return FitCore(design, response, CombineOffset(offset, exposure, rowCount, link), rowCount, featureCount, family, settings);
     }
 
-    /// <summary>Everything from the family checks onward, shared by both overloads.</summary>
+    /// <summary>Everything from the family checks onward, shared by both overloads, each having refused a design NaN first.</summary>
     private static GlmSummary FitCore(
         ReadOnlySpan<double> design,
         ReadOnlySpan<double> response,
         double[]? offset,
+        int rowCount,
         int featureCount,
         GlmFamily family,
         GlmOptions options)
     {
         GlmOptions settings = options;
-        int rowCount = LeastSquares.Rows(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
+
+        // The response has its own refusal below, which names the family a NaN or infinity falls outside.
         RefuseResponseOutsideTheFamily(family, response);
         var shape = new FamilyShape(
             family,
@@ -202,7 +218,7 @@ public static class GeneralizedLinearModel
         var combined = new double[rowCount];
         if (!offset.IsEmpty)
         {
-            AddOffset(offset, combined);
+            CopyOffset(offset, combined);
         }
 
         if (!exposure.IsEmpty)
@@ -221,25 +237,15 @@ public static class GeneralizedLinearModel
     }
 
     /// <summary>Copies a finite offset into the combined term.</summary>
-    private static void AddOffset(ReadOnlySpan<double> offset, double[] combined)
+    private static void CopyOffset(ReadOnlySpan<double> offset, double[] combined)
     {
-        RequireLength(offset.Length, combined.Length, nameof(offset));
-        for (int row = 0; row < combined.Length; row++)
-        {
-            double value = offset[row];
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), value, $"offset[{row}] is not a finite number.");
-            }
-
-            combined[row] = value;
-        }
+        FiniteValues.Require(offset, nameof(offset), nameof(offset), columns: 1);
+        offset.CopyTo(combined);
     }
 
     /// <summary>Adds the logarithm of a positive, finite exposure to the combined term.</summary>
     private static void AddLogExposure(ReadOnlySpan<double> exposure, double[] combined)
     {
-        RequireLength(exposure.Length, combined.Length, nameof(exposure));
         for (int row = 0; row < combined.Length; row++)
         {
             double value = exposure[row];

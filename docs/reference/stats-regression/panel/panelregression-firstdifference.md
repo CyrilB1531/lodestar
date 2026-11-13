@@ -25,8 +25,8 @@ between two rows that are differenced.
 **Returns** — a [`PanelSummary`](../paneldata/panelsummary.md) over the differenced rows:
 `ObservationCount` counts the differences, one fewer per entity, and one fewer again per gap.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one or the confidence
-level is outside (0, 1). `ArgumentException` when a block's length is not its width times the rows,
+**Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one, the confidence
+level is outside (0, 1), or a value of `Response` or `Exogenous` is NaN or infinite, with the block and the cell named. `ArgumentException` when a block's length is not its width times the rows,
 when two rows share an entity and a period, when no residual degree of freedom is left, when a
 Bartlett or Parzen bandwidth reaches past the periods, or when the options set a value this
 estimator does not read. `ArgumentNullException` when the clustered overload gets no `options`.

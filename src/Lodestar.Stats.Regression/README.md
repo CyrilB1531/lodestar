@@ -42,7 +42,6 @@ A core package ([decision 0003](https://github.com/CyrilB1531/lodestar/blob/main
 built for `net10.0` and `netstandard2.0`:
 
 - `Lodestar.Stats` 0.5.0 or later
-- `Lodestar.Decomposition` 0.3.0 or later
 - `Lodestar.Abstractions` 0.2.1 or later
 
 ## Documentation

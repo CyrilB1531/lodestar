@@ -39,12 +39,13 @@ internal sealed class IvProblem
 /// <summary>What a fit hands to the summary: the estimates, their covariance and the residuals.</summary>
 internal sealed class IvFit
 {
-    public IvFit(double[] coefficients, double[] covariance, double[] residuals, int? bandwidth)
+    public IvFit(double[] coefficients, double[] covariance, double[] residuals, int? bandwidth, int largestRank)
     {
         Coefficients = coefficients;
         Covariance = covariance;
         Residuals = residuals;
         Bandwidth = bandwidth;
+        LargestRank = largestRank;
     }
 
     public double[] Coefficients { get; }
@@ -60,6 +61,12 @@ internal sealed class IvFit
 
     /// <summary>GMM's final weight matrix, which its J statistic reads.</summary>
     public double[]? Weight { get; init; }
+
+    /// <summary>
+    /// The most rank the covariance can hold: the score groups that are not zero, clusters or rows, less one where the
+    /// estimator zeroes their total. 2SLS and GMM do; a <c>κ</c> other than one leaves <c>X̂ᵀe = (κ − 1)XᵀM_Z e</c>.
+    /// </summary>
+    public int LargestRank { get; }
 }
 
 /// <summary>The covariance a fit reports, with everything a score estimator reads.</summary>
@@ -98,18 +105,21 @@ internal static class IvCore
 
         // The bread V: X'P_zX/n, moved towards X'X/n by 1 − κ for LIML.
         var bread = new double[k * k];
-        bool unitKappa = Math.Abs(kappa - 1.0) < double.Epsilon;
+        // S1244: 2SLS and a just-identified LIML pass one exactly, and only one zeroes the scores' total.
+#pragma warning disable S1244
+        bool unitKappa = kappa == 1.0;
+#pragma warning restore S1244
         for (int i = 0; i < bread.Length; i++)
         {
             bread[i] = unitKappa ? xhx[i] / n : (((1.0 - kappa) * xx[i]) + (kappa * xhx[i])) / n;
         }
 
-        (double[] meat, int? bandwidth) = KClassMeat(problem, xhat, residuals, bread, spec);
+        (double[] meat, int? bandwidth, int groups) = KClassMeat(problem, xhat, residuals, bread, spec);
         double[] inverseBread = Invert(bread, k);
         double[] covariance = Dense.Multiply(Dense.Multiply(inverseBread, meat, k, k, k), inverseBread, k, k, k);
         Scale(covariance, 1.0 / n);
         Dense.Symmetrise(covariance, k);
-        return new IvFit(coefficients, covariance, residuals, bandwidth) { Kappa = kappa };
+        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - (unitKappa ? 1 : 0))) { Kappa = kappa };
     }
 
     /// <summary>LIML's <c>κ</c>: the smallest eigenvalue of <c>E₁ᵀE₁</c> against <c>E_zᵀE_z</c>, <c>E = [y, X_endog]</c>.</summary>
@@ -160,7 +170,12 @@ internal static class IvCore
     }
 
     /// <summary>Two-step GMM: 2SLS weights first, then the inverse of the chosen score covariance.</summary>
-    public static IvFit Gmm(IvProblem problem, IvCovarianceSpec weightSpec, IvCovarianceSpec spec)
+    /// <param name="problem">The fit's arrays.</param>
+    /// <param name="weightSpec">The second step's weight.</param>
+    /// <param name="spec">The reported covariance.</param>
+    /// <param name="singularName">The public parameter a singular weight is refused under: the clusters, or the design.</param>
+    /// <param name="designName">The public parameter scores that overflow are refused under.</param>
+    public static IvFit Gmm(IvProblem problem, IvCovarianceSpec weightSpec, IvCovarianceSpec spec, string singularName, string designName)
     {
         int n = problem.N;
         int l = problem.L;
@@ -170,8 +185,28 @@ internal static class IvCore
         double[] firstResiduals = Residuals(problem, first);
 
         double[] weightScores = Scores(problem.Z, l, firstResiduals, n);
-        (double[] s, _) = GmmScoreCovariance(problem, weightScores, firstResiduals, weightSpec);
-        double[] weight = Invert(s, l);
+        (double[] s, _, int weightGroups) = GmmScoreCovariance(problem, weightScores, firstResiduals, weightSpec);
+        (int measured, double[]? inverse) = CovarianceRank.Inverse(s, l);
+        // 2SLS leaves Zᵀe = 0 just identified, so its score groups span one direction fewer, which rounding must not lift.
+        int rank = Math.Min(measured, weightGroups - (l == problem.K ? 1 : 0));
+        if (inverse is null && measured == l)
+        {
+            // Only a block that is not finite comes back of full rank without an inverse: the scores overflowed.
+            throw new ArgumentException(
+                "The score covariance the second GMM step weights by is not finite: the first-step scores overflow.",
+                designName);
+        }
+
+        if (rank < l)
+        {
+            throw new ArgumentException(
+                "The score covariance the second GMM step weights by is singular: an exact first-step fit leaves it "
+                + "without an inverse, and so do fewer clusters than instruments, the exogenous columns counted, or "
+                + "as many in a just-identified model, whose first-step scores sum to zero.",
+                singularName);
+        }
+
+        double[] weight = inverse!;
         double[] coefficients = GmmEstimate(problem, weight);
         double[] residuals = Residuals(problem, coefficients);
 
@@ -181,12 +216,12 @@ internal static class IvCore
         double[] xzw = Dense.Multiply(xz, weight, k, l, l);
         double[] outer = Invert(Dense.Multiply(xzw, Dense.Transpose(xz, k, l), k, l, k), k);
         double[] scores = Scores(problem.Z, l, residuals, n);
-        (double[] meat, int? bandwidth) = GmmScoreCovariance(problem, scores, residuals, spec);
+        (double[] meat, int? bandwidth, int groups) = GmmScoreCovariance(problem, scores, residuals, spec);
         double[] middle = Dense.Multiply(Dense.Multiply(xzw, meat, k, l, l), Dense.Transpose(xzw, k, l), k, l, k);
         double[] covariance = Dense.Multiply(Dense.Multiply(outer, middle, k, k, k), outer, k, k, k);
         Scale(covariance, 1.0 / n);
         Dense.Symmetrise(covariance, k);
-        return new IvFit(coefficients, covariance, residuals, bandwidth) { Weight = weight };
+        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - 1)) { Weight = weight };
     }
 
     /// <summary><c>P_zX</c>, row by row, through <c>(ZᵀZ)⁻¹ZᵀX</c>.</summary>
@@ -238,7 +273,8 @@ internal static class IvCore
         return inverse;
     }
 
-    private static (double[] Meat, int? Bandwidth) KClassMeat(
+    /// <summary>The filling, the bandwidth a kernel used, and the score groups that are not zero (<see cref="IvFit.LargestRank"/>).</summary>
+    private static (double[] Meat, int? Bandwidth, int Groups) KClassMeat(
         IvProblem problem, double[] xhat, double[] residuals, double[] bread, IvCovarianceSpec spec)
     {
         int n = problem.N;
@@ -254,15 +290,15 @@ internal static class IvCore
 
             double[] meat = (double[])bread.Clone();
             Scale(meat, scale * s2 / n);
-            return (meat, null);
+            return (meat, null, n);
         }
 
         double[] scores = Scores(xhat, k, residuals, n);
         if (spec.Type == IvCovarianceType.Robust)
         {
-            double[] meat = IvScores.Robust(scores, k, n);
+            (double[] meat, int rows) = IvScores.RobustSpanned(scores, k, n);
             Scale(meat, scale);
-            return (meat, null);
+            return (meat, null, rows);
         }
 
         if (spec.Type == IvCovarianceType.Kernel)
@@ -270,17 +306,17 @@ internal static class IvCore
             int bandwidth = spec.Bandwidth ?? AutomaticBandwidth(xhat, scores, k, n, spec.Kernel);
             double[] meat = IvScores.Kernel(scores, k, n, IvScores.KernelWeights(spec.Kernel, bandwidth, n - 1));
             Scale(meat, scale);
-            return (meat, bandwidth);
+            return (meat, bandwidth, n);
         }
 
-        double[] clustered = IvScores.Clustered(scores, k, n, spec.Clusters!);
+        (double[] clustered, int spanning) = IvScores.ClusteredSpanned(scores, k, n, spec.Clusters!);
         if (spec.Debiased)
         {
             int g = spec.Clusters!.Count;
             Scale(clustered, scale * g / (g - 1.0) * (n - 1.0) / n);
         }
 
-        return (clustered, null);
+        return (clustered, null, spanning);
     }
 
     /// <summary>The kernel covariance's bandwidth when none is given: Newey and West on the scores' non-constant columns summed.</summary>
@@ -309,7 +345,11 @@ internal static class IvCore
     /// <c>n − 2</c>, the reference's <c>KernelWeightMatrix</c> default; a clustered one is scaled only when debiased,
     /// by <c>(n − 1)/(n − k)·G/(G − 1)</c>.
     /// </remarks>
-    private static (double[] S, int? Bandwidth) GmmScoreCovariance(
+    /// <param name="problem">The fit's arrays.</param>
+    /// <param name="scores">The instruments times the residuals, row-major.</param>
+    /// <param name="residuals">The residuals they were formed from.</param>
+    /// <param name="spec">The covariance to estimate.</param>
+    private static (double[] S, int? Bandwidth, int Groups) GmmScoreCovariance(
         IvProblem problem, double[] scores, double[] residuals, IvCovarianceSpec spec)
     {
         int n = problem.N;
@@ -335,14 +375,14 @@ internal static class IvCore
 
                     double[] s = Dense.Gram(problem.Z, l, n);
                     Scale(s, scale * s2 / n / n);
-                    return (s, null);
+                    return (s, null, n);
                 }
 
             case IvCovarianceType.Robust:
                 {
-                    double[] s = IvScores.Robust(scores, l, n);
+                    (double[] s, int rows) = IvScores.RobustSpanned(scores, l, n);
                     Scale(s, scale);
-                    return (s, null);
+                    return (s, null, rows);
                 }
 
             case IvCovarianceType.Kernel:
@@ -350,19 +390,19 @@ internal static class IvCore
                     int bandwidth = spec.Bandwidth ?? n - 2;
                     double[] s = IvScores.Kernel(scores, l, n, IvScores.KernelWeights(spec.Kernel, bandwidth, n - 1));
                     Scale(s, scale);
-                    return (s, bandwidth);
+                    return (s, bandwidth, n);
                 }
 
             default:
                 {
-                    double[] s = IvScores.Clustered(scores, l, n, spec.Clusters!);
+                    (double[] s, int spanning) = IvScores.ClusteredSpanned(scores, l, n, spec.Clusters!);
                     if (spec.Debiased)
                     {
                         int g = spec.Clusters!.Count;
                         Scale(s, (n - 1.0) / (n - k) * g / (g - 1.0));
                     }
 
-                    return (s, null);
+                    return (s, null, spanning);
                 }
         }
     }
