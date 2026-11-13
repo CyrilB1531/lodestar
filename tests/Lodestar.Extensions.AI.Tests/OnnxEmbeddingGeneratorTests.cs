@@ -405,4 +405,39 @@ public sealed class OnnxEmbeddingGeneratorTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    /// <summary>
+    /// A configured length below the template cuts nothing, as sentence-transformers 6.2.0 leaves such a row, measured:
+    /// a short text is embedded whole, and one past the model's table faults the task under <c>encoder</c> (#1780).
+    /// </summary>
+    [Fact]
+    public async Task A_configured_length_below_the_template_cuts_nothing()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        string root = Path.Combine(Path.GetTempPath(), $"lodestar-1780-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string modelPath = Path.Combine(root, "model.onnx");
+        File.Copy(PositionalPath, modelPath);
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "modules.json"), """[{"path": "", "type": "sentence_transformers.models.Transformer"}]""", token);
+            await File.WriteAllTextAsync(Path.Combine(root, "sentence_bert_config.json"), """{"max_seq_length": 1}""", token);
+            string[] whole = ["the cat sat"];
+            using var embedder = new OnnxTextEmbedder(modelPath, BatchCorpus.Tokenizer());
+            float[][] expected = embedder.EmbedBatch(whole, new EncodingOptions { MaxLength = 6 }, token);
+            using var generator = new OnnxEmbeddingGenerator(embedder, Encoder(), ModelId);
+
+            GeneratedEmbeddings<Embedding<float>> actual = await generator.GenerateAsync(whole, cancellationToken: token);
+            ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(
+                () => generator.GenerateAsync([string.Join(" ", Enumerable.Repeat("the", 600))], cancellationToken: token));
+
+            Assert.Equal(expected[0], actual[0].Vector.ToArray());
+            Assert.Equal("encoder", error.ParamName);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

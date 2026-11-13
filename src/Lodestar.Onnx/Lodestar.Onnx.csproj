@@ -21,15 +21,10 @@
     <PackageReference Include="Microsoft.ML.OnnxRuntime" />
   </ItemGroup>
 
-  <!-- SentenceTransformersConfig reads the sentence-transformers configuration with it; in-box on net10.0, declared
-       here on netstandard2.0 rather than reached through Lodestar.Embeddings' own reference (#1257). -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
-
   <!--
     OnnxTextEmbedder feeds a session with Lodestar.Embeddings' tokenizers, encoding options and
-    pooling, so the dependency is real and permanent.
+    pooling, so the dependency is real and permanent. On netstandard2.0 it also brings the System.Text.Json
+    SentenceTransformersConfig reads with, which decision 0001 leaves declared by Text and Embeddings alone (#1780).
 
     Siblings by project until the packages are on nuget.org (#1739): pack turns each into a
     dependency on that project's declared version, which check_nuspec_dependencies.py asserts.

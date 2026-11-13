@@ -35,8 +35,20 @@ internal static class SentenceTransformersConfig
 
     private const string PaddingField = "padding";
 
+    private const string StrideField = "stride";
+
+    private const string TextBucket = "text";
+
+    private const string CommonBucket = "common";
+
+    /// <summary>
+    /// The buckets <c>Transformer.preprocess</c> updates: text before common, so common's word wins as in
+    /// <c>{**text, **common}</c>, and the three modalities a tokenizer's call never takes.
+    /// </summary>
+    private static readonly string[] Buckets = [TextBucket, CommonBucket, "audio", "image", "video"];
+
     /// <summary>The call's kwargs that decide where a text is cut, the only ones read from <c>processing_kwargs</c>.</summary>
-    private static readonly string[] CallFields = [TruncationField, MaxLengthField, PaddingField];
+    private static readonly string[] CallFields = [TruncationField, MaxLengthField, PaddingField, StrideField];
 
     private const string OnnxFolder = "onnx";
 
@@ -46,8 +58,8 @@ internal static class SentenceTransformersConfig
     private const int MaxIntegerDigits = 4300;
 
     /// <summary>
-    /// Opens a quoted named literal in the raw JSON text; a file string spelled the same way is shown as the literal, a
-    /// message's only cost, since a string is refused as a length either way.
+    /// Opens a quoted named literal in the raw JSON text; a file string spelled the same way, U+0001 then a literal's
+    /// name, is read as that float: the cost of a parser that refuses the literals, for a string no export writes.
     /// </summary>
     private const string QuotedLiteralStart = "\"\\u0001";
 
@@ -57,7 +69,23 @@ internal static class SentenceTransformersConfig
     private static readonly char[] PathSeparators = ['/', '\\'];
 
     // sentence-transformers 6.2.0's _load_init_kwargs renames the legacy key over the new one, so it wins when both appear.
-    private static readonly string[] KwargsFields = ["tokenizer_args", "processor_kwargs"];
+    private static readonly (string Old, string New)[] RenamedFields =
+        [("model_args", "model_kwargs"), ("tokenizer_args", "processor_kwargs"), ("config_args", "config_kwargs")];
+
+    private const string RemoteCodeField = "trust_remote_code";
+
+    private const string ModalityField = "modality_config";
+
+    private const string OutputNameField = "module_output_name";
+
+    private const string TaskField = "transformer_task";
+
+    /// <summary><c>load_config</c>'s single modalities, which a <c>+</c> joins into a tuple key.</summary>
+    private static readonly string[] Modalities = [TextBucket, "image", "audio", "video", "message"];
+
+    /// <summary><c>TRANSFORMER_TASK_TO_AUTO_MODEL</c>'s keys under transformers 5, <c>any-to-any</c> among them.</summary>
+    private static readonly string[] Tasks =
+        ["feature-extraction", "sequence-classification", "text-generation", "fill-mask", "retrieval", "any-to-any"];
 
     // Python 3.12.14's json reads 9997 nested containers and refuses 9998, measured; the parser here keeps its own stack.
     private static readonly JsonDocumentOptions ReaderOptions = new() { MaxDepth = 9997 };
@@ -76,19 +104,13 @@ internal static class SentenceTransformersConfig
 
     /// <summary>The configured length and <c>do_lower_case</c>, or why a file sentence-transformers reads is refused.</summary>
     /// <param name="modelPath">The full path of the <c>.onnx</c> file ONNX Runtime has already opened.</param>
-    /// <returns>
-    /// The length, null when no module or configuration is found or it states none; whether texts are lowercased, by
-    /// Python's truth of the field; or the refusal when a file cannot be read, is not what sentence-transformers loads, or
-    /// states a length that is neither null nor an integer of at least 1, all of which sentence-transformers refuses at
-    /// load but a zero, which it loads and then cuts nothing with; whether the length is one a text is refused past, under
-    /// <c>only_second</c>, rather than cut at.
-    /// </returns>
-    public static (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) Read(string modelPath)
+    /// <returns>What the configuration states, as <see cref="Stated"/> lists it.</returns>
+    public static Stated Read(string modelPath)
     {
         (string? module, string? refusal) = ModuleDirectory(Path.GetDirectoryName(modelPath));
         if (refusal is not null || module is null)
         {
-            return (null, false, refusal, false);
+            return new Stated(null, false, refusal, false);
         }
 
         for (int i = 0; i < FileNames.Length; i++)
@@ -115,16 +137,16 @@ internal static class SentenceTransformersConfig
             }
         }
 
-        return (null, false, null, false);
+        return new Stated(null, false, null, false);
     }
 
     /// <summary>
     /// The length and the flag one configuration states: a call's <c>processing_kwargs</c> over the tokenizer's
     /// <c>model_max_length</c> over <c>max_seq_length</c>.
     /// </summary>
-    private static (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) FromObject(string path, JsonElement root)
+    private static Stated FromObject(string path, JsonElement root)
     {
-        (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) configured = Configured(path, root);
+        Stated configured = Configured(path, root);
         if (configured.Refusal is not null)
         {
             return configured;
@@ -142,15 +164,18 @@ internal static class SentenceTransformersConfig
         // Transformer.preprocess updates its text kwargs with a truthy text bucket, its common ones with any common
         // bucket, and calls {**text, **common}: the buckets merge key by key, common's word winning (#1257).
         var merged = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-        foreach (string bucket in new[] { "text", "common" })
+        var unread = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (string bucket in Buckets)
         {
-            // Only text passes `if overrides :=`: a falsy text is skipped, a falsy common reaches update, which refuses
-            // null, 0 and false.
-            if (Last(processing, bucket) is not JsonElement kwargs || (bucket == "text" && !Truthy(kwargs)))
+            // Only common skips `if overrides :=`: a falsy modality is passed over, a falsy common reaches update,
+            // which refuses null, 0 and false. image, audio and video never reach a tokenizer's call (#1780).
+            bool common = bucket == CommonBucket;
+            if (Last(processing, bucket) is not JsonElement kwargs || (!common && !Truthy(kwargs)))
             {
                 continue;
             }
-            if (Updated(kwargs, merged) is string why)
+            bool reachesCall = common || bucket == TextBucket;
+            if (Updated(kwargs, reachesCall ? merged : unread, reachesCall) is string why)
             {
                 return Refused(path, $"states {ProcessingField}.{bucket} {Shown(kwargs)}, {why}");
             }
@@ -161,9 +186,9 @@ internal static class SentenceTransformersConfig
 
     /// <summary>
     /// <c>dict.update(kwargs)</c> on the keys read here: an object's entries, or a list's pairs in order; why Python
-    /// refuses it otherwise.
+    /// refuses it otherwise, or, where the bucket reaches the tokenizer's call, why <c>**kwargs</c> refuses a key.
     /// </summary>
-    private static string? Updated(JsonElement kwargs, Dictionary<string, JsonElement> merged)
+    private static string? Updated(JsonElement kwargs, Dictionary<string, JsonElement> merged, bool reachesCall)
     {
         if (kwargs.ValueKind == JsonValueKind.Object)
         {
@@ -181,11 +206,13 @@ internal static class SentenceTransformersConfig
             // update("") adds nothing; a longer string's characters are not pairs.
             return null;
         }
-        return kwargs.ValueKind == JsonValueKind.Array ? UpdatedFromPairs(kwargs, merged) : "which dict.update cannot take";
+        return kwargs.ValueKind == JsonValueKind.Array
+            ? UpdatedFromPairs(kwargs, merged, reachesCall)
+            : "which dict.update cannot take";
     }
 
     /// <summary><c>dict.update</c> over a list: each item a pair, in order; why Python refuses one otherwise.</summary>
-    private static string? UpdatedFromPairs(JsonElement kwargs, Dictionary<string, JsonElement> merged)
+    private static string? UpdatedFromPairs(JsonElement kwargs, Dictionary<string, JsonElement> merged, bool reachesCall)
     {
         foreach (JsonElement pair in kwargs.EnumerateArray())
         {
@@ -198,9 +225,9 @@ internal static class SentenceTransformersConfig
                 // A string of two characters is a pair of one-character names, neither a key read here.
                 continue;
             }
-            if (key.ValueKind is JsonValueKind.Array or JsonValueKind.Object)
+            if (KeyRefusal(key, reachesCall) is string why)
             {
-                return "whose key is a list or an object, which Python cannot hash";
+                return why;
             }
             if (key.ValueKind == JsonValueKind.String && Array.Find(CallFields, field => TextIs(key, field)) is string named)
             {
@@ -208,6 +235,21 @@ internal static class SentenceTransformersConfig
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Why a pair's key is refused: Python hashes no list or object, and, where the bucket reaches the tokenizer's call,
+    /// <c>update</c> keeps a key that is not a string and the call fails, "keywords must be strings", measured (#1780).
+    /// </summary>
+    private static string? KeyRefusal(JsonElement key, bool reachesCall)
+    {
+        if (key.ValueKind is JsonValueKind.Array or JsonValueKind.Object)
+        {
+            return "whose key is a list or an object, which Python cannot hash";
+        }
+        return reachesCall && (key.ValueKind != JsonValueKind.String || IsNamedLiteral(key))
+            ? "whose key is not a string, which the tokenizer's call cannot take as a keyword"
+            : null;
     }
 
     /// <summary>
@@ -324,8 +366,8 @@ internal static class SentenceTransformersConfig
     /// <c>only_second</c> cuts no single text, and tokenizers refuses one past the length; any other value
     /// <c>TruncationStrategy</c> refuses at every call, and so does this reader (#1257).
     /// </remarks>
-    private static (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) Cut(
-        string path, (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) configured, Dictionary<string, JsonElement> merged)
+    private static Stated Cut(
+        string path, Stated configured, Dictionary<string, JsonElement> merged)
     {
         JsonElement? cut = merged.TryGetValue(MaxLengthField, out JsonElement length) ? length : null;
         bool lengthOnly = cut is { ValueKind: not JsonValueKind.Null }
@@ -339,19 +381,41 @@ internal static class SentenceTransformersConfig
         }
         if (strategy == Strategy.None)
         {
-            // No truncation at all: only the model's own limit then bounds the rows.
-            return (int.MaxValue, configured.LowerCase, null, false);
+            // No truncation at all: only the model's own limit then bounds the rows, and no stride reaches tokenizers.
+            return new Stated(int.MaxValue, configured.LowerCase, null, false);
         }
         bool refusesPast = strategy == Strategy.RefusesPast;
+        ulong? stride = null;
+        if (merged.TryGetValue(StrideField, out JsonElement strideGiven))
+        {
+            stride = StrideOf(strideGiven);
+            if (stride is null)
+            {
+                return Refused(path, $"states {ProcessingField} {StrideField} {Shown(strideGiven)}, not an integer from 0 to 2^64 - 1");
+            }
+        }
 
         if (cut is not JsonElement stated || stated.ValueKind == JsonValueKind.Null)
         {
-            return (configured.Length, configured.LowerCase, null, refusesPast);
+            return new Stated(configured.Length, configured.LowerCase, null, refusesPast, stride, path);
         }
-        return Length(stated) is int value
-            ? (value, configured.LowerCase, null, refusesPast)
+        return LengthOf(stated) is int value
+            ? new Stated(value, configured.LowerCase, null, refusesPast, stride, path)
             : Refused(path, $"states {ProcessingField} {MaxLengthField} {Shown(stated)}, not an integer of at least 1");
     }
+
+    /// <summary>
+    /// The stride tokenizers takes as a <c>usize</c>: an integer from 0 to 2^64 - 1, a boolean as 0 or 1; null for a
+    /// value it refuses at every call, measured on tokenizers 0.22.2 (#1780).
+    /// </summary>
+    private static ulong? StrideOf(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.True => 1,
+        JsonValueKind.False => 0,
+        JsonValueKind.Number when value.TryGetUInt64(out ulong stride) => stride,
+        JsonValueKind.Number when value.GetRawText() == "-0" => 0,
+        _ => null,
+    };
 
     /// <summary>What a single text meets under a truncation strategy, by transformers' <c>TruncationStrategy</c>.</summary>
     private static Strategy StrategyOf(JsonElement strategy) => strategy.ValueKind switch
@@ -365,34 +429,115 @@ internal static class SentenceTransformersConfig
     };
 
     /// <summary>The length the module is built with: a kwargs <c>model_max_length</c> over <c>max_seq_length</c>.</summary>
-    private static (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) Configured(string path, JsonElement root)
+    private static Stated Configured(string path, JsonElement root)
     {
-        bool lowerCase = Last(root, LowerCaseField) is JsonElement flag && Truthy(flag);
-        JsonElement? kwargs = KwargsFields.Select(name => Last(root, name)).FirstOrDefault(found => found is not null);
-        if (kwargs is JsonElement given && given.ValueKind != JsonValueKind.Object)
+        if (ConstructorRefusal(root) is string why)
         {
-            return Refused(path, $"states tokenizer kwargs {Shown(given)}, not a JSON object");
+            return Refused(path, why);
         }
-
+        bool lowerCase = Last(root, LowerCaseField) is JsonElement flag && Truthy(flag);
+        // _load_init_kwargs renames tokenizer_args over processor_kwargs, which ConstructorRefusal leaves an object.
+        JsonElement? kwargs = Last(root, RenamedFields[1].Old) ?? Last(root, RenamedFields[1].New);
         if (kwargs is JsonElement table && Last(table, TokenizerField) is JsonElement cap)
         {
             // transformers reads a null model_max_length as no limit at all, which the model's own then bounds.
             if (cap.ValueKind == JsonValueKind.Null)
             {
-                return (int.MaxValue, lowerCase, null, false);
+                return new Stated(int.MaxValue, lowerCase, null, false);
             }
-            return Length(cap) is int capped
-                ? (capped, lowerCase, null, false)
+            return LengthOf(cap) is int capped
+                ? new Stated(capped, lowerCase, null, false)
                 : Refused(path, $"states {TokenizerField} {Shown(cap)}, not an integer of at least 1");
         }
 
         if (Last(root, Field) is not JsonElement element || element.ValueKind == JsonValueKind.Null)
         {
-            return (null, lowerCase, null, false);
+            return new Stated(null, lowerCase, null, false);
         }
-        return Length(element) is int value
-            ? (value, lowerCase, null, false)
+        return LengthOf(element) is int value
+            ? new Stated(value, lowerCase, null, false)
             : Refused(path, $"states {Field} {Shown(element)}, not an integer of at least 1");
+    }
+
+    /// <summary>
+    /// Why sentence-transformers 6.2.0 refuses a constructor field at load, measured (#1780): <c>load_config</c> looks
+    /// <c>trust_remote_code</c> up in each kwargs field and iterates <c>modality_config</c>; <c>_load_init_kwargs</c>
+    /// updates the three kwargs a rename leaves, the old name's over the new; <c>__init__</c> checks the entries, the
+    /// <c>module_output_name</c> beside them and the <c>transformer_task</c>. Null when none is refused.
+    /// </summary>
+    private static string? ConstructorRefusal(JsonElement root)
+    {
+        foreach ((string old, string renamed) in RenamedFields)
+        {
+            foreach (string name in new[] { old, renamed })
+            {
+                if (Last(root, name) is JsonElement value && !RemoteCodeLookedUp(value))
+                {
+                    return $"states {name} {Shown(value)}, in which trust_remote_code cannot be looked up and removed";
+                }
+            }
+            string kept = Last(root, old) is null ? renamed : old;
+            if (Last(root, kept) is JsonElement kwargs && kwargs.ValueKind != JsonValueKind.Object)
+            {
+                return $"states {kept} {Shown(kwargs)}, not a JSON object";
+            }
+        }
+
+        if (Last(root, ModalityField) is JsonElement modalities && ModalityRefusal(root, modalities) is string why)
+        {
+            return why;
+        }
+        return Last(root, TaskField) is JsonElement task
+            && !(task.ValueKind == JsonValueKind.String && Array.Exists(Tasks, name => TextIs(task, name)))
+            ? $"states {TaskField} {Shown(task)}, not a task sentence-transformers knows"
+            : null;
+    }
+
+    /// <summary>
+    /// Whether <c>"trust_remote_code" in value</c> and its <c>pop</c> both run: an object always; a string or a list
+    /// that does not hold it; never a number, a boolean or <c>null</c>, which <c>in</c> cannot iterate.
+    /// </summary>
+    private static bool RemoteCodeLookedUp(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Object => true,
+        JsonValueKind.String => !IsNamedLiteral(value)
+            && new string([.. Units(value.GetRawText()).Select(unit => unit.Unit)]).IndexOf(RemoteCodeField, StringComparison.Ordinal) < 0,
+        JsonValueKind.Array => !value.EnumerateArray().Any(item => item.ValueKind == JsonValueKind.String && TextIs(item, RemoteCodeField)),
+        _ => false,
+    };
+
+    /// <summary>
+    /// Why a <c>modality_config</c> is refused at load: not an object, or, its unknown keys dropped, beside no
+    /// <c>module_output_name</c> or holding an entry that is not an object naming <c>method</c> and
+    /// <c>method_output_name</c>.
+    /// </summary>
+    private static string? ModalityRefusal(JsonElement root, JsonElement modalities)
+    {
+        if (modalities.ValueKind != JsonValueKind.Object)
+        {
+            return $"states {ModalityField} {Shown(modalities)}, not a JSON object";
+        }
+        if (Last(root, OutputNameField) is not { ValueKind: not JsonValueKind.Null })
+        {
+            return $"states a {ModalityField} without a {OutputNameField}";
+        }
+        // Python's dict keeps a duplicated key's last value; a key that is not a modality, or a join of them, is dropped.
+        var entries = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (JsonProperty property in modalities.EnumerateObject())
+        {
+            if (Text(property) is string key && key.Split('+').All(part => Array.IndexOf(Modalities, part) >= 0))
+            {
+                entries[key] = property.Value;
+            }
+        }
+        foreach (KeyValuePair<string, JsonElement> entry in entries)
+        {
+            if (entry.Value.ValueKind != JsonValueKind.Object || Last(entry.Value, "method") is null || Last(entry.Value, "method_output_name") is null)
+            {
+                return $"states the {ModalityField} entry '{entry.Key}' {Shown(entry.Value)}, not an object naming method and method_output_name";
+            }
+        }
+        return null;
     }
 
     /// <summary>
@@ -520,7 +665,7 @@ internal static class SentenceTransformersConfig
         return (exponent < 0 ? raw : raw.Substring(0, exponent)).Any(c => c is >= '1' and <= '9');
     }
 
-    private static int? Length(JsonElement element)
+    private static int? LengthOf(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Number)
         {
@@ -645,11 +790,15 @@ internal static class SentenceTransformersConfig
         }
     }
 
+    /// <summary>Whether the value is a named literal the parser here reads as a marked string: a float to Python.</summary>
+    private static bool IsNamedLiteral(JsonElement value) =>
+        value.ValueKind == JsonValueKind.String && value.GetRawText().StartsWith(QuotedLiteralStart, StringComparison.Ordinal);
+
     /// <summary>The value as the file spells it, a quoted named literal unquoted; never decoded, so no string can throw.</summary>
     private static string Shown(JsonElement element)
     {
         string raw = element.GetRawText();
-        return raw.StartsWith(QuotedLiteralStart, StringComparison.Ordinal)
+        return IsNamedLiteral(element)
             ? raw.Substring(QuotedLiteralStart.Length, raw.Length - QuotedLiteralStart.Length - 1)
             : raw;
     }
@@ -769,6 +918,19 @@ internal static class SentenceTransformersConfig
         }
     }
 
+    /// <summary>A property's name, or null when it holds a lone surrogate, which no modality is named with.</summary>
+    private static string? Text(JsonProperty property)
+    {
+        try
+        {
+            return property.Name;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>A string value's text, or null when it holds a lone surrogate, which no path or module name can carry.</summary>
     private static string? Text(JsonElement value)
     {
@@ -812,11 +974,25 @@ internal static class SentenceTransformersConfig
     /// <summary>Whether a string value decodes to <paramref name="expected"/>; one holding a lone surrogate never does.</summary>
     private static bool TextIs(JsonElement value, string expected) => value.ValueEquals(expected);
 
-    private static (int? Length, bool LowerCase, string? Refusal, bool RefusesPast) Refused(string path, string reason) =>
-        (null, false, RefusalMessage(path, reason), false);
+    private static Stated Refused(string path, string reason) =>
+        new(null, false, RefusalMessage(path, reason), false);
 
-    private static string RefusalMessage(string path, string reason) =>
+    /// <summary>A refusal of the configuration at <paramref name="path"/>, for <paramref name="reason"/>.</summary>
+    public static string RefusalMessage(string path, string reason) =>
         $"The sentence-transformers configuration '{path}' beside the model {reason}.";
+
+    /// <summary>What one configuration states for the two text overloads, or why it is refused.</summary>
+    /// <param name="Length">The length, null when no module or configuration is found or it states none.</param>
+    /// <param name="LowerCase">Whether texts are lowercased, by Python's truth of <c>do_lower_case</c>.</param>
+    /// <param name="Refusal">
+    /// Why a file is refused: it cannot be read, is not what sentence-transformers loads or encodes under, or states a
+    /// length that is neither null nor an integer of at least 1, a zero among them, which it loads and cuts nothing with.
+    /// </param>
+    /// <param name="RefusesPast">Whether a text past the length is refused, under <c>only_second</c>, rather than cut.</param>
+    /// <param name="Stride">The <c>stride</c> the tokenizer's call takes, where the truncation cuts and one is stated (#1780).</param>
+    /// <param name="Source">The file a stated stride was read from, for its refusal.</param>
+    public readonly record struct Stated(
+        int? Length, bool LowerCase, string? Refusal, bool RefusesPast, ulong? Stride = null, string? Source = null);
 
     /// <summary>A truncation strategy as a single text meets it.</summary>
     private enum Strategy

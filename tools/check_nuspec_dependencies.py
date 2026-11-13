@@ -91,8 +91,7 @@ STJ = "System.Text.Json"
 # every package carries this pair there only. Floors match what STJ 10.0.x needs.
 POLYFILLS = {"System.Memory": "4.6.3", "System.Numerics.Vectors": "4.6.1"}
 
-# netstandard2.0-only: the two packages that persist (docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md),
-# and Lodestar.Onnx, which reads a model's sentence-transformers configuration (#1257).
+# netstandard2.0-only, two-package status: docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
 PERSISTENCE = {STJ: "10.0.12"}
 
 def declared_version(package: str, prop: str) -> str:
@@ -146,10 +145,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     ONNX: {
-        # Its one external dependency, ONNX Runtime, is why the package exists; System.Text.Json reads
-        # the sentence-transformers configuration beside a model (#1257).
+        # The repository's only external dependency, and the only package that
+        # carries one. That is what makes this package worth its release checklist.
         NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0"},
-        NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS, **PERSISTENCE},
+        NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS},
     },
     EXTENSIONS_AI: {
         # The first interop package, and the second external dependency. Two Lodestar edges:
