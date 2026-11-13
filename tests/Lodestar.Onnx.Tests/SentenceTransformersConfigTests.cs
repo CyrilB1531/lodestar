@@ -159,7 +159,13 @@ public sealed class SentenceTransformersConfigTests
         AssertRefused([.. Encoding.UTF8.GetBytes("{\"name\": \""), 0xFF, .. Encoding.UTF8.GetBytes("\", \"max_seq_length\": 7}")]);
     }
 
-    /// <summary>What Python's json reads is read: named literals elsewhere, deep nesting, an integer past long.</summary>
+    /// <summary>
+    /// What Python's json reads is read: named literals elsewhere, deep nesting, an integer past long; and what
+    /// sentence-transformers 6.2.0 loads and encodes under is read past, measured (#1780): a false or pair-list modality
+    /// bucket, a stride within the room or beside a truncation that cuts nothing, a length stated past the table leaving
+    /// the room tokenizers sees, a new kwargs name the rename discards, a dropped modality key, and values that fail
+    /// only on the model or at encode.
+    /// </summary>
     [Theory]
     [InlineData("""{"scale": NaN, "low": -Infinity, "high": Infinity, "max_seq_length": 4}""", 4)]
     [InlineData("""{"note": "NaN \" Infinity", "max_seq_length": 4}""", 4)]
@@ -167,6 +173,24 @@ public sealed class SentenceTransformersConfigTests
     [InlineData("""{"note": "\ud800", "max_seq_length": 4}""", 4)]
     [InlineData("""{"\ud800": 1, "max_seq_length": 4}""", 4)]
     [InlineData("""{"max_seq_length": 99999999999999999999}""", Positions)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": {"image": {}, "audio": [], "video": false}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": {"image": 0, "video": null}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": {"image": [[1, 2]], "audio": [["x", 1]], "video": {"a": 1}}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": {"common": ["xy"], "text": {"bogus": 1}}}""", 4)]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 0}}}""", 5)]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 2}}}""", 5)]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": true}}}""", 5)]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": -0}, "common": {"stride": false}}}""", 5)]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 4}, "common": {"stride": 0}}}""", 5)]
+    [InlineData("""{"max_seq_length": 40, "processing_kwargs": {"text": {"stride": 30}}}""", Positions)]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": "x", "truncation": false}}}""", Positions)]
+    [InlineData("""{"max_seq_length": 4, "tokenizer_args": {}, "processor_kwargs": "abc"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "model_args": {}, "model_kwargs": [[1]]}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "model_kwargs": {"trust_remote_code": true}, "config_args": {}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "modality_config": {"text": {"method": "forward", "method_output_name": "x"}, "foo": 5, "image+foo": 5}, "module_output_name": "t"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "modality_config": {}, "module_output_name": 5}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "transformer_task": "fill-mask"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "transformer_task": "any-to-any"}""", 4)]
     public void What_python_reads_is_read(string json, int expected)
     {
         using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
@@ -638,6 +662,186 @@ public sealed class SentenceTransformersConfigTests
         File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         Assert.SkipWhen(readable, "This process reads a file of mode 000, as root does.");
         Assert.Contains("cannot be read:", message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Under <c>only_second</c>, a length below the template leaves every text whole and the template's own length cuts
+    /// every text to it, as sentence-transformers 6.2.0 does, measured: tokenizers' <c>L - 2</c> wraps or is 0 (#1780).
+    /// </summary>
+    [Fact]
+    public void Only_second_at_or_below_the_template_takes_the_ordinary_path()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var below = new ModelDirectory(
+            Unbounded, ("sentence_bert_config.json", """{"max_seq_length": 1, "processing_kwargs": {"text": {"truncation": "only_second"}}}"""));
+        using var at = new ModelDirectory(
+            Unbounded, ("sentence_bert_config.json", """{"max_seq_length": 2, "processing_kwargs": {"text": {"truncation": "only_second"}}}"""));
+        using var whole = new OnnxTextEmbedder(below.Path, BatchCorpus.Tokenizer());
+        using var template = new OnnxTextEmbedder(at.Path, BatchCorpus.Tokenizer());
+        string[] texts = ["", "the", FarPast[0]];
+
+        float[][] uncut = whole.EmbedBatch(texts, new EncodingOptions { MaxLength = 602 }, token);
+        float[][] cut = template.EmbedBatch(texts, new EncodingOptions { MaxLength = 2 }, token);
+        Assert.Equal(uncut, whole.EmbedBatch(texts, cancellationToken: token));
+        Assert.Equal(uncut, whole.EmbedBatch(texts, new BatchEncoder(BatchCorpus.Tokenizer()), token));
+        Assert.Equal(cut, template.EmbedBatch(texts, cancellationToken: token));
+        Assert.Equal(cut, template.EmbedBatch(texts, new BatchEncoder(BatchCorpus.Tokenizer()), token));
+    }
+
+    /// <summary>Below the template a row past the model's table stays refused, under the overload's own argument (rule 7).</summary>
+    [Fact]
+    public void Only_second_below_the_template_refuses_a_row_past_the_table_under_the_overload_argument()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(
+            Positional, ("sentence_bert_config.json", """{"max_seq_length": 1, "processing_kwargs": {"text": {"truncation": "only_second"}}}"""));
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+
+        Assert.Equal("options", Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(FarPast, cancellationToken: token)).ParamName);
+        Assert.Equal(
+            "encoder",
+            Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(FarPast, new BatchEncoder(BatchCorpus.Tokenizer()), token)).ParamName);
+    }
+
+    /// <summary>
+    /// <c>only_second</c> stops at the first text past the length, worded as the encoder words a refusal, before the
+    /// texts after it are read (#1780).
+    /// </summary>
+    [Fact]
+    public void Only_second_refuses_at_the_first_text_past_the_length_without_reading_the_rest()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(
+            Positional, ("sentence_bert_config.json", """{"processing_kwargs": {"text": {"truncation": "only_second", "max_length": 4}}}"""));
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+
+        ArgumentException byOptions = Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(StopsAfterTheSecond(), cancellationToken: token));
+        ArgumentException byEncoder = Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch(StopsAfterTheSecond(), new BatchEncoder(BatchCorpus.Tokenizer()), token));
+
+        Assert.Equal("texts", byOptions.ParamName);
+        Assert.Equal("texts", byEncoder.ParamName);
+        Assert.StartsWith("The text at position 1 is refused: it encodes to 5 tokens", byOptions.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// An <c>image</c>, <c>audio</c> or <c>video</c> bucket Python finds true reaches <c>dict.update</c>, and a key that
+    /// is not a string in <c>text</c> or <c>common</c> reaches the tokenizer's call: each fails every encode in
+    /// sentence-transformers 6.2.0, measured, and is refused (#1780).
+    /// </summary>
+    [Theory]
+    [InlineData("""{"processing_kwargs": {"image": 1}}""")]
+    [InlineData("""{"processing_kwargs": {"audio": "abc"}}""")]
+    [InlineData("""{"processing_kwargs": {"video": true}}""")]
+    [InlineData("""{"processing_kwargs": {"image": "ab"}}""")]
+    [InlineData("""{"processing_kwargs": {"image": [[1, 2, 3]]}}""")]
+    [InlineData("""{"processing_kwargs": {"audio": [[[1], 2]]}}""")]
+    [InlineData("""{"processing_kwargs": {"common": [[1, 2]]}}""")]
+    [InlineData("""{"processing_kwargs": {"common": [[false, 2]]}}""")]
+    [InlineData("""{"processing_kwargs": {"text": [[null, 2]]}}""")]
+    [InlineData("""{"processing_kwargs": {"text": [[1.5, 2]]}}""")]
+    [InlineData("""{"processing_kwargs": {"text": [[NaN, 2]]}}""")]
+    public void A_modality_bucket_or_a_key_sentence_transformers_cannot_use_is_refused(string json) =>
+        AssertRefused(Encoding.UTF8.GetBytes(json));
+
+    /// <summary>
+    /// A stride tokenizers 0.22.2 cannot take, or past the <c>L - 2</c> tokens the length leaves beside the template,
+    /// fails every call in sentence-transformers, measured, and is refused (#1780).
+    /// </summary>
+    [Theory]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 4}}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"common": {"stride": 100}}}""")]
+    [InlineData("""{"max_seq_length": 2, "processing_kwargs": {"text": {"stride": 1}}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": [["stride", 4]]}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 4, "truncation": "only_second"}}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": null}}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": "1"}}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 1.0}}}""")]
+    [InlineData("""{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": []}}}""")]
+    [InlineData("""{"max_seq_length": 1, "processing_kwargs": {"text": {"stride": -1}}}""")]
+    [InlineData("""{"max_seq_length": 1, "processing_kwargs": {"text": {"stride": 18446744073709551616}}}""")]
+    public void A_stride_tokenizers_refuses_is_refused(string json) => AssertRefused(Encoding.UTF8.GetBytes(json));
+
+    /// <summary>
+    /// Below the template any stride is read past, tokenizers' room wrapping, and the rows stay whole (#1780).
+    /// </summary>
+    [Fact]
+    public void A_stride_below_the_template_is_read_past()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(
+            Unbounded, ("sentence_bert_config.json", """{"max_seq_length": 1, "processing_kwargs": {"text": {"stride": 18446744073709551615}}}"""));
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+
+        Assert.Equal(
+            embedder.EmbedBatch(FarPast, new EncodingOptions { MaxLength = 602 }, token),
+            embedder.EmbedBatch(FarPast, cancellationToken: token));
+    }
+
+    /// <summary>
+    /// A stride equal to the room, from 1, leaves a text within the length whole and refuses one past it, as tokenizers
+    /// panics on cutting it, measured; a <c>MaxLength</c> the caller sets still cuts (#1780).
+    /// </summary>
+    [Fact]
+    public void A_stride_equal_to_the_room_refuses_a_text_past_the_length()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(
+            Positional, ("sentence_bert_config.json", """{"max_seq_length": 5, "processing_kwargs": {"text": {"stride": 3}}}"""));
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+        string[] within = ["the dog", "the dog the"];
+        string[] past = ["the dog the dog"];
+
+        Assert.Equal(
+            embedder.EmbedBatch(within, new EncodingOptions { MaxLength = 5 }, token),
+            embedder.EmbedBatch(within, cancellationToken: token));
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(past, cancellationToken: token));
+        Assert.Equal("texts", refusal.ParamName);
+        Assert.Contains("stride 3", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            "texts",
+            Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(past, new BatchEncoder(BatchCorpus.Tokenizer()), token)).ParamName);
+        Assert.Single(embedder.EmbedBatch(past, new EncodingOptions { MaxLength = 4 }, token));
+    }
+
+    /// <summary>
+    /// The constructor fields sentence-transformers 6.2.0 refuses at load, measured: <c>load_config</c>'s
+    /// <c>trust_remote_code</c> look-up, <c>_load_init_kwargs</c>' <c>update</c> of the field the rename keeps, and
+    /// <c>__init__</c>'s modality entries, <c>module_output_name</c> and task (#1780).
+    /// </summary>
+    [Theory]
+    [InlineData("""{"model_kwargs": null}""")]
+    [InlineData("""{"config_kwargs": 5}""")]
+    [InlineData("""{"config_args": 5}""")]
+    [InlineData("""{"model_args": [1]}""")]
+    [InlineData("""{"tokenizer_args": "abc"}""")]
+    [InlineData("""{"processor_kwargs": 0.5}""")]
+    [InlineData("""{"model_kwargs": NaN, "model_args": {}}""")]
+    [InlineData("""{"tokenizer_args": {}, "processor_kwargs": 5}""")]
+    [InlineData("""{"model_args": {}, "model_kwargs": "xtrust_remote_codex"}""")]
+    [InlineData("""{"config_args": {}, "config_kwargs": ["trust_remote_code"]}""")]
+    [InlineData("""{"processor_kwargs": {}, "tokenizer_args": true}""")]
+    [InlineData("""{"modality_config": 5, "module_output_name": "token_embeddings"}""")]
+    [InlineData("""{"modality_config": null, "module_output_name": "token_embeddings"}""")]
+    [InlineData("""{"modality_config": {"text": 5}, "module_output_name": "token_embeddings"}""")]
+    [InlineData("""{"modality_config": {"text": {"method": "forward"}}, "module_output_name": "token_embeddings"}""")]
+    [InlineData("""{"modality_config": {"text": {"method": "forward", "method_output_name": "x"}, "image": []}, "module_output_name": "t"}""")]
+    [InlineData("""{"modality_config": {"message": 5}, "module_output_name": "token_embeddings"}""")]
+    [InlineData("""{"modality_config": {"text": {"method": "forward", "method_output_name": "last_hidden_state"}}}""")]
+    [InlineData("""{"modality_config": {}, "module_output_name": null}""")]
+    [InlineData("""{"transformer_task": "nope"}""")]
+    [InlineData("""{"transformer_task": null}""")]
+    [InlineData("""{"transformer_task": ["feature-extraction"]}""")]
+    [InlineData("""{"transformer_task": ""}""")]
+    public void A_constructor_field_sentence_transformers_refuses_at_load_is_refused(string json) =>
+        AssertRefused(Encoding.UTF8.GetBytes(json));
+
+    /// <summary>Two texts, the second past a length of four, then a failure no refusal at the second lets the caller see.</summary>
+    private static IEnumerable<string> StopsAfterTheSecond()
+    {
+        yield return "the dog";
+        yield return "the dog the";
+        throw new InvalidOperationException("The texts after the refused one were read.");
     }
 
     private static void AssertRefusedAt(string modelPath, string fileName) =>

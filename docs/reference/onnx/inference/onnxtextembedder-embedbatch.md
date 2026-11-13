@@ -23,8 +23,11 @@ abandons the run.
 
 **Exceptions** — `ArgumentNullException` when `texts`, `encoder` or `batch` is null.
 `ArgumentException` when the encoder refuses a text — as it refuses one over `MaxLength` under
-`TruncationStrategy.None` — naming `texts`, as a text past the configured length is under a configured
-`only_second` truncation, which cuts no single text, or, from the overload taking `options`, when
+`TruncationStrategy.None` — naming `texts`, as the first text past a configured length longer than the
+template is under a configured `only_second` truncation, which cuts no single text, or a configured `stride` equal
+to the room that length leaves beside the template, on which tokenizers fails to cut it; at or below the template
+both cut every text to the template or none, as sentence-transformers does
+([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)); or, from the overload taking `options`, when
 [`BatchEncoder`](../../embeddings/tokenization/batchencoder.md) refuses them; and when a sequence is
 past [`MaxSequenceLength`](onnxtextembedder.md) — a static export's fixed sequence axis or the
 position-embedding table — naming `options`, `encoder` or `batch`
@@ -36,7 +39,7 @@ than the runtime's largest array holds, `0x7FEFFFFF` before .NET 6, naming the s
 chunk takes is what [`Embed`](onnxtextembedder-embed.md) describes.
 `InvalidOperationException` from the overload taking only texts, when the
 embedder was built without a tokenizer: the other two overloads are the way to supply one. Both text
-overloads throw it when the sentence-transformers configuration or the `modules.json` in the Transformer module's folder — the model's, or the parent of the `onnx/` it sits in — cannot be read — a directory, unreadable, longer than 256 MiB, opening with a byte-order mark or not UTF-8 —, is not JSON, holds an integer of more than 4300 digits, as Python's `json` refuses, or is not what sentence-transformers loads: a configuration that is not a JSON object, or whose tokenizer kwargs or `processing_kwargs` are not one, a `processing_kwargs` bucket `dict.update` refuses, a `null`, `0` or `false` `common` among them, a `truncation` transformers does not know, a `modules.json` that is not a list of modules with a string path and type or lists a path outside the model's folder, or a `max_seq_length`, `model_max_length` or `max_length` that is neither `null` nor an integer of at least 1, `true` and a zero among them. A key the module's constructor does not take, which sentence-transformers refuses, is read past
+overloads throw it when the sentence-transformers configuration or the `modules.json` in the Transformer module's folder — the model's, or the parent of the `onnx/` it sits in — cannot be read — a directory, unreadable, longer than 256 MiB, opening with a byte-order mark or not UTF-8 —, is not JSON, holds an integer of more than 4300 digits, as Python's `json` refuses, or is not what sentence-transformers loads: a configuration that is not a JSON object, or whose `processing_kwargs` is not one, a `model_args`, `model_kwargs`, `tokenizer_args`, `processor_kwargs`, `config_args` or `config_kwargs` in which `trust_remote_code` cannot be looked up and removed, or which is kept and is not an object, a `modality_config` that is not an object, stands beside no `module_output_name` or holds a modality entry that is not an object naming `method` and `method_output_name`, a `transformer_task` sentence-transformers does not know, a `processing_kwargs` bucket — `text`, `common`, `image`, `audio` or `video` — `dict.update` refuses, a `null`, `0` or `false` `common` among them, a key that is not a string in `text` or `common`, a `truncation` transformers does not know, a `stride` tokenizers cannot take or that passes the room the length leaves beside the template ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)), a `modules.json` that is not a list of modules with a string path and type or lists a path outside the model's folder, or a `max_seq_length`, `model_max_length` or `max_length` that is neither `null` nor an integer of at least 1, `true` and a zero among them. A key the module's constructor does not take, which sentence-transformers refuses, is read past
 ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)). All
 three throw it when the model output is not shaped for the batch it was fed, or declares its first two
 axes as the input's two swapped ([#1424](https://github.com/CyrilB1531/lodestar/issues/1424)), and `NotSupportedException` when its elements

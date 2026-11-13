@@ -12,6 +12,7 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- The `OnnxEmbeddingGenerator.GenerateAsync` page says a text past the model's limit stays refused where the configured length is below the template, where it said every such text is cut. ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780))
 - `OnnxEmbeddingGenerator.GenerateAsync` truncates a text to the model's configured `max_seq_length`, else 256, when its encoder sets no `MaxLength`, where it refused a text past the model's limit, and lowercases it where the configuration's `do_lower_case` is true. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - `OnnxEmbeddingGenerator.GenerateAsync` returns every failure in a faulted or cancelled task, as Microsoft.Extensions.AI's own generators do, where it threw from the call. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
 - Each `Embedding<float>` `OnnxEmbeddingGenerator` returns carries the generator's `ModelId` and a `CreatedAt` timestamp, where both were null. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))

@@ -7,12 +7,12 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Changed
 
-- On `netstandard2.0` the package declares `System.Text.Json` 10.0.12, which reads the sentence-transformers configuration beside a model, where it reached it only through `Lodestar.Embeddings`. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - The `Lodestar.Embeddings` dependency floor rises from 0.8.0 to 0.8.1, for `BatchEncoder.WithDefaultMaxLength`. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - The `Lodestar.Embeddings` dependency floor rises from 0.6.0 to 0.8.0, the release that forwards its data types to `Lodestar.Abstractions`. ([#1142](https://github.com/CyrilB1531/lodestar/issues/1142))
 
 ### Fixed
 
+- `OnnxTextEmbedder.EmbedBatch` cuts every text to the template or none where the configuration beside the model states `only_second` at or below the template, as sentence-transformers does, refuses the `processing_kwargs` buckets, keys and `stride` and the constructor fields sentence-transformers refuses, and refuses an `only_second` text at the first past the length, worded as the encoder words a refusal. ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780))
 - `OnnxTextEmbedder.EmbedBatch` fills a null `MaxLength`, through both text overloads, with the length the sentence-transformers configuration beside the model states, else 256, capped at `MaxSequenceLength`, where the overload taking options cut at the model's limit, none for a model without one, and the overload taking a `BatchEncoder` refused a long text; both lowercase the texts where that file's `do_lower_case` is true. ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257))
 - Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - The `OnnxTextEmbedder.Embed` page says a static export's chunk buffers are allocated at their exact size on every call rather than pooled. ([#1598](https://github.com/CyrilB1531/lodestar/issues/1598))
