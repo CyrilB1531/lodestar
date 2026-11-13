@@ -33,8 +33,7 @@ for the tokenizers and the pooling it feeds a session with, and
 embedder it adapts, and on ``Lodestar.Embeddings`` because its constructor names
 ``BatchEncoder``, which is the ``EmbedBatch`` overload that owns the padding, and
 ``Lodestar.Stats.Regression`` depends on ``Lodestar.Stats`` for the Student and Fisher
-tails and on ``Lodestar.Decomposition`` for the Householder QR -- the four members
-decision 0003 published for it. The prose above walks the first of the twenty-seven edges;
+tails. The prose above walks the first of the twenty-six edges;
 ``EXPECTED`` below is the authority for all of them. The ranges are asserted too, not
 only the ids: a bare ``"0.2.0"`` is NuGet's shorthand for ``[0.2.0, )``, and an
 edge with the wrong floor is a different edge. Until the packages are on nuget.org every Lodestar
@@ -92,7 +91,8 @@ STJ = "System.Text.Json"
 # every package carries this pair there only. Floors match what STJ 10.0.x needs.
 POLYFILLS = {"System.Memory": "4.6.3", "System.Numerics.Vectors": "4.6.1"}
 
-# netstandard2.0-only, two-package status: docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md.
+# netstandard2.0-only: the two packages that persist (docs/decisions/0001-the-foundations-target-frameworks-comparison-unit-persistence-and-versioning.md),
+# and Lodestar.Onnx, which reads a model's sentence-transformers configuration (#1257).
 PERSISTENCE = {STJ: "10.0.12"}
 
 def declared_version(package: str, prop: str) -> str:
@@ -106,7 +106,6 @@ def declared_version(package: str, prop: str) -> str:
 ABSTRACTIONS_FLOOR = declared_version(ABSTRACTIONS, "LodestarAbstractionsVersion")
 TEXT_FLOOR = declared_version(TEXT, "LodestarTextVersion")
 STATS_FLOOR = declared_version(STATS, "LodestarStatsVersion")
-DECOMPOSITION_FLOOR = declared_version(DECOMPOSITION, "LodestarDecompositionVersion")
 CLUSTER_FLOOR = declared_version(CLUSTER, "LodestarClusterVersion")
 EMBEDDINGS_FLOOR = declared_version(EMBEDDINGS, "LodestarEmbeddingsVersion")
 ONNX_FLOOR = declared_version(ONNX, "LodestarOnnxVersion")
@@ -147,10 +146,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS, **PERSISTENCE},
     },
     ONNX: {
-        # The repository's only external dependency, and the only package that
-        # carries one. That is what makes this package worth its release checklist.
+        # Its one external dependency, ONNX Runtime, is why the package exists; System.Text.Json reads
+        # the sentence-transformers configuration beside a model (#1257).
         NET: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0"},
-        NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS},
+        NETSTANDARD: {EMBEDDINGS: EMBEDDINGS_FLOOR, ONNX_RUNTIME: "1.30.0", **POLYFILLS, **PERSISTENCE},
     },
     EXTENSIONS_AI: {
         # The first interop package, and the second external dependency. Two Lodestar edges:
@@ -207,15 +206,10 @@ EXPECTED: dict[str, dict[str, dict[str, str]]] = {
         NETSTANDARD: {ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS_REGRESSION: {
-        # Two Lodestar edges and nothing external, which is what keeps this core tier:
-        # the tails that make a p-value, and the QR that solves without squaring XtX.
-        NET: {STATS: STATS_FLOOR, DECOMPOSITION: DECOMPOSITION_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
-        NETSTANDARD: {
-            STATS: STATS_FLOOR,
-            DECOMPOSITION: DECOMPOSITION_FLOOR,
-            ABSTRACTIONS: ABSTRACTIONS_FLOOR,
-            **POLYFILLS,
-        },
+        # Nothing external, which is what keeps this core tier: the tails that make a p-value,
+        # and its data types (#1142). Its QR is its own since #1223 dropped the last Decomposition call.
+        NET: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR},
+        NETSTANDARD: {STATS: STATS_FLOOR, ABSTRACTIONS: ABSTRACTIONS_FLOOR, **POLYFILLS},
     },
     STATS_TIMESERIES: {
         # Two core edges: the tails from Lodestar.Stats, and the per-lag least-squares fits of the

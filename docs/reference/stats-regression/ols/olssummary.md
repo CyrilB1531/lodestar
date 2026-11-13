@@ -13,8 +13,8 @@ public sealed class OlsSummary
 first when one was fitted: `Coefficients`, `StandardErrors`, `TStatistics`, `PValues`,
 `ConfidenceLower` and `ConfidenceUpper`. `VarianceInflationFactors` carries one entry per
 *regressor*, so it is shorter by one whenever `HasIntercept` is true. The whole-model figures are
-`RSquared`, `AdjustedRSquared`, `FStatistic`, `FPValue`, `ResidualDegreesOfFreedom` and
-`ResidualStandardError`, and `ConfidenceLevel` says what the two interval lists were computed at.
+`RSquared`, `AdjustedRSquared`, `FStatistic`, `FPValue`, `FNumeratorDegreesOfFreedom`,
+`ResidualDegreesOfFreedom` and `ResidualStandardError`, and `ConfidenceLevel` says what the two interval lists were computed at.
 [`CovarianceType`](covariancetype.md) echoes the estimator that produced the standard errors, and
 is what tells a reader holding only this summary whether `TStatistics` and `PValues` are *t*
 against Student's or *z* against the normal.
@@ -33,6 +33,7 @@ double explained = summary.RSquared;              // => 0.9988392866011389
 double residualError = summary.ResidualStandardError;  // => 0.18016747059421467
 int degreesOfFreedom = summary.ResidualDegreesOfFreedom;  // => 6
 double overall = summary.FPValue;                 // => 4.888933612555189E-10
+int tested = summary.FNumeratorDegreesOfFreedom;  // => 1
 ```
 
 **Remarks** — **there is no public constructor.** A summary is what
@@ -42,7 +43,13 @@ and each interval is centred on its estimate.
 
 **`FStatistic` and `FPValue` test every slope at once**, not the intercept. With a fitted intercept
 the null is that all `featureCount` slopes are zero; without one the intercept is not there to
-exclude and the test gains a degree of freedom. `FPValue` reads the F on `ResidualDegreesOfFreedom`
+exclude and the test gains a degree of freedom. Under a robust covariance whose tested block is short
+of full rank — as a cluster fit's is when its scores span fewer directions than the slopes — the
+statistic is the pseudo-inverse's quadratic form over the block's rank, read from the covariance's score
+rows rather than the formed block so that a badly scaled column keeps its direction, and `NaN` when that
+rank is zero or when the rounding of the residuals can move the form by a millionth of itself.
+`FNumeratorDegreesOfFreedom` is the numerator `FPValue` reads, statsmodels' `f_test(...).df_num`: the slopes
+tested, or that rank ([#1223](https://github.com/CyrilB1531/lodestar/issues/1223)). `FPValue` reads the F on `ResidualDegreesOfFreedom`
 denominator degrees of freedom, except under `CovarianceType.Cluster`, where it reads the cluster count
 less one, as statsmodels' `df_resid_inference` does; `ResidualDegreesOfFreedom` itself stays rows less
 parameters.

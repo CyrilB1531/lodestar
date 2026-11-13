@@ -68,4 +68,5 @@ day.
 | [`BatchEncoder.Encode`](batchencoder-encode.md) | One string to ids, template applied. |
 | [`BatchEncoder.EncodeBatch`](batchencoder-encodebatch.md) | Many strings to one padded rectangle. |
 | [`BatchEncoder.EncodeAll`](batchencoder-encodeall.md) | Every text as its own row of ids, unpadded. |
+| [`BatchEncoder.WithDefaultMaxLength`](batchencoder-withdefaultmaxlength.md) | The same encoder, capped where it sets no `MaxLength` of its own. |
 | [`BatchEncoder.Pad`](batchencoder-pad.md) | A window of encoded rows, laid out as one rectangle. |

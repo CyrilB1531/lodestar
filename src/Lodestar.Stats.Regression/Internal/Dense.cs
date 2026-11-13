@@ -105,7 +105,6 @@ internal static class Dense
     /// </remarks>
     public static bool TryInvert(double[] matrix, int order, out double[] inverse)
     {
-        var scaling = new double[order];
         for (int i = 0; i < order; i++)
         {
             double diagonal = Math.Abs(matrix[(i * order) + i]);
@@ -114,9 +113,9 @@ internal static class Dense
                 inverse = [];
                 return false;
             }
-
-            scaling[i] = 1.0 / Math.Sqrt(diagonal);
         }
+
+        double[] scaling = CovarianceRank.Scaling(matrix, order);
 
         var work = new double[order * order];
         for (int i = 0; i < order; i++)

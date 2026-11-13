@@ -31,6 +31,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     private readonly string[] _outputNames;
     private readonly ISubwordTokenizer? _tokenizer;
     private readonly int? _maxSequenceLength;
+    // Read when a text overload first needs it: Embed and the overload taking encoded rows never do (#1257).
+    private readonly Lazy<(int DefaultMaxLength, bool LowerCase, string? Refusal, bool RefusesPast)> _configuration;
     private readonly int? _fixedSequence;
     private readonly int? _fixedBatch;
     private readonly bool _axesSwapped;
@@ -87,6 +89,17 @@ public sealed class OnnxTextEmbedder : IDisposable
             }
 
             _maxSequenceLength = _fixedSequence ?? PositionTable.UsableLength(modelPath, _inputIdsName);
+
+            // The configured length, else 256, never past the model's own limit (#1257); a refusal waits with it.
+            // The folder is the one the model was opened from, whatever the current directory is by the first text.
+            int? maxSequenceLength = _maxSequenceLength;
+            string fullModelPath = Path.GetFullPath(modelPath);
+            _configuration = new Lazy<(int, bool, string?, bool)>(() =>
+            {
+                (int? stated, bool lowerCase, string? refusal, bool refusesPast) = SentenceTransformersConfig.Read(fullModelPath);
+                int configured = stated ?? SentenceTransformersConfig.DefaultMaxSeqLength;
+                return (maxSequenceLength is int limit ? Math.Min(configured, limit) : configured, lowerCase, refusal, refusesPast);
+            });
             _axesSwapped = AxesSwapped(_session, _inputIdsName, _outputName);
         }
         catch
@@ -147,9 +160,8 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// else the positions its position-embedding table can index; else <see langword="null"/>.
     /// </summary>
     /// <remarks>
-    /// What a null <see cref="EncodingOptions.MaxLength"/> falls back to. The table is the
-    /// model's hard limit, not sentence-transformers' <c>max_seq_length</c> (256 for
-    /// all-MiniLM-L6-v2, whose table holds 512), which no graph carries: see the guide's
+    /// The model's hard limit, which caps what a null <see cref="EncodingOptions.MaxLength"/> falls back to:
+    /// sentence-transformers' <c>max_seq_length</c> read beside the model, else 256 (#1257), see the guide's
     /// "Embed a batch". A RoBERTa-style table's padding offset is subtracted (514 reads 512).
     /// </remarks>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed, as every other member reports (#1552).</exception>
@@ -208,16 +220,16 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// export — and returns one normalized vector per input text, in the input order.
     /// </summary>
     /// <remarks>
-    /// The equivalent of
-    /// <c>SentenceTransformer.encode(texts, batch_size=…, normalize_embeddings=True)</c>.
-    /// Requires the constructor overload that takes a tokenizer.
+    /// The equivalent of <c>SentenceTransformer.encode(texts, batch_size=…, normalize_embeddings=True)</c>.
+    /// Requires the constructor overload that takes a tokenizer. A true <c>do_lower_case</c> beside the model
+    /// lowercases each text first, through this overload and the one taking a <see cref="BatchEncoder"/> (#1257).
     /// </remarks>
     /// <param name="texts">The texts to embed.</param>
-    /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults, with <c>MaxLength</c> taken from <see cref="MaxSequenceLength"/>.</param>
+    /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults; a null <c>MaxLength</c> takes the configured <c>max_seq_length</c>, else 256, capped at <see cref="MaxSequenceLength"/>, as its remarks say.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
-    /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed or declares its first two axes as the input's two swapped (#1424).</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is, or one past the configured length under a configured <c>only_second</c>, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
+    /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed or declares its first two axes as the input's two swapped (#1424), or the sentence-transformers configuration or the <c>modules.json</c> beside the model is one sentence-transformers refuses to load or to encode under, each case the reference page lists (#1257).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
@@ -233,9 +245,11 @@ public sealed class OnnxTextEmbedder : IDisposable
                 "This embedder has no tokenizer. Use the constructor overload that takes one, " +
                 "or call EmbedBatch(texts, encoder, cancellationToken) with a BatchEncoder you built.");
         }
+        Guard.NotNull(texts);
         // A chunk refusal here meets a width or a batch size options let through, one axis at most being fixed: options
         // is named, not the encoder built from it (#1581). Two fixed axes are refused by the constructor (#1589).
-        return EmbedAll(texts, new BatchEncoder(_tokenizer, ResolveOptions(options)), nameof(options), cancellationToken);
+        (BatchEncoder encoder, int? refusedPast) = WithModelDefault(new BatchEncoder(_tokenizer, Checked(options)));
+        return EmbedAll(Cased(texts), encoder, refusedPast, nameof(options), cancellationToken);
     }
 
     /// <summary>Embeds a corpus using an explicit <see cref="BatchEncoder"/>.</summary>
@@ -245,19 +259,21 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// for the case where the tokenizer is not the one the embedder was built with.
     /// </remarks>
     /// <param name="texts">The texts to embed.</param>
-    /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
+    /// <param name="encoder">The encoder that owns the tokenizer, template and truncation; a null <c>MaxLength</c> on it takes the length the options overload takes, on a copy.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
-    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or encodes one past <see cref="MaxSequenceLength"/>, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or a text is past the configured length under a configured <c>only_second</c>, or encodes one past <see cref="MaxSequenceLength"/>, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424).</exception>
+    /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424), or the sentence-transformers configuration or the <c>modules.json</c> beside the model is one sentence-transformers refuses to load or to encode under, each case the reference page lists (#1257).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="ObjectDisposedException">The embedder has been disposed.</exception>
     public float[][] EmbedBatch(IEnumerable<string> texts, BatchEncoder encoder, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
+        Guard.NotNull(texts);
         Guard.NotNull(encoder);
-        return EmbedAll(texts, encoder, nameof(encoder), cancellationToken);
+        (BatchEncoder withDefault, int? refusedPast) = WithModelDefault(encoder);
+        return EmbedAll(Cased(texts), withDefault, refusedPast, nameof(encoder), cancellationToken);
     }
 
     /// <summary>Embeds an already-encoded batch, in batch order.</summary>
@@ -284,9 +300,21 @@ public sealed class OnnxTextEmbedder : IDisposable
     }
 
     /// <summary>The body both text overloads share, refusing under <paramref name="paramName"/>, the caller's own argument.</summary>
-    private float[][] EmbedAll(IEnumerable<string> texts, BatchEncoder encoder, string paramName, CancellationToken cancellationToken)
+    private float[][] EmbedAll(
+        IEnumerable<string> texts, BatchEncoder encoder, int? refusedPast, string paramName, CancellationToken cancellationToken)
     {
         IReadOnlyList<long[]> sequences = encoder.EncodeAll(texts, cancellationToken);
+        for (int i = 0; refusedPast is int length && i < sequences.Count; i++)
+        {
+            if (sequences[i].Length > length)
+            {
+                // Named texts, as the encoder names a text it refuses, so the generator can name its own (#1345).
+                throw new ArgumentException(
+                    $"Text {i} encodes to {sequences[i].Length} tokens, past the configured length {length}, which the " +
+                    "configured truncation only_second cuts no single text to.",
+                    nameof(texts));
+            }
+        }
 
         int total = sequences.Count;
         var embeddings = new float[total][];
@@ -323,19 +351,36 @@ public sealed class OnnxTextEmbedder : IDisposable
     // on both targets, where nameof gave the short name on netstandard (#1527).
     private void ThrowIfDisposed() => Guard.NotDisposed(_disposed, this);
 
-    /// <summary>Fills in the model-derived defaults the caller left open.</summary>
-    private EncodingOptions ResolveOptions(EncodingOptions? options)
+    /// <summary>Refuses a <c>MaxLength</c> the caller set past the model's limit.</summary>
+    private EncodingOptions? Checked(EncodingOptions? options)
     {
-        EncodingOptions resolved = options ?? new EncodingOptions();
-        if (_maxSequenceLength is int axis && resolved.MaxLength > axis)
+        if (_maxSequenceLength is int axis && options?.MaxLength > axis)
         {
             throw new ArgumentException(
-                $"MaxLength {resolved.MaxLength} is past the model's {LimitSource} of {axis}.", nameof(options));
+                $"MaxLength {options.MaxLength} is past the model's {LimitSource} of {axis}.", nameof(options));
         }
+        return options;
+    }
 
-        return resolved.MaxLength is null && _maxSequenceLength is int limit
-            ? resolved with { MaxLength = limit }
-            : resolved;
+    /// <summary>
+    /// The texts lowercased when the configuration's <c>do_lower_case</c> is true, as sentence-transformers prepends the
+    /// tokenizers' <c>Lowercase</c> normalizer then (#1257).
+    /// </summary>
+    private IEnumerable<string> Cased(IEnumerable<string> texts) =>
+        _configuration.Value.LowerCase ? texts.Select(text => text is null ? text! : TokenizersLowercase.Of(text)) : texts;
+
+    /// <summary>
+    /// The length both text overloads fill a null <c>MaxLength</c> with, so they cut alike, and, under a configured
+    /// <c>only_second</c>, the length a text is refused past instead, as tokenizers refuses it (#1257).
+    /// </summary>
+    private (BatchEncoder Encoder, int? RefusedPast) WithModelDefault(BatchEncoder encoder)
+    {
+        (int length, _, string? refusal, bool refusesPast) = _configuration.Value;
+        if (refusal is not null)
+        {
+            throw new InvalidOperationException(refusal);
+        }
+        return refusesPast && encoder.Options.MaxLength is null ? (encoder, length) : (encoder.WithDefaultMaxLength(length), null);
     }
 
     /// <summary>What <see cref="MaxSequenceLength"/> was read from, for a refusal's message.</summary>

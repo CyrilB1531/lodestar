@@ -18,7 +18,7 @@ public static class MultinomialLogit
     /// <param name="featureCount">How many regressors a row carries.</param>
     /// <param name="options">The fit's settings, or null for the reference's defaults.</param>
     /// <returns>The coefficients per non-reference category with their errors, z statistics, p-values and intervals, and the whole-model table.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is below one, or a value of <paramref name="design"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has another length or fewer than two categories, no residual degree of freedom is left, the Hessian is not positive definite — a separated category or a rank-deficient design — or the rows times the design's columns, intercept included, or times the categories, or the parameters squared, are more cells than one array holds.</exception>
     /// <exception cref="InvalidOperationException">Newton spent its budget and <see cref="MultinomialLogitOptions.ThrowOnNonConvergence"/> says throw.</exception>
     /// <remarks>
@@ -49,6 +49,7 @@ public static class MultinomialLogit
                 nameof(response));
         }
 
+        FiniteValues.Require(design, nameof(design), nameof(design), featureCount);
         (int[] categories, int[] labels, int[] counts) = Categorise(response);
         int columnCount = featureCount + (settings.WithIntercept ? 1 : 0);
         int equations = categories.Length - 1;

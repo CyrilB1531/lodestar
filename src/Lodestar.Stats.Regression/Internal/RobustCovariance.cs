@@ -1,5 +1,3 @@
-using Lodestar.Decomposition;
-
 namespace Lodestar.Stats.Regression.Internal;
 
 /// <summary>The robust covariances, and the Wald test read on them.</summary>
@@ -56,13 +54,16 @@ internal static class RobustCovariance
     private static double Weight(CovarianceType type, double residual, double leverage)
     {
         double squared = residual * residual;
-        return type switch
-        {
-            CovarianceType.Hc2 => squared / (1.0 - leverage),
-            CovarianceType.Hc3 => squared / ((1.0 - leverage) * (1.0 - leverage)),
-            _ => squared,
-        };
+        return type is CovarianceType.Hc2 or CovarianceType.Hc3 ? squared / LeverageDivisor(type, leverage) : squared;
     }
+
+    /// <summary>What HC2 and HC3 divide a squared residual by: <c>1 − h</c> and <c>(1 − h)²</c>; one for the others.</summary>
+    private static double LeverageDivisor(CovarianceType type, double leverage) => type switch
+    {
+        CovarianceType.Hc2 => 1.0 - leverage,
+        CovarianceType.Hc3 => (1.0 - leverage) * (1.0 - leverage),
+        _ => 1.0,
+    };
 
     /// <summary>The filling of HC0 to HC3, <c>Σ ωᵢ xᵢxᵢᵀ</c>; the leverages are read only by the two types that weight by them.</summary>
     public static double[] HeteroskedasticMeat(
@@ -143,13 +144,13 @@ internal static class RobustCovariance
         }
     }
 
-    /// <summary>The one-way cluster filling, <c>Σ_g s_g s_gᵀ</c> with <c>s_g</c> the sum of the scores in cluster <c>g</c>.</summary>
+    /// <summary>The one-way cluster filling, <c>Σ_g s_g s_gᵀ</c> with <c>s_g</c> the sum of the scores in cluster <c>g</c>, and how many <c>s_g</c> are not zero.</summary>
     /// <param name="matrix">The design the solve ran on, row-major.</param>
     /// <param name="residuals">Its residuals.</param>
     /// <param name="clusters">One dense label per row, from <c>0</c> to <paramref name="clusterCount"/> − 1.</param>
     /// <param name="parameterCount">Columns of <paramref name="matrix"/>.</param>
     /// <param name="clusterCount">How many clusters the labels name.</param>
-    public static double[] ClusterMeat(
+    public static (double[] Meat, int Spanning, double[] Sums) ClusterMeat(
         double[] matrix, double[] residuals, int[] clusters, int parameterCount, int clusterCount)
     {
         var sums = new double[clusterCount * parameterCount];
@@ -177,7 +178,43 @@ internal static class RobustCovariance
             }
         }
 
-        return meat;
+        return (meat, IvScores.Spanning(sums, parameterCount, clusterCount), sums);
+    }
+
+    /// <summary>Each cluster's <c>Σ |xᵢ|·mᵢ</c>: with the residuals' sizes, the sizes of its summed scores' terms.</summary>
+    public static double[] AbsoluteClusterSums(double[] matrix, double[] multipliers, int[] clusters, int parameterCount, int clusterCount)
+    {
+        var sums = new double[clusterCount * parameterCount];
+        for (int row = 0; row < clusters.Length; row++)
+        {
+            int at = row * parameterCount;
+            int into = clusters[row] * parameterCount;
+            for (int a = 0; a < parameterCount; a++)
+            {
+                sums[into + a] += Math.Abs(matrix[at + a]) * multipliers[row];
+            }
+        }
+
+        return sums;
+    }
+
+    /// <summary>Each residual's size with the terms it was computed from, <c>|eᵢ| + Σ |xᵢⱼbⱼ|</c>, which its rounding scales with.</summary>
+    public static double[] ResidualMagnitudes(double[] matrix, double[] residuals, double[] coefficients, int rowCount)
+    {
+        int parameterCount = coefficients.Length;
+        var magnitudes = new double[rowCount];
+        for (int row = 0; row < rowCount; row++)
+        {
+            double total = Math.Abs(residuals[row]);
+            for (int a = 0; a < parameterCount; a++)
+            {
+                total += Math.Abs(matrix[(row * parameterCount) + a] * coefficients[a]);
+            }
+
+            magnitudes[row] = total;
+        }
+
+        return magnitudes;
     }
 
     /// <summary>The full covariance of the estimates, <c>(XᵀX)⁻¹ S (XᵀX)⁻¹</c>, times a small-sample factor when one applies.</summary>
@@ -185,11 +222,14 @@ internal static class RobustCovariance
     /// <param name="inverseUpper">R⁻¹, row-major.</param>
     /// <param name="parameterCount">The order of both.</param>
     /// <param name="correction">The factor, or <see langword="null"/> for a type that has none.</param>
+    /// <param name="largestRank">The most rank the filling can hold, or null where its construction sets none.</param>
+    /// <param name="scores">The score rows whose cross product is <paramref name="meat"/>, built only by a test short of full rank.</param>
     /// <remarks>
     /// <see langword="null"/> rather than a factor of one: multiplying every entry by a one that is not a compile-time
     /// constant cost 85 to 93 ns a fit at 100 rows, measured — 3 % of HC2 and HC3 there (#775).
     /// </remarks>
-    public static double[] Sandwich(double[] meat, double[] inverseUpper, int parameterCount, double? correction)
+    public static SandwichParts Sandwich(
+        double[] meat, double[] inverseUpper, int parameterCount, double? correction, int? largestRank, Func<ScoreRows> scores)
     {
         double[] bread = Bread(inverseUpper, parameterCount);
         double[] covariance = Multiply(Multiply(bread, meat, parameterCount), bread, parameterCount);
@@ -201,11 +241,78 @@ internal static class RobustCovariance
             }
         }
 
-        return covariance;
+        return new SandwichParts(covariance, bread, correction ?? 1.0, scores) { LargestRank = largestRank };
     }
 
-    /// <summary>Each row of the design times its residual: the scores whose sums the HAC and cluster fillings read.</summary>
-    private static double[] Scores(double[] matrix, double[] residuals, int rowCount, int parameterCount)
+    /// <summary>The rows <c>√ωᵢ·xᵢ</c> whose cross product is the HC0 to HC3 filling, or their sizes from <paramref name="magnitudes"/>.</summary>
+    public static ScoreRows HeteroskedasticScores(
+        double[] matrix, double[] inverseUpper, double[] residuals, double[] magnitudes, int rowCount, int parameterCount, CovarianceType type)
+    {
+        double[] leverages = type is CovarianceType.Hc2 or CovarianceType.Hc3
+            ? Leverages(matrix, inverseUpper, rowCount, parameterCount)
+            : residuals;
+        var rows = new double[rowCount * parameterCount];
+        var sizes = new double[rowCount * parameterCount];
+        for (int row = 0; row < rowCount; row++)
+        {
+            double scale = 1.0 / Math.Sqrt(LeverageDivisor(type, leverages[row]));
+            int at = row * parameterCount;
+            for (int a = 0; a < parameterCount; a++)
+            {
+                rows[at + a] = scale * residuals[row] * matrix[at + a];
+                sizes[at + a] = Math.Abs(scale * magnitudes[row] * matrix[at + a]);
+            }
+        }
+
+        return new ScoreRows(rows, sizes, rowCount);
+    }
+
+    /// <summary>The rows whose cross product is Newey–West's filling: each window of <c>L + 1</c> scores summed, over <c>√(L + 1)</c>.</summary>
+    /// <remarks>
+    /// Scores <c>l</c> apart share <c>L + 1 − l</c> windows, so <c>Σⱼ zⱼzⱼᵀ / (L + 1)</c> weighs <c>Γₗ</c> by Bartlett's
+    /// <c>1 − l/(L + 1)</c>. The windows that hold every score, past the last row, are one row of that multiplicity.
+    /// </remarks>
+    public static (double[] Rows, int Count) HacScores(
+        double[] matrix, double[] multipliers, int rowCount, int parameterCount, int lags, bool absolute)
+    {
+        double[] scores = Scores(absolute ? [.. matrix.Select(Math.Abs)] : matrix, multipliers, rowCount, parameterCount);
+        long full = Math.Max(0L, lags - rowCount + 2L);
+        long windows = Math.Min(rowCount + (long)lags, (2L * rowCount) - 1L);
+        var rows = new double[TableLength.Of(windows, parameterCount, "design")];
+        int count = (int)windows;
+        double scale = 1.0 / Math.Sqrt(lags + 1.0);
+        int written = 0;
+        long end = 0;
+        while (end < rowCount + (long)lags)
+        {
+            // Summed afresh, not slid: a running sum leaves its rounding where a window is exactly zero (pass 12).
+            int first = (int)Math.Max(0L, end - lags);
+            int last = (int)Math.Min(end, rowCount - 1L);
+            bool whole = full > 0 && end == rowCount - 1;
+            double weight = whole ? scale * Math.Sqrt(full) : scale;
+            int at = written * parameterCount;
+            for (int row = first; row <= last; row++)
+            {
+                for (int a = 0; a < parameterCount; a++)
+                {
+                    rows[at + a] += scores[(row * parameterCount) + a];
+                }
+            }
+
+            for (int a = 0; a < parameterCount; a++)
+            {
+                rows[at + a] *= weight;
+            }
+
+            written++;
+            end = whole ? lags + 1L : end + 1L;
+        }
+
+        return (rows, count);
+    }
+
+    /// <summary>Each row of the design times its multiplier: with the residuals, the scores the HAC filling sums.</summary>
+    private static double[] Scores(double[] matrix, double[] multipliers, int rowCount, int parameterCount)
     {
         var scores = new double[rowCount * parameterCount];
         for (int row = 0; row < rowCount; row++)
@@ -213,7 +320,7 @@ internal static class RobustCovariance
             int at = row * parameterCount;
             for (int a = 0; a < parameterCount; a++)
             {
-                scores[at + a] = matrix[at + a] * residuals[row];
+                scores[at + a] = matrix[at + a] * multipliers[row];
             }
         }
 
@@ -264,76 +371,47 @@ internal static class RobustCovariance
         return product;
     }
 
-    /// <summary>The overall test as a Wald statistic on the covariance above, divided by its restrictions.</summary>
+    /// <summary>The overall test as a Wald statistic on the covariance above, with the restrictions it was divided by.</summary>
     /// <remarks>
     /// The ordinary F reads off R², which a robust covariance does not enter — so statsmodels
     /// tests the same hypothesis the other way, and this follows it. The p-value stays on the F
     /// distribution even though the coefficient tests move to the normal, which is asymmetric
-    /// and is what statsmodels does (#686).
+    /// and is what statsmodels does (#686). A block short of full rank takes the pseudo-inverse's
+    /// form over its rank and counts only that rank as restrictions (#1223).
     /// </remarks>
-    public static double Wald(
-        double[] covariance, double[] coefficients, int parameterCount, bool withIntercept)
+    /// <param name="sandwich">The coefficients' covariance and the parts it was built from.</param>
+    /// <param name="coefficients">The estimates, intercept first when one was fitted.</param>
+    /// <param name="withIntercept">Whether the first coefficient is left out of the test.</param>
+    public static (double Statistic, int Rank) Wald(SandwichParts sandwich, double[] coefficients, bool withIntercept)
     {
+        int parameterCount = coefficients.Length;
+        // The cluster sums that are not zero, less one, bound a cluster covariance; no other type is bounded below k.
+        int largestRank = sandwich.LargestRank ?? parameterCount;
         int offset = withIntercept ? 1 : 0;
         int restrictions = parameterCount - offset;
-        if (restrictions < 1)
-        {
-            return double.NaN;
-        }
-
         var block = new double[restrictions * restrictions];
+        var tested = new double[restrictions];
+        Array.Copy(coefficients, offset, tested, 0, restrictions);
         for (int i = 0; i < restrictions; i++)
         {
             for (int j = 0; j < restrictions; j++)
             {
-                block[(i * restrictions) + j] =
-                    covariance[((i + offset) * parameterCount) + j + offset];
+                block[(i * restrictions) + j] = sandwich.Covariance[((i + offset) * parameterCount) + j + offset];
             }
         }
 
-        double[] inverse = Invert(block, restrictions);
-        double total = 0.0;
-        for (int i = 0; i < restrictions; i++)
+        (int measured, double form, bool finite) = CovarianceRank.Measure(block, restrictions, tested);
+        // A block that is not finite has no rank to cap, and keeps every restriction unranked.
+        int rank = finite ? Math.Min(measured, largestRank) : restrictions;
+        if (rank == restrictions)
         {
-            double row = 0.0;
-            for (int j = 0; j < restrictions; j++)
-            {
-                row += inverse[(i * restrictions) + j] * coefficients[j + offset];
-            }
-
-            total += coefficients[i + offset] * row;
+            return (form / restrictions, restrictions);
         }
 
-        return total / restrictions;
-    }
-
-    /// <summary>The inverse of a small square matrix, through the QR this package already has.</summary>
-    /// <remarks>
-    /// <c>A = QR</c> gives <c>A⁻¹ = R⁻¹Qᵀ</c>. A dedicated symmetric route would be faster and
-    /// is not worth a second decomposition here: the block is one per fit and its order is the
-    /// regressor count, single digits in every case this package was written for.
-    /// </remarks>
-    private static double[] Invert(double[] square, int order)
-    {
-        QrDecomposition qr = QrDecomposition.Householder(square, order, order);
-        double[] inverseUpper = LeastSquares.InvertUpper(qr.R, order);
-        IReadOnlyList<double> q = qr.Q;
-
-        var inverse = new double[order * order];
-        for (int i = 0; i < order; i++)
-        {
-            for (int j = 0; j < order; j++)
-            {
-                double total = 0.0;
-                for (int k = i; k < order; k++)
-                {
-                    total += inverseUpper[(i * order) + k] * q[(j * order) + k];
-                }
-
-                inverse[(i * order) + j] = total;
-            }
-        }
-
-        return inverse;
+        // Zero restrictions divide nothing: an exact fit's covariance is zero, and statsmodels' 0/0 is NaN too.
+        (double reduced, int kept) = rank < 1
+            ? (double.NaN, 0)
+            : ReducedRankWald.Form(sandwich, tested, offset, rank);
+        return (reduced / kept, kept);
     }
 }

@@ -8,14 +8,20 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Added
 
 - `InstrumentalVariables` fits two-stage least squares, LIML with Fuller's correction and two-step GMM at `linearmodels` parity, with the unadjusted, robust, kernel and clustered covariances, the first-stage diagnostics and the overidentification tests. ([#1155](https://github.com/CyrilB1531/lodestar/issues/1155))
+- `OlsSummary.FNumeratorDegreesOfFreedom` gives the numerator degrees of freedom `FPValue` reads, the rank of a robust block short of full rank among them. ([#1223](https://github.com/CyrilB1531/lodestar/issues/1223))
 - `PanelRegression` fits fixed effects, between, first-difference and random-effects panel regressions at `linearmodels` parity, with the unadjusted, robust, clustered and Driscoll-Kraay covariances. ([#1156](https://github.com/CyrilB1531/lodestar/issues/1156))
 
 ### Changed
 
 - `Lodestar.Stats.Regression` needs the next `Lodestar.Stats`, for the upper normal and Student quantiles its interval multipliers read. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
+- `Lodestar.Stats.Regression` no longer depends on `Lodestar.Decomposition`, whose QR its robust covariance last called. ([#1223](https://github.com/CyrilB1531/lodestar/issues/1223))
 
 ### Fixed
 
+- `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` refuse a NaN or infinite regressor or response naming its cell, and `GeneralizedLinearModel` a NaN or infinite regressor, where the fit answered a table of NaN or blamed a rank-deficient design. ([#1225](https://github.com/CyrilB1531/lodestar/issues/1225))
+- `InstrumentalVariables`, `PanelRegression` and `MultinomialLogit` refuse a NaN or infinite value naming its block and cell, where they blamed collinearity or separation. ([#1268](https://github.com/CyrilB1531/lodestar/issues/1268))
+- `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` read a singular robust covariance's F through its pseudo-inverse, taken from the covariance's factors, and on its rank, and `InstrumentalVariables` and `PanelRegression` report `NaN` for a model test on a singular block, where each read an inverse of noise or refused it as collinear. ([#1223](https://github.com/CyrilB1531/lodestar/issues/1223))
+- `InstrumentalVariables` refuses a kernel covariance whose automatic bandwidth is undefined, where casting its NaN to an integer differed by runtime, and a GMM second step whose weight is singular names that rather than collinearity. ([#1269](https://github.com/CyrilB1531/lodestar/issues/1269))
 - The fits' Student and F p-values and their intervals' Student multipliers take `Lodestar.Stats`' regularized incomplete beta to 106 bits, which moves them toward the exact tail by up to some 900 ulps. ([#1745](https://github.com/CyrilB1531/lodestar/issues/1745))
 - `OrdinaryLeastSquares.Fit`, `GeneralizedLinearModel.Fit`, `MultinomialLogit.Fit` and the instrumental-variables and panel fits keep their interval multiplier's digits at a confidence level near one, which moves an ordinary level's by a few ulps toward the exact quantile. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
 - `OrdinaryLeastSquares`, `WeightedLeastSquares` and `GeneralizedLeastSquares` refuse a copy past one array — the design with its intercept column, which a design that fits one array can pass, and the VIFs' copy or the GLS covariance, which only a span over native memory reaches — where the copy failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))

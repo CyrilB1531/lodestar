@@ -28,7 +28,7 @@ public sealed class NetStandardAssemblyGuardTests
         AssertNetStandard(typeof(Lodestar.Stats.Distributions));
     }
 
-    /// <summary>The same guarantee for Lodestar.Decomposition, which carries the QR.</summary>
+    /// <summary>The same guarantee for Lodestar.Decomposition, whose QR the suite checks the hat values against.</summary>
     [Fact]
     public void Suite_runs_against_the_netstandard2_0_build_of_Lodestar_Decomposition()
     {

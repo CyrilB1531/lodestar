@@ -76,7 +76,7 @@ internal static class IvDiagnostics
             return null;
         }
 
-        double statistic = Quadratic(fit.Coefficients, fit.Covariance, k, tested);
+        double statistic = Quadratic(fit.Coefficients, fit.Covariance, k, tested, fit.LargestRank);
         int df = tested.Length;
         int residualDf = problem.N - k;
         return debiased
@@ -112,7 +112,7 @@ internal static class IvDiagnostics
         {
             double[] endogenous = Column(problem.X, problem.K, n, shared + j);
             IvFit full = IvCore.KClass(Retarget(ols, endogenous), 1.0, spec);
-            double statistic = Quadratic(full.Coefficients, full.Covariance, l, tested);
+            double statistic = Quadratic(full.Coefficients, full.Covariance, l, tested, full.LargestRank);
             WaldTest test = spec.Type == IvCovarianceType.Unadjusted
                 ? new WaldTest(
                     statistic / instrumentCount,
@@ -204,8 +204,8 @@ internal static class IvDiagnostics
             ? Math.Min(1.0, 2.0 * Distributions.StudentSf(Math.Abs(t), residualDf))
             : Distributions.ChiSquaredSf(t * t, 1.0);
 
-    /// <summary><c>bᵀC⁻¹b</c> over the selected coefficients.</summary>
-    private static double Quadratic(double[] coefficients, double[] covariance, int k, int[] selected)
+    /// <summary><c>bᵀC⁻¹b</c> over the selected coefficients; NaN when their covariance is singular, where the reference inverts noise.</summary>
+    private static double Quadratic(double[] coefficients, double[] covariance, int k, int[] selected, int largestRank)
     {
         int m = selected.Length;
         var b = new double[m];
@@ -219,7 +219,7 @@ internal static class IvDiagnostics
             }
         }
 
-        return Dot(b, Dense.Multiply(IvCore.Invert(block, m), b, m, m, 1));
+        return CovarianceRank.QuadraticForm(b, block, m, largestRank);
     }
 
     /// <summary><c>1 − RSS/TSS</c>, the total sum of squares centred when the regressors hold a constant.</summary>

@@ -34,9 +34,13 @@ public static class Stationarity
         DickeyFullerOptions settings = options ?? new DickeyFullerOptions();
         SeriesChecks.RefuseNonFinite(series);
         SeriesChecks.RefuseConstant(series);
+
+        // The statistic is invariant to the series' scale, so it is read at unit scale (see UnitScale).
+        (double[]? scaled, double factor) = SeriesChecks.UnitScale(series);
+        ReadOnlySpan<double> unit = scaled is null ? series : scaled;
         SeriesChecks.RefuseStraightLine(
-            series,
-            LineFit.Residuals(series),
+            unit,
+            LineFit.Residuals(unit),
             "a deterministic trend leaves no stochastic component for a unit-root test to find.");
 
         int n = series.Length;
@@ -46,11 +50,11 @@ public static class Stationarity
         double criterion = double.NaN;
         if (settings.LagSelection != LagSelection.Fixed)
         {
-            (usedLag, criterion) = SearchLag(series, settings, maxLag, n - maxLag - 1);
+            (usedLag, criterion) = SearchLag(unit, factor, settings, maxLag, n - maxLag - 1);
         }
 
         int observations = n - usedLag - 1;
-        IReadOnlyList<double> tStatistics = DickeyFullerRegression.Fit(series, settings.Regression, usedLag, observations).TStatistics;
+        IReadOnlyList<double> tStatistics = DickeyFullerRegression.Fit(unit, settings.Regression, usedLag, observations).TStatistics;
         double statistic = tStatistics[DickeyFullerRegression.LevelIndex(settings.Regression)];
 
         return new DickeyFullerResult
@@ -281,7 +285,7 @@ public static class Stationarity
 
     /// <summary>The reference's lag search, every candidate over the same <paramref name="rows"/> rows.</summary>
     private static (int Lag, double Criterion) SearchLag(
-        ReadOnlySpan<double> series, DickeyFullerOptions settings, int maxLag, int rows)
+        ReadOnlySpan<double> series, double factor, DickeyFullerOptions settings, int maxLag, int rows)
     {
         bool byTStatistic = settings.LagSelection == LagSelection.TStatistic;
         (double[] residualSums, double[] lastTStatistics) =
@@ -306,8 +310,8 @@ public static class Stationarity
         double bestCriterion = double.PositiveInfinity;
         for (int lag = 0; lag <= maxLag; lag++)
         {
-            double value = DickeyFullerRegression.Criterion(
-                residualSums[lag], terms + 1 + lag, rows, settings.LagSelection);
+            // Compared at unit scale, where no residual sum overflows or underflows; the scale shifts every one alike.
+            double value = DickeyFullerRegression.Criterion(residualSums[lag], terms + 1 + lag, rows, settings.LagSelection);
 
             // Strictly smaller: a tie keeps the shorter lag, as the reference's min over (criterion, lag) does.
             if (value < bestCriterion)
@@ -317,6 +321,7 @@ public static class Stationarity
             }
         }
 
-        return (best, bestCriterion);
+        // The caller's residual sums are the scaled ones over factor², which lowers −2·log-likelihood by rows·2·ln(factor).
+        return (best, bestCriterion - (2.0 * rows * Math.Log(factor)));
     }
 }

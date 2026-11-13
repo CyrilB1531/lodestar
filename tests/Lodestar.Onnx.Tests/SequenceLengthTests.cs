@@ -54,9 +54,9 @@ public sealed class SequenceLengthTests
         Assert.Equal("options", error.ParamName);
     }
 
-    /// <summary>With no position table to read, nothing is truncated, as before.</summary>
+    /// <summary>With no position table to read, the table's six positions cut nothing: the default is 256 (#1257).</summary>
     [Fact]
-    public void Without_a_position_table_nothing_is_truncated()
+    public void Without_a_position_table_a_text_under_256_is_not_truncated()
     {
         using OnnxTextEmbedder embedder = Embedder("tiny_embedder.onnx");
 
@@ -90,6 +90,98 @@ public sealed class SequenceLengthTests
         Assert.Equal("batch", Assert.Throws<ArgumentException>(
             () => embedder.EmbedBatch(batch, TestContext.Current.CancellationToken)).ParamName);
         Assert.Equal("inputIds", Assert.Throws<ArgumentException>(() => embedder.Embed(ids, mask)).ParamName);
+    }
+
+    /// <summary>
+    /// An encoder left open takes the model's limit as the options overload does and sentence-transformers does (#1257):
+    /// a sequence of the limit is untouched, one token more and far more are cut to it with the template kept.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Positional))]
+    public void An_encoder_left_open_is_truncated_to_the_table(string file)
+    {
+        using OnnxTextEmbedder embedder = Embedder(file);
+        var open = new BatchEncoder(BatchCorpus.Tokenizer());
+        string atLimit = string.Join(" ", Enumerable.Repeat("the", Positions - 2));
+        string onePast = atLimit + " dog";
+        string farPast = string.Join(" ", Enumerable.Repeat("the", 600));
+        string[] texts = ["", atLimit, onePast, farPast];
+
+        float[][] actual = embedder.EmbedBatch(texts, open, TestContext.Current.CancellationToken);
+        float[][] expected = embedder.EmbedBatch(
+            texts, new EncodingOptions { MaxLength = Positions }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(actual[1], actual[2]);
+        Assert.Null(open.Options.MaxLength);
+    }
+
+    /// <summary>A cap the encoder sets below the limit is the encoder's own (#1257).</summary>
+    [Theory]
+    [MemberData(nameof(Positional))]
+    public void A_cap_the_encoder_sets_is_kept(string file)
+    {
+        using OnnxTextEmbedder embedder = Embedder(file);
+        var options = new EncodingOptions { MaxLength = Positions - 2 };
+
+        Assert.Equal(
+            embedder.EmbedBatch(Long, options, TestContext.Current.CancellationToken),
+            embedder.EmbedBatch(Long, new BatchEncoder(BatchCorpus.Tokenizer(), options), TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>A static export's axis is a limit as the table is (#1257).</summary>
+    [Fact]
+    public void An_encoder_left_open_is_truncated_to_a_fixed_axis()
+    {
+        using OnnxTextEmbedder embedder = Embedder("tiny_embedder_static.onnx");
+        string[] farPast = [string.Join(" ", Enumerable.Repeat("the dog", 40))];
+
+        Assert.Equal(
+            embedder.EmbedBatch(farPast, new EncodingOptions { MaxLength = 16 }, TestContext.Current.CancellationToken),
+            embedder.EmbedBatch(farPast, new BatchEncoder(BatchCorpus.Tokenizer()), TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>No stated maximum and no configuration beside the model: cut at 256, the maintainer's default (#1257).</summary>
+    [Fact]
+    public void An_encoder_left_open_on_a_model_with_no_limit_cuts_at_256()
+    {
+        using OnnxTextEmbedder embedder = Embedder("tiny_embedder.onnx");
+        string[] farPast = [string.Join(" ", Enumerable.Repeat("the dog", 300))];
+
+        Assert.Equal(
+            embedder.EmbedBatch(farPast, new EncodingOptions { MaxLength = 256 }, TestContext.Current.CancellationToken),
+            embedder.EmbedBatch(farPast, new BatchEncoder(BatchCorpus.Tokenizer()), TestContext.Current.CancellationToken));
+    }
+
+    /// <summary><c>None</c> never cuts: past the limit the text is what is refused, naming it, as under the options overload.</summary>
+    [Theory]
+    [MemberData(nameof(Positional))]
+    public void An_encoder_that_never_cuts_refuses_the_text_past_the_table(string file)
+    {
+        using OnnxTextEmbedder embedder = Embedder(file);
+        var refusing = new BatchEncoder(
+            BatchCorpus.Tokenizer(), new EncodingOptions { Truncation = TruncationStrategy.None });
+
+        Assert.Equal("texts", Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch(Long, refusing, TestContext.Current.CancellationToken)).ParamName);
+    }
+
+    /// <summary>A template longer than the limit leaves nothing to cut: the row stays refused, an empty batch stays empty.</summary>
+    [Fact]
+    public void A_template_past_the_limit_is_left_to_the_length_refusal()
+    {
+        using OnnxTextEmbedder embedder = Embedder("tiny_positional.onnx");
+        var template = new SpecialTokenTemplate(
+            ["[CLS]", "[CLS]", "[CLS]", "[CLS]"], ["[SEP]", "[SEP]", "[SEP]", "[SEP]"], "[PAD]");
+        var encoder = new BatchEncoder(BatchCorpus.Tokenizer(), new EncodingOptions { Template = template });
+
+        Assert.Empty(embedder.EmbedBatch([], encoder, TestContext.Current.CancellationToken));
+        Assert.Equal("encoder", Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch([""], encoder, TestContext.Current.CancellationToken)).ParamName);
+        // The options overload goes through the same default, so it agrees (#1257).
+        Assert.Empty(embedder.EmbedBatch([], encoder.Options, TestContext.Current.CancellationToken));
+        Assert.Equal("options", Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch([""], encoder.Options, TestContext.Current.CancellationToken)).ParamName);
     }
 
     /// <summary>Dimension read a disposed session's metadata where every other member throws (#1521).</summary>

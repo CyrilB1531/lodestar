@@ -25,7 +25,7 @@ public static class PanelRegression
     /// <param name="design">The response, the regressors, and each row's entity and period.</param>
     /// <param name="options">The effects, the covariance and the intercept; <see langword="null"/> takes the reference's defaults, pooled least squares.</param>
     /// <returns>The fitted model's table, with its poolability test when it absorbs effects.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">A span's length does not match the rows, two rows share an entity and a period, no residual degree of freedom is left, the options set a value this fit does not read, the regressors are collinear, the rows times the parameters plus one are more cells than one array holds, or two-way effects need more dummy cells, rows by one fewer than the smaller side's levels, than one array holds.</exception>
     public static PanelSummary FixedEffects(PanelDesign design, PanelOptions? options = null) =>
         Fit(Estimator.FixedEffects, design, default, clustered: false, options ?? new PanelOptions());
@@ -35,7 +35,7 @@ public static class PanelRegression
     /// <param name="clusters">One cluster label per row, combined with <see cref="PanelOptions.ClusterEntity"/> or <see cref="PanelOptions.ClusterTime"/> for two ways.</param>
     /// <param name="options">The options; <see cref="PanelOptions.CovarianceType"/> must be <see cref="PanelCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As the unclustered overload, or the labels are of the wrong length, name one cluster, or make more than two ways.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static PanelSummary FixedEffects(PanelDesign design, ReadOnlySpan<int> clusters, PanelOptions options)
@@ -48,7 +48,7 @@ public static class PanelRegression
     /// <param name="design">The response, the regressors, and each row's entity and period.</param>
     /// <param name="options">The covariance and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table, one observation per entity.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/> but for its dummy and joined blocks: the rows times the parameters are refused past one array, and that plus one only when no column is constant and the constant search appends one; or the options ask for a kernel covariance, for effects, or for entity or period clusters.</exception>
     public static PanelSummary Between(PanelDesign design, PanelOptions? options = null) =>
         Fit(Estimator.Between, design, default, clustered: false, options ?? new PanelOptions());
@@ -58,7 +58,7 @@ public static class PanelRegression
     /// <param name="clusters">One cluster label per row, the same on every row of an entity.</param>
     /// <param name="options">The options; <see cref="PanelOptions.CovarianceType"/> must be <see cref="PanelCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As the unclustered overload, or a label varies inside an entity.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static PanelSummary Between(PanelDesign design, ReadOnlySpan<int> clusters, PanelOptions options)
@@ -71,7 +71,7 @@ public static class PanelRegression
     /// <param name="design">The response, the regressors, and each row's entity and period.</param>
     /// <param name="options">The covariance; <see cref="PanelOptions.WithIntercept"/> must be <see langword="false"/>, since a difference removes a constant.</param>
     /// <returns>The fitted model's table, one observation per differenced pair.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/> but for its dummy and joined blocks: the rows times the parameters are refused past one array, and that plus one only when no column is constant and the constant search appends one; or the options ask for an intercept, effects or period clusters, the regressors hold a constant, or the panel has one period.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>: the default asks for an intercept.</exception>
     public static PanelSummary FirstDifference(PanelDesign design, PanelOptions options)
@@ -85,7 +85,7 @@ public static class PanelRegression
     /// <param name="clusters">One cluster label per row.</param>
     /// <param name="options">The options; <see cref="PanelOptions.CovarianceType"/> must be <see cref="PanelCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As the unclustered overload, or a label changes across a differenced pair.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static PanelSummary FirstDifference(PanelDesign design, ReadOnlySpan<int> clusters, PanelOptions options)
@@ -98,7 +98,7 @@ public static class PanelRegression
     /// <param name="design">The response, the regressors, and each row's entity and period.</param>
     /// <param name="options">The covariance and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table, with the variance components and each entity's <c>θ</c>.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As <see cref="FixedEffects(PanelDesign, PanelOptions?)"/> but for its dummy block, or the options ask for effects.</exception>
     public static PanelSummary RandomEffects(PanelDesign design, PanelOptions? options = null) =>
         Fit(Estimator.RandomEffects, design, default, clustered: false, options ?? new PanelOptions());
@@ -108,7 +108,7 @@ public static class PanelRegression
     /// <param name="clusters">One cluster label per row.</param>
     /// <param name="options">The options; <see cref="PanelOptions.CovarianceType"/> must be <see cref="PanelCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The regressor count is below one, or a response or regressor is NaN or infinite.</exception>
     /// <exception cref="ArgumentException">As the unclustered overload, or the labels are of the wrong length, name one cluster, or make more than two ways.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static PanelSummary RandomEffects(PanelDesign design, ReadOnlySpan<int> clusters, PanelOptions options)
@@ -121,6 +121,10 @@ public static class PanelRegression
         Estimator estimator, PanelDesign design, ReadOnlySpan<int> clusters, bool clustered, PanelOptions options)
     {
         CheckShape(design, clusters, clustered);
+
+        // A NaN is a fact about the data, refused once the lengths are judged and before any option (#1225).
+        FiniteValues.Require(design.Response, nameof(design), "design.Response", 1);
+        FiniteValues.Require(design.Exogenous, nameof(design), "design.Exogenous", design.ExogenousCount);
         CheckOptions(estimator, options, clustered);
         PanelLayout panel = PanelLayout.Sort(design, clusters, options.WithIntercept, nameof(design));
 

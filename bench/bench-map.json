@@ -327,13 +327,11 @@
     ],
     "OlsBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "GlsBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "MathNetInteropBenchmarks": [
       "src/Lodestar.Extensions.MathNet/**",
@@ -341,38 +339,31 @@
     ],
     "WeightedLeastSquaresBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "RobustCovarianceBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "HacClusterBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "GlmBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "GlmPoissonBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "GlmOffsetBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "MultinomialLogitBenchmarks": [
       "src/Lodestar.Stats.Regression/**",
-      "src/Lodestar.Stats/**",
-      "src/Lodestar.Decomposition/**"
+      "src/Lodestar.Stats/**"
     ],
     "VectorAutoregressionBenchmarks": [
       "src/Lodestar.Stats.TimeSeries/**",

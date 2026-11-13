@@ -279,4 +279,41 @@ public sealed class BatchEncoderTests
 
         Assert.Equal("count", refused.ParamName);
     }
+
+    /// <summary>The cap is taken only where none was set; the encoder it was called on keeps its own options (#1257).</summary>
+    [Fact]
+    public void WithDefaultMaxLength_fills_only_a_null_cap_on_a_copy()
+    {
+        BatchEncoder open = Encoder();
+        BatchEncoder capped = open.WithDefaultMaxLength(4);
+        BatchEncoder own = Encoder(new EncodingOptions { MaxLength = 3 });
+
+        Assert.Null(open.Options.MaxLength);
+        Assert.Equal(4, capped.Options.MaxLength);
+        Assert.Equal([7, 1, 2, 8], capped.Encode("the cat sat"));
+        Assert.Equal([7, 1, 2, 3, 8], open.Encode("the cat sat"));
+        Assert.Same(own, own.WithDefaultMaxLength(4));
+    }
+
+    /// <summary>The cap keeps every other option, and a refusal under <c>None</c> applies at the new cap.</summary>
+    [Fact]
+    public void WithDefaultMaxLength_keeps_the_other_options()
+    {
+        var options = new EncodingOptions { Truncation = TruncationStrategy.None, BatchSize = 7, SortByLength = false };
+        BatchEncoder capped = Encoder(options).WithDefaultMaxLength(4);
+
+        Assert.Equal(options with { MaxLength = 4 }, capped.Options);
+        Assert.Throws<ArgumentException>(() => capped.Encode("the cat sat"));
+    }
+
+    /// <summary>A template past the cap has nothing to cut and is left as it is; the cap itself must be a length.</summary>
+    [Fact]
+    public void WithDefaultMaxLength_leaves_a_template_past_the_cap_and_refuses_a_cap_below_one()
+    {
+        BatchEncoder open = Encoder();
+
+        Assert.Same(open, open.WithDefaultMaxLength(1));
+        Assert.Equal(2, open.WithDefaultMaxLength(2).Options.MaxLength);
+        Assert.Equal("maxLength", Assert.Throws<ArgumentOutOfRangeException>(() => open.WithDefaultMaxLength(0)).ParamName);
+    }
 }

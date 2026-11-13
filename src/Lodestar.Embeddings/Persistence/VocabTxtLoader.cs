@@ -158,8 +158,8 @@ public static class VocabTxtLoader
         // JsonArtifact.ReadAllBytes), and netstandard2.0's Encoding has no span overload.
         ReadOnlyMemory<byte> text = payload.Slice(offset);
         return MemoryMarshal.TryGetArray(text, out ArraySegment<byte> segment) && segment.Array is not null
-            ? JsonArtifact.Utf8NoBom.GetString(segment.Array, segment.Offset, segment.Count)
-            : JsonArtifact.Utf8NoBom.GetString(text.ToArray());
+            ? ArtifactEncoding.Utf8NoBom.GetString(segment.Array, segment.Offset, segment.Count)
+            : ArtifactEncoding.Utf8NoBom.GetString(text.ToArray());
     }
 
 }

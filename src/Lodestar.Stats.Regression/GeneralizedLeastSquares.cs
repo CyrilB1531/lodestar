@@ -23,7 +23,7 @@ public static class GeneralizedLeastSquares
     /// <param name="featureCount">How many regressors each row carries.</param>
     /// <param name="options">Whether to fit an intercept, which covariance of the estimates, and at what confidence; <see langword="null"/> fits one at 0.95.</param>
     /// <returns>The fitted model, with its standard errors, t statistics, p-values, intervals and VIFs.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, or <paramref name="covariance"/> holds a value that is not finite.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="featureCount"/> is not positive, <paramref name="covariance"/> holds a value that is not finite, or a value of <paramref name="design"/> or <paramref name="response"/> is NaN or infinite.</exception>
     /// <exception cref="ArgumentException"><paramref name="design"/> is not a whole number of rows, <paramref name="response"/> has a different length, <paramref name="covariance"/> is not the square of that length, is not symmetric or is not positive definite, <paramref name="options"/> asks for <see cref="CovarianceType.Hac"/> or <see cref="CovarianceType.Cluster"/>, no residual degrees of freedom are left, a column of the whitened design, intercept included, is collinear with the columns before it, or <paramref name="covariance"/> is more cells than one array holds.</exception>
     /// <remarks>
     /// R² follows the reference: centred, with an intercept, on the mean estimated in whitened space. The VIFs
@@ -39,6 +39,8 @@ public static class GeneralizedLeastSquares
         Guard.NotLessThan(featureCount, 1);
         OlsOptions settings = options ?? new OlsOptions();
         int rowCount = LeastSquares.Rows(design, response, featureCount);
+        RequireCovarianceLength(covariance, rowCount);
+        LeastSquares.RequireFinite(design, response, featureCount);
         int parameterCount = featureCount + (settings.WithIntercept ? 1 : 0);
         OrdinaryLeastSquares.RequireResidualDegreesOfFreedom(rowCount, parameterCount, nameof(design));
         if (settings.CovarianceType is CovarianceType.Hac or CovarianceType.Cluster)
@@ -96,8 +98,8 @@ public static class GeneralizedLeastSquares
         return residuals;
     }
 
-    /// <summary>The covariance's Cholesky factor, after refusing what the reference would reject or silently misread.</summary>
-    private static double[] Factor(ReadOnlySpan<double> covariance, int rowCount)
+    /// <summary>Refuses a covariance that is not the rows squared, a shape refusal made before any value is read.</summary>
+    private static void RequireCovarianceLength(ReadOnlySpan<double> covariance, int rowCount)
     {
         // In long: 65,536 rows square to 2³², which wraps an int to zero and let an empty covariance through (#905).
         long expected = (long)rowCount * rowCount;
@@ -107,15 +109,12 @@ public static class GeneralizedLeastSquares
                 $"design has {rowCount} rows, so covariance holds {expected} values, not {covariance.Length}.",
                 nameof(covariance));
         }
+    }
 
-        for (int i = 0; i < covariance.Length; i++)
-        {
-            if (double.IsNaN(covariance[i]) || double.IsInfinity(covariance[i]))
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(covariance), covariance[i], $"covariance[{i}] is not a finite number.");
-            }
-        }
+    /// <summary>The covariance's Cholesky factor, after refusing what the reference would reject or silently misread.</summary>
+    private static double[] Factor(ReadOnlySpan<double> covariance, int rowCount)
+    {
+        FiniteValues.Require(covariance, nameof(covariance), nameof(covariance), columns: 1);
 
         for (int row = 0; row < rowCount; row++)
         {

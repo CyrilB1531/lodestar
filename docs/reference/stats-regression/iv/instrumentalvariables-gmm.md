@@ -23,11 +23,15 @@ label per row. `options` chooses the covariance, the second step's weight and th
 **Returns** — an [`IvSummary`](../instrumental/ivsummary.md) whose `Overidentification` is
 Hansen's J, and whose `Kappa` is `null`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when a column count is out of range.
+**Exceptions** — `ArgumentOutOfRangeException` when a column count is out of range, or when a value of `Response`,
+`Exogenous`, `Endogenous` or `Instruments` is NaN or infinite, with the block and the cell named.
 `ArgumentException` when a block's length is not its column count times the rows, when there are
 fewer instruments than endogenous regressors, when no residual degree of freedom is left, when the
-options ask for a cluster covariance or weight without labels, when `Fuller` is set, or when the regressors or
-instruments are collinear. `ArgumentNullException` when the clustered overload gets no `options`.
+options ask for a cluster covariance or weight without labels, when `Fuller` is set, when the regressors or
+instruments are collinear, or when the second step's score covariance is singular: an exact first-step fit, or,
+under a clustered weight and naming `clusters`, fewer clusters than instrument columns, or as many in a just-identified
+model, whose first-step scores sum to zero; naming `design`, when that covariance is not finite, its scores having
+overflowed. `ArgumentNullException` when the clustered overload gets no `options`.
 `ArgumentException` naming `design` also when the rows times the larger of the parameters and the
 instruments, or that plus one where a rank test or LIML appends a column, are more cells than one
 array holds

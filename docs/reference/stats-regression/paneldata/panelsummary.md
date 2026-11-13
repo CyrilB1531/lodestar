@@ -17,7 +17,7 @@ between, differences for first-difference — and `EntityCount` and `PeriodCount
 `ResidualDegreesOfFreedom` follows. `RSquared` is the regression's own; `RSquaredWithin`,
 `RSquaredBetween` and `RSquaredOverall` apply the coefficients to the entity-demeaned rows, the
 entity means and the rows as given. `ModelTest` is the homoskedastic F that every coefficient but the
-constant is zero, `RobustModelTest` the same under the chosen covariance, and `PoolabilityTest` fixed
+constant is zero, `RobustModelTest` the same under the chosen covariance (a `NaN` statistic and p-value when its block is singular, as with at most as many clusters, the coarser of two nested clusterings counted, or kernel periods, as coefficients tested), and `PoolabilityTest` fixed
 effects' F that the effects are zero, all [`WaldTest`](../common/waldtest.md)s or `null`.
 `ResidualVariance`, `EffectsVariance` and `Rho` are the variance decomposition, for fixed and random
 effects; `Theta` is random effects' per-entity weight.

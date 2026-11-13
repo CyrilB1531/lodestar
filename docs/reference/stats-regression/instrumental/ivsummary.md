@@ -15,7 +15,10 @@ chosen, else `null`) and `ConfidenceLevel` echo how they were computed. `HasCons
 the regressors hold a constant, which centres `RSquared`; `AdjustedRSquared` and
 `ResidualDegreesOfFreedom` follow. `ModelTest` is the joint test that every coefficient but the
 constant is zero, a [`WaldTest`](../common/waldtest.md). `Kappa` is the `k`-class parameter, `null` for GMM.
-`FirstStage` holds one [`IvFirstStage`](ivfirststage.md) per endogenous regressor.
+`FirstStage` holds one [`IvFirstStage`](ivfirststage.md) per endogenous regressor. A test whose
+covariance block is singular, as with at most as many clusters as coefficients tested or on an exact fit, reports a `NaN`
+statistic and p-value; under an overidentified LIML, whose `κ ≠ 1` leaves its scores a nonzero total, the cluster
+count alone makes the model test singular only below the coefficients tested.
 `Overidentification` is Sargan's test for 2SLS and LIML and Hansen's J for GMM, `null` when the
 model is just identified.
 

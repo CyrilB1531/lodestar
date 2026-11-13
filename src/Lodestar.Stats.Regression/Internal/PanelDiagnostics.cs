@@ -169,7 +169,7 @@ internal static class PanelDiagnostics
             }
         }
 
-        double statistic = PanelCore.Dot(b, Dense.Multiply(IvCore.Invert(block, m), b, m, m, 1));
+        double statistic = CovarianceRank.QuadraticForm(b, block, m, fit.LargestRank);
         return debiased
             ? new WaldTest(statistic / m, Distributions.FisherSf(statistic / m, m, df), m, df)
             : new WaldTest(statistic, Distributions.ChiSquaredSf(statistic, m), m, null);

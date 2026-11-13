@@ -17,8 +17,8 @@ covariance of the estimates to report, and at what confidence; `null` fits an in
 **Returns** — [`OlsSummary`](../ols/olssummary.md): the fitted model, with its standard errors, t statistics,
 p-values, confidence intervals and variance inflation factors.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when `covariance` holds
-a value that is not finite. `ArgumentException` when `design` is not a whole number of rows, when `response`
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, when `covariance` holds
+a value that is not finite, or when a value of `design` or `response` is NaN or infinite, with the cell named. `ArgumentException` when `design` is not a whole number of rows, when `response`
 has a different length, when `covariance` is not the square of that length, is not symmetric or is not
 positive definite, when no residual degrees of freedom are left, or when a column of the whitened design is
 collinear with the columns before it.

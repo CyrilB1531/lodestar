@@ -17,14 +17,6 @@ namespace Lodestar.Internal.Persistence;
 /// </remarks>
 internal static class JsonArtifact
 {
-    /// <summary>UTF-8 without a byte-order mark — what every artifact is written in.</summary>
-    /// <remarks>
-    /// <see cref="Utf8JsonWriter"/> emits no preamble of its own, so writing is
-    /// BOM-free by construction; this instance exists for the paths that need an
-    /// explicit encoder, and throws on invalid surrogates rather than substituting.
-    /// </remarks>
-    public static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
     /// <summary>Writer options for artifacts: compact, and validated as it is written.</summary>
     /// <remarks>
     /// The relaxed encoder is deliberate: the default escapes every non-ASCII character as
@@ -1046,7 +1038,7 @@ internal static class JsonArtifact
     {
         try
         {
-            return Utf8NoBom.GetString(raw, index, count);
+            return ArtifactEncoding.Utf8NoBom.GetString(raw, index, count);
         }
         catch (DecoderFallbackException e)
         {

@@ -192,8 +192,8 @@ public static class BpeFilesLoader
 
         ReadOnlyMemory<byte> text = payload.Slice(offset);
         return MemoryMarshal.TryGetArray(text, out ArraySegment<byte> segment) && segment.Array is not null
-            ? JsonArtifact.Utf8NoBom.GetString(segment.Array, segment.Offset, segment.Count)
-            : JsonArtifact.Utf8NoBom.GetString(text.ToArray());
+            ? ArtifactEncoding.Utf8NoBom.GetString(segment.Array, segment.Offset, segment.Count)
+            : ArtifactEncoding.Utf8NoBom.GetString(text.ToArray());
     }
 
     private static void ParseMergeLine(string text, int start, int stop, int line, List<MergePair> merges, in ArtifactLimits limits)

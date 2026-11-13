@@ -26,7 +26,7 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
 
     /// <summary>Wraps an embedder and the encoder it should tokenize with.</summary>
     /// <param name="embedder">The loaded model. <strong>This generator takes ownership</strong>: <see cref="Dispose"/> disposes it.</param>
-    /// <param name="encoder">The encoder that owns the tokenizer, template and truncation.</param>
+    /// <param name="encoder">The encoder that owns the tokenizer, template and truncation; a null <c>MaxLength</c> on it takes the length <see cref="OnnxTextEmbedder.EmbedBatch(IEnumerable{string}, BatchEncoder, CancellationToken)"/> fills in: the model's configured <c>max_seq_length</c>, else 256, never past <see cref="OnnxTextEmbedder.MaxSequenceLength"/>.</param>
     /// <param name="modelId">What to report as the model's name; <see langword="null"/> reports none. An ONNX file does not carry one, so nothing can be read off the session.</param>
     /// <exception cref="ArgumentNullException"><paramref name="embedder"/> or <paramref name="encoder"/> is null.</exception>
     /// <remarks>
@@ -56,7 +56,8 @@ public sealed class OnnxEmbeddingGenerator : IEmbeddingGenerator<string, Embeddi
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <returns>One <see cref="Embedding{T}"/> per input, in the order they were given, each carrying the generator's model identifier and the time it was generated.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="values"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> asks for a dimension the loaded model does not produce, or the encoder refuses a text in <paramref name="values"/>, as it refuses one over its <c>MaxLength</c> under <c>TruncationStrategy.None</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> asks for a dimension the loaded model does not produce, or a text in <paramref name="values"/> is refused, as the encoder refuses one over its <c>MaxLength</c> under <c>TruncationStrategy.None</c> and a configured <c>only_second</c> one past the configured length, or its own <c>MaxLength</c> lets a sequence past the model's <see cref="OnnxTextEmbedder.MaxSequenceLength"/>, naming <c>encoder</c>.</exception>
+    /// <exception cref="InvalidOperationException">The sentence-transformers configuration beside the model is refused, as <see cref="OnnxTextEmbedder.EmbedBatch(IEnumerable{string}, BatchEncoder, CancellationToken)"/> refuses it (#1257).</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled, before or between sub-batches.</exception>
     /// <exception cref="ObjectDisposedException">This generator has been disposed.</exception>
     /// <remarks>

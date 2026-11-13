@@ -265,7 +265,7 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
         {
             // HuggingFace normalizes what the raw pass left, piece by piece, then scans it for normalized tokens.
             string slice = Slice(normalized, from, to);
-            string piece = _basic ? BertBasicTokenization.Normalize(slice, _lowercase) : Lowercase(slice);
+            string piece = _basic ? BertBasicTokenization.Normalize(slice, _lowercase) : TokenizersLowercase.Of(slice);
             EncodeNormalizedGap(piece, 0, piece.Length, tokens, ids);
             return;
         }
@@ -332,20 +332,8 @@ public sealed class WordPieceTokenizer : ISubwordTokenizer
             return BertBasicTokenization.Normalize(content, lowercase);
         }
 
-        return lowercase ? Lowercase(content) : content;
+        return lowercase ? TokenizersLowercase.Of(content) : content;
     }
-
-    /// <summary><c>normalizers.Lowercase</c>: Rust's <c>char::to_lowercase</c>, one code point at a time.</summary>
-    /// <remarks>
-    /// The invariant simple mapping agrees with it everywhere but U+0130, whose full mapping is
-    /// <c>i</c> + U+0307 — the one unconditional multi-character entry of SpecialCasing.txt, and
-    /// the reason <c>İstanbul</c> finds <c>i̇stanbul</c> in a vocabulary (#1213).
-    /// </remarks>
-    // CA1307: Replace(string, string) is ordinal already, and netstandard2.0 has no overload taking a comparison.
-#pragma warning disable CA1307
-    private static string Lowercase(string text) =>
-        (text.Contains('\u0130') ? text.Replace("\u0130", "i\u0307") : text).ToLowerInvariant();
-#pragma warning restore CA1307
 
     /// <summary>The slice, or the string itself when the slice is the whole of it.</summary>
     /// <remarks>

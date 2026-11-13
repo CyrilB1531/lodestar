@@ -25,11 +25,13 @@ scaling, and the intercept; `null` takes the reference's defaults.
 **Returns** — an [`IvSummary`](../instrumental/ivsummary.md): the table, R², the model test, the
 first-stage diagnostics and Sargan's overidentification test.
 
-**Exceptions** — `ArgumentOutOfRangeException` when a column count is out of range.
+**Exceptions** — `ArgumentOutOfRangeException` when a column count is out of range, or when a value of `Response`,
+`Exogenous`, `Endogenous` or `Instruments` is NaN or infinite, with the block and the cell named.
 `ArgumentException` when a block's length is not its column count times the rows, when there are
 fewer instruments than endogenous regressors, when no residual degree of freedom is left, when the
-options ask for a cluster covariance without labels or set a value this estimator does not read, or
-when the regressors or instruments are collinear. `ArgumentNullException` when the clustered
+options ask for a cluster covariance without labels or set a value this estimator does not read,
+when the regressors or instruments are collinear, or when a kernel covariance without a bandwidth meets
+scores whose automatic bandwidth is undefined, as an exact fit's are. `ArgumentNullException` when the clustered
 overload gets no `options`.
 `ArgumentException` naming `design` also when the rows times the larger of the parameters and the
 instruments, or that plus one where a rank test or LIML appends a column, are more cells than one

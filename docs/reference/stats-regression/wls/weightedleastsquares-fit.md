@@ -27,8 +27,8 @@ intercept, which covariance to estimate, and at what confidence; `null` fits an 
 **Returns** — [`OlsSummary`](../ols/olssummary.md): the fitted model, with its standard errors, t
 statistics, p-values, confidence intervals and variance inflation factors.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, or when a weight
-is negative, `NaN` or infinite. `ArgumentException` when `design` is not a whole number of rows, when
+**Exceptions** — `ArgumentOutOfRangeException` when `featureCount` is not positive, when a weight
+is negative, `NaN` or infinite, or when a value of `design` or `response` is NaN or infinite, with the cell named. `ArgumentException` when `design` is not a whole number of rows, when
 `response`, `weights` or `clusters` has a different length, when no residual degrees of freedom are
 left, when fewer rows carry a positive weight than the model has parameters, when a column of the
 weighted design is collinear with the columns before it, or when `options` and
