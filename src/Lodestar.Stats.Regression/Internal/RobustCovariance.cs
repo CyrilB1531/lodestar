@@ -8,77 +8,61 @@ namespace Lodestar.Stats.Regression.Internal;
 /// </remarks>
 internal static class RobustCovariance
 {
-    /// <summary>The leverage of each row, <c>hᵢᵢ</c>, as a row of <c>X R⁻¹</c> against itself.</summary>
+    /// <summary>One row's leverage <c>hᵢᵢ = Σ_c v_c²</c>, <c>v = xᵢR⁻¹</c>, a row of <c>X R⁻¹</c> against itself.</summary>
     /// <remarks>
     /// For a full-rank design <c>Q = X R⁻¹</c>, so <c>H = QQᵀ</c> has this diagonal without Q ever being formed —
     /// nor the whole hat matrix, which for 50 000 rows would be 20 GB. The solve no longer builds Q (#782), and
     /// <c>p²</c> products per row is the rest of the price.
     /// </remarks>
-    public static double[] Leverages(double[] matrix, double[] inverseUpper, int rowCount, int parameterCount)
+    public static double Leverage(double[] matrix, double[] inverseUpper, int at, int parameterCount)
     {
-        var leverages = new double[rowCount];
-        var projected = new double[parameterCount];
-        for (int row = 0; row < rowCount; row++)
+        double total = 0.0;
+        for (int column = 0; column < parameterCount; column++)
         {
-            int at = row * parameterCount;
-            for (int column = 0; column < parameterCount; column++)
+            double value = 0.0;
+            for (int k = 0; k <= column; k++)
             {
-                double value = 0.0;
-                for (int k = 0; k <= column; k++)
-                {
-                    value += matrix[at + k] * inverseUpper[(k * parameterCount) + column];
-                }
-
-                projected[column] = value;
+                value += matrix[at + k] * inverseUpper[(k * parameterCount) + column];
             }
 
-            double total = 0.0;
-            for (int column = 0; column < parameterCount; column++)
-            {
-                total += projected[column] * projected[column];
-            }
-
-            leverages[row] = total;
+            total += value * value;
         }
 
-        return leverages;
+        return total;
     }
 
-    /// <summary>The row weight each type puts in the filling.</summary>
+    /// <summary>What HC2 and HC3 divide each squared residual by, <c>1 − h</c> and <c>(1 − h)²</c>; null for the others.</summary>
     /// <remarks>
-    /// A leverage of one is a row the fit passes through exactly, which leaves HC2 and HC3
-    /// dividing by zero. statsmodels returns infinity there rather than raising, and so does
-    /// this: the row is what is degenerate, and a summary naming it is more use than an
-    /// exception naming the call.
+    /// statsmodels' own weights, read on the leverage as computed: a leverage of one, as a column nonzero on one row
+    /// alone gives it, divides by zero or by its rounding there too, and the row's weight is what that arithmetic reads,
+    /// an infinity, a NaN or a large value, as the reference's is (Cyril, 2026-11-14, Review A pass 10 on #1779).
     /// </remarks>
-    private static double Weight(CovarianceType type, double residual, double leverage)
+    public static double[]? Divisors(double[] matrix, double[] inverseUpper, int rowCount, int parameterCount, CovarianceType type)
     {
-        double squared = residual * residual;
-        return type is CovarianceType.Hc2 or CovarianceType.Hc3 ? squared / LeverageDivisor(type, leverage) : squared;
+        if (type is not (CovarianceType.Hc2 or CovarianceType.Hc3))
+        {
+            return null;
+        }
+
+        var divisors = new double[rowCount];
+        for (int row = 0; row < rowCount; row++)
+        {
+            double complement = 1.0 - Leverage(matrix, inverseUpper, row * parameterCount, parameterCount);
+            divisors[row] = type == CovarianceType.Hc2 ? complement : complement * complement;
+        }
+
+        return divisors;
     }
 
-    /// <summary>What HC2 and HC3 divide a squared residual by: <c>1 − h</c> and <c>(1 − h)²</c>; one for the others.</summary>
-    private static double LeverageDivisor(CovarianceType type, double leverage) => type switch
-    {
-        CovarianceType.Hc2 => 1.0 - leverage,
-        CovarianceType.Hc3 => (1.0 - leverage) * (1.0 - leverage),
-        _ => 1.0,
-    };
-
-    /// <summary>The filling of HC0 to HC3, <c>Σ ωᵢ xᵢxᵢᵀ</c>; the leverages are read only by the two types that weight by them.</summary>
+    /// <summary>The filling of HC0 to HC3, <c>Σ ωᵢ xᵢxᵢᵀ</c>, each squared residual over its divisor where HC2 and HC3 have one.</summary>
     public static double[] HeteroskedasticMeat(
-        double[] matrix, double[] inverseUpper, double[] residuals, int rowCount, int parameterCount, CovarianceType type)
+        double[] matrix, double[]? divisors, double[] residuals, int rowCount, int parameterCount)
     {
-        // HC0 and HC1 never read a leverage: they skip computing them and pass an array of the right length in their
-        // place, so the one loop below serves all four types without a test per row.
-        double[] leverages = type is CovarianceType.Hc2 or CovarianceType.Hc3
-            ? Leverages(matrix, inverseUpper, rowCount, parameterCount)
-            : residuals;
-
         var meat = new double[parameterCount * parameterCount];
         for (int row = 0; row < rowCount; row++)
         {
-            double weight = Weight(type, residuals[row], leverages[row]);
+            double squared = residuals[row] * residuals[row];
+            double weight = divisors is null ? squared : squared / divisors[row];
             int at = row * parameterCount;
             for (int a = 0; a < parameterCount; a++)
             {
@@ -201,17 +185,10 @@ internal static class RobustCovariance
     /// <summary>Each residual's size with the terms it was computed from, <c>|eᵢ| + Σ |xᵢⱼbⱼ|</c>, which its rounding scales with.</summary>
     public static double[] ResidualMagnitudes(double[] matrix, double[] residuals, double[] coefficients, int rowCount)
     {
-        int parameterCount = coefficients.Length;
         var magnitudes = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
-            double total = Math.Abs(residuals[row]);
-            for (int a = 0; a < parameterCount; a++)
-            {
-                total += Math.Abs(matrix[(row * parameterCount) + a] * coefficients[a]);
-            }
-
-            magnitudes[row] = total;
+            magnitudes[row] = ExactFit.Magnitude(matrix, residuals[row], coefficients, row * coefficients.Length);
         }
 
         return magnitudes;
@@ -246,16 +223,13 @@ internal static class RobustCovariance
 
     /// <summary>The rows <c>√ωᵢ·xᵢ</c> whose cross product is the HC0 to HC3 filling, or their sizes from <paramref name="magnitudes"/>.</summary>
     public static ScoreRows HeteroskedasticScores(
-        double[] matrix, double[] inverseUpper, double[] residuals, double[] magnitudes, int rowCount, int parameterCount, CovarianceType type)
+        double[] matrix, double[]? divisors, double[] residuals, double[] magnitudes, int rowCount, int parameterCount)
     {
-        double[] leverages = type is CovarianceType.Hc2 or CovarianceType.Hc3
-            ? Leverages(matrix, inverseUpper, rowCount, parameterCount)
-            : residuals;
         var rows = new double[rowCount * parameterCount];
         var sizes = new double[rowCount * parameterCount];
         for (int row = 0; row < rowCount; row++)
         {
-            double scale = 1.0 / Math.Sqrt(LeverageDivisor(type, leverages[row]));
+            double scale = divisors is null ? 1.0 : 1.0 / Math.Sqrt(divisors[row]);
             int at = row * parameterCount;
             for (int a = 0; a < parameterCount; a++)
             {
@@ -384,6 +358,12 @@ internal static class RobustCovariance
     /// <param name="withIntercept">Whether the first coefficient is left out of the test.</param>
     public static (double Statistic, int Rank) Wald(SandwichParts sandwich, double[] coefficients, bool withIntercept)
     {
+        if (sandwich.Exact)
+        {
+            // An exact fit's covariance is zero: no restriction is testable, and statsmodels' 0/0 is NaN too.
+            return (double.NaN, 0);
+        }
+
         int parameterCount = coefficients.Length;
         // The cluster sums that are not zero, less one, bound a cluster covariance; no other type is bounded below k.
         int largestRank = sandwich.LargestRank ?? parameterCount;

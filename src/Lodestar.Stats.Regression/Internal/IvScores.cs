@@ -211,16 +211,22 @@ internal static class IvScores
         if (double.IsNaN(gamma))
         {
             // Casting NaN to int is unspecified: 0 on net10, int.MinValue on .NET Framework (#1269).
-            // CA2208, S3928: the name is InstrumentalVariables' options, the one public parameter this helper serves.
-#pragma warning disable CA2208, S3928
-            throw new ArgumentException(
-                "The automatic kernel bandwidth is undefined: every autocovariance of the scores is zero, an exact fit, or they "
-                + "overflowed. Give the bandwidth in the options.",
-                OptionsParameter);
-#pragma warning restore CA2208, S3928
+            throw UndefinedBandwidth();
         }
 
         return (int)Math.Min(Math.Ceiling(gamma * Math.Pow(n, rate)), n - 1);
+    }
+
+    /// <summary>The refusal of an automatic bandwidth that is 0/0, as on an exact fit, under <see cref="OptionsParameter"/>.</summary>
+    public static ArgumentException UndefinedBandwidth()
+    {
+        // CA2208, S3928: the name is InstrumentalVariables' options, the one public parameter this helper serves.
+#pragma warning disable CA2208, S3928
+        return new ArgumentException(
+            "The automatic kernel bandwidth is undefined: every autocovariance of the scores is zero, an exact fit, or they "
+            + "overflowed. Give the bandwidth in the options.",
+            OptionsParameter);
+#pragma warning restore CA2208, S3928
     }
 
     /// <summary>

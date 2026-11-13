@@ -28,8 +28,9 @@ Hansen's J, and whose `Kappa` is `null`.
 `ArgumentException` when a block's length is not its column count times the rows, when there are
 fewer instruments than endogenous regressors, when no residual degree of freedom is left, when the
 options ask for a cluster covariance or weight without labels, when `Fuller` is set, when the regressors or
-instruments are collinear, or when the second step's score covariance is singular: an exact first-step fit, or,
-under a clustered weight and naming `clusters`, fewer clusters than instrument columns, or as many in a just-identified
+instruments are collinear, or when the second step's score covariance is singular: zero, under a robust, kernel
+or clustered weight on an exact first-step fit with every residual within its rounding of zero, or under an unadjusted
+weight on first-step residuals exactly zero, naming `design`, or, under a clustered weight and naming `clusters`, fewer clusters than instrument columns, or as many in a just-identified
 model, whose first-step scores sum to zero; naming `design`, when that covariance is not finite, its scores having
 overflowed. `ArgumentNullException` when the clustered overload gets no `options`.
 `ArgumentException` naming `design` also when the rows times the larger of the parameters and the

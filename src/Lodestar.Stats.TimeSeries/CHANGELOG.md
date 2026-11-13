@@ -12,6 +12,8 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 ### Fixed
 
 - `Stationarity.AugmentedDickeyFuller` reads a finite series at any scale, where one far from unit scale was called rank-deficient and one whose neighbours' difference overflowed was refused naming `response`. ([#1225](https://github.com/CyrilB1531/lodestar/issues/1225))
+- `Stationarity.Kpss`, `SerialCorrelation.Autocorrelation`, `PartialAutocorrelation` and `LjungBox` read a series far from unit scale at unit scale, so at 2^600 or 2^-1000 they answer their scale-1 values, where they read NaN. ([#1779](https://github.com/CyrilB1531/lodestar/issues/1779))
+- `Stationarity.AugmentedDickeyFuller` scales each value as it builds its design and copies the series only far from unit scale, bit-identical, where the copy cost 8% at 200 points. ([#1779](https://github.com/CyrilB1531/lodestar/issues/1779))
 - `SerialCorrelation.Autocorrelation` and `PartialAutocorrelation` keep their band multiplier's digits at a confidence level near one, which moves an ordinary level's by a few ulps toward the exact quantile. ([#1729](https://github.com/CyrilB1531/lodestar/issues/1729))
 - `VectorAutoregression.Fit` counts its parameters per equation in `long`, so a lag order whose count passes `int` is refused as leaving no residual degree of freedom, where the count wrapped negative, passed and overflowed the design. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - `VectorAutoregression.Fit` and `Stationarity.AugmentedDickeyFuller` refuse a lagged design past one array, where the product wrapped or failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))

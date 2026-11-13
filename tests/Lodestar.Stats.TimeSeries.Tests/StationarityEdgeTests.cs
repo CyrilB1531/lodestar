@@ -241,17 +241,17 @@ public sealed class StationarityEdgeTests
     [Fact]
     public void Kpss_does_not_call_an_overflowing_fit_a_straight_line()
     {
-        // The line fit's mean overflows and every residual is NaN, which a `>` test sent to the refusal
-        // branch: a wrong message, where before #1035 the series was answered (#1080).
+        // The line fit's mean overflowed and every residual was NaN, which a `>` test sent to the refusal branch
+        // (#1080); read at unit scale, the series is answered as its halves 1 and 2 are (#1779).
         double[] series = [.. Enumerable.Range(0, 30).Select(i => i % 2 == 0 ? 1e307 : 2e307)];
+        double[] unit = [.. series.Select(value => value * Math.Pow(2.0, -1020))];
 
         KpssResult result = Stationarity.Kpss(series, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
+        KpssResult expected = Stationarity.Kpss(unit, new KpssOptions { Regression = TrendTerms.ConstantAndTrend });
 
-        Assert.True(double.IsNaN(result.Statistic));
-
-        // The window that NaN reaches is fixed at zero rather than cast: the cast is 0 on .NET 10 and
-        // int.MinValue on .NET Framework, which is the runtime-dependent answer #874 closed.
-        Assert.Equal(0, result.LagCount);
+        Assert.True(double.IsFinite(result.Statistic), $"{result.Statistic}");
+        Assert.Equal(expected.Statistic, result.Statistic);
+        Assert.Equal(expected.LagCount, result.LagCount);
     }
 
     [Fact]

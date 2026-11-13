@@ -29,7 +29,7 @@ internal static class DickeyFullerRegression
     private const string DesignParameter = "design";
 
     internal static (IReadOnlyList<double> TStatistics, double ResidualSumOfSquares) Fit(
-        ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows)
+        ScaledSeries series, TrendTerms regression, int lag, int rows)
     {
         double[] design = Design(series, regression, lag, rows, out double[] response, nameof(series));
 
@@ -67,7 +67,7 @@ internal static class DickeyFullerRegression
     /// one factorization answer them all: 27 QRs became one at 2,000 points.
     /// </remarks>
     internal static (double[] ResidualSumsOfSquares, double[] LastTStatistics) Candidates(
-        ReadOnlySpan<double> series, TrendTerms regression, int maxLag, int rows, bool withTStatistics)
+        ScaledSeries series, TrendTerms regression, int maxLag, int rows, bool withTStatistics)
     {
         // A fit with no residual degree of freedom is refused by the estimate itself, at the lag the search reaches it first.
         int terms = TermCount(regression);
@@ -116,7 +116,7 @@ internal static class DickeyFullerRegression
     }
 
     /// <summary>The lagged design at <paramref name="lag"/>, trend columns first, and its differenced response.</summary>
-    /// <param name="series">The observations.</param>
+    /// <param name="series">The observations, each scaled as it is read.</param>
     /// <param name="regression">The trend terms, the constant among them appended by the fit.</param>
     /// <param name="lag">The lagged differences each row carries.</param>
     /// <param name="rows">The rows the regression uses, the last ones of the series.</param>
@@ -124,7 +124,7 @@ internal static class DickeyFullerRegression
     /// <param name="paramName">The public parameter a design past one array is blamed on.</param>
     /// <exception cref="ArgumentException">The design, constant included, is more cells than one array holds.</exception>
     private static double[] Design(
-        ReadOnlySpan<double> series, TrendTerms regression, int lag, int rows, out double[] response, string paramName)
+        ScaledSeries series, TrendTerms regression, int lag, int rows, out double[] response, string paramName)
     {
         // long-comment: why the trend columns come first.
         // Row r of rows is series position t = n - rows + r: the response is dx[t], and the regressors
@@ -158,7 +158,15 @@ internal static class DickeyFullerRegression
             }
 
             design[offset + trend] = series[t - 1];
-            for (int k = 1; k <= lag; k++)
+
+            // dx[t − k] is an earlier row's response once row reaches k, the same double read back instead of rebuilt.
+            int built = Math.Min(lag, row);
+            for (int k = 1; k <= built; k++)
+            {
+                design[offset + trend + k] = response[row - k];
+            }
+
+            for (int k = built + 1; k <= lag; k++)
             {
                 design[offset + trend + k] = series[t - k] - series[t - k - 1];
             }
@@ -178,4 +186,27 @@ internal static class DickeyFullerRegression
         double penalty = selection == LagSelection.Schwarz ? Math.Log(rows) * parameters : 2.0 * parameters;
         return (-2.0 * logLikelihood) + penalty;
     }
+}
+
+/// <summary>A series read value by value times a power of two, which scales each exactly, so no scaled copy is made.</summary>
+/// <remarks>
+/// <c>values[t] * scale</c> is the double a copy scaled by that power holds, so a design built through this is the
+/// one built from such a copy, bit for bit (#1779).
+/// </remarks>
+internal readonly ref struct ScaledSeries
+{
+    private readonly ReadOnlySpan<double> _values;
+    private readonly double _scale;
+
+    /// <param name="values">The series as given, or a copy already at unit scale.</param>
+    /// <param name="scale">The power of two still to apply, one for such a copy.</param>
+    internal ScaledSeries(ReadOnlySpan<double> values, double scale)
+    {
+        _values = values;
+        _scale = scale;
+    }
+
+    internal int Length => _values.Length;
+
+    internal double this[int index] => _values[index] * _scale;
 }

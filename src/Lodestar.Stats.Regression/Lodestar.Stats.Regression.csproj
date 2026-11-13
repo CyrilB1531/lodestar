@@ -16,6 +16,7 @@
     <LodestarIncludesElementWise>true</LodestarIncludesElementWise>
     <LodestarIncludesJacobiSpectrum>true</LodestarIncludesJacobiSpectrum>
     <LodestarIncludesRankBracket>true</LodestarIncludesRankBracket>
+    <LodestarIncludesExactProduct>true</LodestarIncludesExactProduct>
   </PropertyGroup>
 
   <!--

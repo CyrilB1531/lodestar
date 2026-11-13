@@ -53,7 +53,9 @@ public static class GeneralizedLeastSquares
         OrdinaryLeastSquares.CheckCovariance(settings, default, clustered: false, rowCount, nameof(options));
         double[] lower = Factor(covariance, rowCount);
 
-        double[] whitened = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept, nameof(design));
+        bool robust = settings.CovarianceType != CovarianceType.Nonrobust;
+        double[] given = LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept, nameof(design));
+        double[] whitened = robust ? (double[])given.Clone() : given;
         for (int column = 0; column < parameterCount; column++)
         {
             Cholesky.ForwardSubstitute(lower, rowCount, whitened, parameterCount, column);
@@ -68,15 +70,35 @@ public static class GeneralizedLeastSquares
         double[] residuals = WhitenedResiduals(whitened, whitenedResponse, coefficients, rowCount);
 
         return OrdinaryLeastSquares.Tabulate(
-            new OrdinaryLeastSquares.SolvedFit(
-                coefficients,
-                inverseUpper,
-                residuals,
-                settings.CovarianceType == CovarianceType.Nonrobust ? null : whitened),
+            new OrdinaryLeastSquares.SolvedFit(coefficients, inverseUpper, residuals, robust ? whitened : null)
+            {
+                // L⁻¹ mixes the rows, so an exact fit is read on them as given (Review A pass 15).
+                GivenRows = robust ? (given, GivenResiduals(given, response, coefficients, rowCount)) : null,
+                ConstantResponse = settings.WithIntercept && OrdinaryLeastSquares.IsConstant(response),
+            },
             OrdinaryLeastSquares.Vif(design, rowCount, featureCount, settings.WithIntercept),
             TotalSumOfSquares(lower, response, whitenedResponse, settings.WithIntercept ? whitened : null),
             rowCount,
             settings);
+    }
+
+    /// <summary><c>y − Xβ</c> on the rows as given, intercept column included, which an exact fit leaves within rounding.</summary>
+    private static double[] GivenResiduals(double[] given, ReadOnlySpan<double> response, double[] coefficients, int rowCount)
+    {
+        int parameterCount = coefficients.Length;
+        var residuals = new double[rowCount];
+        for (int row = 0; row < rowCount; row++)
+        {
+            double fitted = 0.0;
+            for (int column = 0; column < parameterCount; column++)
+            {
+                fitted += given[(row * parameterCount) + column] * coefficients[column];
+            }
+
+            residuals[row] = response[row] - fitted;
+        }
+
+        return residuals;
     }
 
     /// <summary><c>L⁻¹y − L⁻¹X β</c>, the residuals the variance and the robust covariances read.</summary>

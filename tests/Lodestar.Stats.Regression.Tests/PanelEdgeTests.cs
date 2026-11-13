@@ -99,7 +99,10 @@ public sealed class PanelEdgeTests
             new PanelDesign([1.0, 2.0, 1.5, 2.2, 0.3, 1.1], [0.1, 0.5, 0.3, 0.9, 1.2, 0.7], 1, [1, 1, 1, 2, 2, 2], [1, 2, 3, 1, 2, 3])));
     }
 
-    /// <summary>An exact fit's tests are infinite, as the reference's ratios are, rather than a refused inversion.</summary>
+    /// <summary>
+    /// An exact fit's ratio tests are infinite, as the reference's ratios are, rather than a refused inversion, and so is
+    /// the unadjusted Wald test; a robust one reads a zero covariance, a singular block, and is NaN (#1779).
+    /// </summary>
     [Theory]
     [InlineData(PanelCovarianceType.Unadjusted)]
     [InlineData(PanelCovarianceType.Robust)]
@@ -115,11 +118,14 @@ public sealed class PanelEdgeTests
         PanelSummary within = PanelRegression.FixedEffects(
             new PanelDesign(exact, regressor, 1, entities, periods), options with { EntityEffects = true });
 
-        foreach (WaldTest test in new[] { pooled.ModelTest!, pooled.RobustModelTest!, within.PoolabilityTest! })
+        foreach (WaldTest test in new[] { pooled.ModelTest!, within.PoolabilityTest! })
         {
             Assert.True(double.IsPositiveInfinity(test.Statistic) || test.Statistic > 1e20, $"{test.Statistic}");
             Assert.Equal(0.0, test.PValue, 1e-15);
         }
+
+        Assert.Equal(
+            covariance == PanelCovarianceType.Unadjusted ? double.PositiveInfinity : double.NaN, pooled.RobustModelTest!.Statistic);
     }
 
     [Fact]
