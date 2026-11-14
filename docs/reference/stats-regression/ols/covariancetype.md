@@ -11,7 +11,8 @@ public enum CovarianceType
 **Members** — `Nonrobust` is one variance for every error, `σ²(XᵀX)⁻¹`, and the default. `Hc0` is
 White's estimator, weighting each row by its squared residual. `Hc1` scales `Hc0` by `n / (n - k)`.
 `Hc2` divides each squared residual by `1 - hᵢᵢ`, the row's own leverage, and `Hc3` by
-`(1 - hᵢᵢ)²` — the jackknife approximation, and the conservative one. `Hac` is Newey and West's
+`(1 - hᵢᵢ)²` — the jackknife approximation, and the conservative one. A row whose leverage is one, as a
+column nonzero on that row alone gives it, divides by zero or by its rounding, as statsmodels' does. `Hac` is Newey and West's
 estimator for errors correlated along the row order: the scores of rows up to
 [`HacLags`](olsoptions.md) apart enter with Bartlett weights `1 - l / (L + 1)`. `Cluster` lets errors
 correlate inside a cluster and treats clusters as independent; it needs the

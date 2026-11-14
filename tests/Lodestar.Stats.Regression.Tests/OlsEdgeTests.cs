@@ -108,10 +108,12 @@ public sealed class OlsEdgeTests
     /// <remarks>
     /// Kept out of the corpus because statsmodels reports an infinite F there and JSON has no
     /// way to write one. The behaviour is still worth pinning: it is what a caller sees when a
-    /// design happens to span its response.
+    /// design happens to span its response. statsmodels' solve lands on the coefficients exactly
+    /// and reads +∞; this one lands a few ulps off, and the F reads that rounding, 7.7e31, as
+    /// statsmodels' own <c>mse_model / mse_resid</c> would on the same residuals (#1779).
     /// </remarks>
     [Fact]
-    public void An_exact_fit_reports_zero_residual_error_and_an_infinite_f()
+    public void An_exact_fit_reports_zero_residual_error_and_an_unbounded_f()
     {
         OlsSummary summary = OrdinaryLeastSquares.Fit(
             [1.0, 3.0, 2.0, 1.0, 3.0, 4.0], [5.0, 4.0, 9.0], 2,
@@ -119,7 +121,20 @@ public sealed class OlsEdgeTests
 
         Assert.Equal(0.0, summary.ResidualStandardError, 12);
         Assert.Equal(1.0, summary.RSquared, 12);
-        Assert.True(double.IsPositiveInfinity(summary.FStatistic));
+        Assert.True(summary.FStatistic > 1e30, $"{summary.FStatistic}");
+        Assert.InRange(summary.FPValue, 0.0, 1e-15);
+    }
+
+    /// <summary>Residuals exactly zero leave the F a division by zero: +∞, as statsmodels reads it there.</summary>
+    [Fact]
+    public void Residuals_exactly_zero_read_an_infinite_f()
+    {
+        // Indicators: XᵀX is 4·I, its factor exactly 2·I, every residual exactly zero.
+        OlsSummary summary = OrdinaryLeastSquares.Fit(
+            [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1], [2, 3, 2, 3, 2, 3, 2, 3], 2,
+            new OlsOptions { WithIntercept = false });
+
+        Assert.True(double.IsPositiveInfinity(summary.FStatistic), $"{summary.FStatistic}");
         Assert.Equal(0.0, summary.FPValue);
     }
 

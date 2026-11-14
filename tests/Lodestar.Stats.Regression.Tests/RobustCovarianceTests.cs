@@ -6,7 +6,8 @@ namespace Lodestar.Stats.Regression.Tests;
 
 /// <summary>The leverages the HC2 and HC3 covariances weight their rows by.</summary>
 /// <remarks>
-/// <c>Leverages</c> reads them as rows of <c>X R⁻¹</c> since the solve stopped forming Q (#782). These hold them to
+/// <c>Leverage</c> reads them as rows of <c>X R⁻¹</c> since the solve stopped forming Q (#782), and HC2 divides by their
+/// complements, which these read back through <c>Divisors</c>, the path the fit takes (#1779). These hold them to
 /// the thin Q of <c>QrDecomposition.Householder</c> — the same projection reached the long way — while the OLS
 /// corpus holds HC2 and HC3 at 1e-9.
 /// </remarks>
@@ -26,7 +27,8 @@ public sealed class RobustCovarianceTests
     private static double[] Leverages()
     {
         (_, double[] inverseUpper) = LeastSquares.Solve(Design, 6, 3, withIntercept: false, new double[6]);
-        return RobustCovariance.Leverages(Design, inverseUpper, rowCount: 6, parameterCount: 3);
+        double[] divisors = RobustCovariance.Divisors(Design, inverseUpper, rowCount: 6, parameterCount: 3, CovarianceType.Hc2)!;
+        return [.. divisors.Select(divisor => 1.0 - divisor)];
     }
 
     [Fact]

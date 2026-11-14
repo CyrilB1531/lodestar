@@ -16,9 +16,17 @@ whether the regressors hold a constant. `ObservationCount` is the regression's r
 between, differences for first-difference — and `EntityCount` and `PeriodCount` the panel's.
 `ResidualDegreesOfFreedom` follows. `RSquared` is the regression's own; `RSquaredWithin`,
 `RSquaredBetween` and `RSquaredOverall` apply the coefficients to the entity-demeaned rows, the
-entity means and the rows as given. `ModelTest` is the homoskedastic F that every coefficient but the
-constant is zero, `RobustModelTest` the same under the chosen covariance (a `NaN` statistic and p-value when its block is singular, as with at most as many clusters, the coarser of two nested clusterings counted, or kernel periods, as coefficients tested), and `PoolabilityTest` fixed
-effects' F that the effects are zero, all [`WaldTest`](../common/waldtest.md)s or `null`.
+entity means and the rows as given. Each is `NaN` where its response does not vary, read exactly on the rows as given:
+`RSquared` on a response the transform removes whole, its residuals exactly zero or not, as the model F reads `NaN` there unless they are (below), `RSquaredOverall` and `RSquaredBetween` on a constant response (zero without a
+constant), the latter's sufficient case, and `RSquaredWithin` on a response constant in each entity, where
+linearmodels reads 0 or the rounding ([#1779](https://github.com/CyrilB1531/lodestar/issues/1779)). `ModelTest` is the homoskedastic F that every coefficient but the
+constant is zero, `RobustModelTest` the same under the chosen covariance (a `NaN` statistic and p-value when its block is singular, as with at most as many clusters, the coarser of two nested clusterings counted, or kernel periods, as coefficients tested, or on an exact fit, every residual within its rounding of zero, under a robust, clustered or Driscoll-Kraay covariance, which is then zero: each standard error 0, each interval the point estimate, each t statistic and p-value `NaN`; the unadjusted covariance stays the homoskedastic one, its test the classical F's), and `PoolabilityTest` fixed
+effects' F that the effects are zero, all [`WaldTest`](../common/waldtest.md)s or `null`. The classical F is `+∞` where the
+residuals are exactly zero; where they are not, a response the transform leaves nothing of reads `NaN`, read exactly
+on the rows as given: constant within each entity under entity effects, each period under time effects, either under
+both, and overall with a constant, pooled, under random effects or between; `PoolabilityTest` reads `NaN` on a constant response.
+linearmodels reads `−df_resid` off the rounding there, or other noise. A response two-way effects or the entity means
+absorb in another way reads its ratio ([#1779](https://github.com/CyrilB1531/lodestar/issues/1779)).
 `ResidualVariance`, `EffectsVariance` and `Rho` are the variance decomposition, for fixed and random
 effects; `Theta` is random effects' per-entity weight.
 

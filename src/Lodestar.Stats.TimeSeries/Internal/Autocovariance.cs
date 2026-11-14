@@ -3,15 +3,18 @@ namespace Lodestar.Stats.TimeSeries.Internal;
 /// <summary>The sample autocovariance the three diagnostics all start from.</summary>
 internal static class Autocovariance
 {
-    /// <summary>Autocovariance at lags 0 through <paramref name="lagCount"/>, inclusive.</summary>
+    /// <summary>Autocovariance at lags 0 through <paramref name="lagCount"/>, inclusive, of the series at unit scale where it lies far from it.</summary>
     /// <remarks>
     /// <paramref name="adjusted"/> false divides every lag by <c>n</c>, which is the reference's
     /// default and the estimator that keeps the sequence positive semi-definite; true divides lag
     /// <c>k</c> by <c>n - k</c> instead. Lag zero divides by <c>n</c> either way, because
     /// <c>n - 0</c> is <c>n</c>.
     /// </remarks>
-    internal static double[] Of(ReadOnlySpan<double> series, int lagCount, bool adjusted)
+    internal static double[] Of(ReadOnlySpan<double> given, int lagCount, bool adjusted)
     {
+        // Each function reads ratios of these, invariant to scale; far from unit scale the sums overflow or underflow.
+        (double[]? scaled, _, _) = SeriesChecks.UnitScale(given);
+        ReadOnlySpan<double> series = scaled is null ? given : scaled;
         int n = series.Length;
         double mean = 0.0;
         for (int i = 0; i < n; i++)

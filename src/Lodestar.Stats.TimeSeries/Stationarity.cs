@@ -35,12 +35,15 @@ public static class Stationarity
         SeriesChecks.RefuseNonFinite(series);
         SeriesChecks.RefuseConstant(series);
 
-        // The statistic is invariant to the series' scale, so it is read at unit scale (see UnitScale).
-        (double[]? scaled, double factor) = SeriesChecks.UnitScale(series);
+        // The statistic is invariant to the series' scale, so its regression is read at unit scale (see UnitScale): the
+        // design scales each value as it copies it, unless the series was copied at unit scale already.
+        (double[]? scaled, double factor, double largest) = SeriesChecks.UnitScale(series);
         ReadOnlySpan<double> unit = scaled is null ? series : scaled;
+        double pending = scaled is null ? factor : 1.0;
         SeriesChecks.RefuseStraightLine(
             unit,
             LineFit.Residuals(unit),
+            largest,
             "a deterministic trend leaves no stochastic component for a unit-root test to find.");
 
         int n = series.Length;
@@ -50,11 +53,12 @@ public static class Stationarity
         double criterion = double.NaN;
         if (settings.LagSelection != LagSelection.Fixed)
         {
-            (usedLag, criterion) = SearchLag(unit, factor, settings, maxLag, n - maxLag - 1);
+            (usedLag, criterion) = SearchLag(new ScaledSeries(unit, pending), factor, settings, maxLag, n - maxLag - 1);
         }
 
         int observations = n - usedLag - 1;
-        IReadOnlyList<double> tStatistics = DickeyFullerRegression.Fit(unit, settings.Regression, usedLag, observations).TStatistics;
+        IReadOnlyList<double> tStatistics =
+            DickeyFullerRegression.Fit(new ScaledSeries(unit, pending), settings.Regression, usedLag, observations).TStatistics;
         double statistic = tStatistics[DickeyFullerRegression.LevelIndex(settings.Regression)];
 
         return new DickeyFullerResult
@@ -84,10 +88,13 @@ public static class Stationarity
         SeriesChecks.RefuseConstant(series);
 
         int n = series.Length;
-        double[] residuals = KpssResiduals(series, settings.Regression);
+        // The statistic is invariant to scale; far from unit scale its sums overflow or underflow (see UnitScale).
+        (double[]? scaled, _, double largest) = SeriesChecks.UnitScale(series);
+        ReadOnlySpan<double> unit = scaled is null ? series : scaled;
+        double[] residuals = KpssResiduals(unit, settings.Regression);
         if (settings.Regression == TrendTerms.ConstantAndTrend)
         {
-            SeriesChecks.RefuseStraightLine(series, residuals, "the trend leaves no variance to test.");
+            SeriesChecks.RefuseStraightLine(unit, residuals, largest, "the trend leaves no variance to test.");
         }
 
         int lagCount = settings.LagRule switch
@@ -285,7 +292,7 @@ public static class Stationarity
 
     /// <summary>The reference's lag search, every candidate over the same <paramref name="rows"/> rows.</summary>
     private static (int Lag, double Criterion) SearchLag(
-        ReadOnlySpan<double> series, double factor, DickeyFullerOptions settings, int maxLag, int rows)
+        ScaledSeries series, double factor, DickeyFullerOptions settings, int maxLag, int rows)
     {
         bool byTStatistic = settings.LagSelection == LagSelection.TStatistic;
         (double[] residualSums, double[] lastTStatistics) =

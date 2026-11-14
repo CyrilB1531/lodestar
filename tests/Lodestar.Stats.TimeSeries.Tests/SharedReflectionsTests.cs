@@ -24,12 +24,12 @@ public sealed class SharedReflectionsTests
         int rows = n - maxLag - 1;
 
         (double[] sums, double[] lastTStatistics) =
-            DickeyFullerRegression.Candidates(series, regression, maxLag, rows, withTStatistics: true);
+            DickeyFullerRegression.Candidates(new ScaledSeries(series, 1.0), regression, maxLag, rows, withTStatistics: true);
 
         for (int lag = 0; lag <= maxLag; lag++)
         {
             (IReadOnlyList<double> tStatistics, double residualSumOfSquares) =
-                DickeyFullerRegression.Fit(series, regression, lag, rows);
+                DickeyFullerRegression.Fit(new ScaledSeries(series, 1.0), regression, lag, rows);
             Assert.Equal(BitConverter.DoubleToInt64Bits(residualSumOfSquares), BitConverter.DoubleToInt64Bits(sums[lag]));
             Assert.Equal(
                 BitConverter.DoubleToInt64Bits(tStatistics[tStatistics.Count - 1]),
@@ -43,9 +43,9 @@ public sealed class SharedReflectionsTests
         double[] series = Walk(12, seed: 3);
 
         ArgumentException refusal = Assert.Throws<ArgumentException>(() =>
-            DickeyFullerRegression.Candidates(series, TrendTerms.None, maxLag: 5, rows: 6, withTStatistics: true));
+            DickeyFullerRegression.Candidates(new ScaledSeries(series, 1.0), TrendTerms.None, maxLag: 5, rows: 6, withTStatistics: true));
         Assert.Throws<ArgumentException>(() =>
-            DickeyFullerRegression.Candidates(series, TrendTerms.None, maxLag: 5, rows: 6, withTStatistics: false));
+            DickeyFullerRegression.Candidates(new ScaledSeries(series, 1.0), TrendTerms.None, maxLag: 5, rows: 6, withTStatistics: false));
 
         // A full-rank random walk: the design this search runs out of rows for is not collinear, and the
         // translation that names a straight line claimed it was, for naming `design` too (#1080).
@@ -59,7 +59,7 @@ public sealed class SharedReflectionsTests
         double[] line = [.. Enumerable.Range(0, 40).Select(i => 0.3 + (0.1 * i))];
 
         ArgumentException refusal = Assert.Throws<ArgumentException>(() =>
-            DickeyFullerRegression.Fit(line, TrendTerms.Constant, lag: 1, rows: 38));
+            DickeyFullerRegression.Fit(new ScaledSeries(line, 1.0), TrendTerms.Constant, lag: 1, rows: 38));
 
         Assert.Equal("series", refusal.ParamName);
         Assert.Contains("no unique least-squares solution", refusal.Message, StringComparison.Ordinal);

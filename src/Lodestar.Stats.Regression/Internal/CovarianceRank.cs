@@ -60,6 +60,12 @@ internal static class CovarianceRank
     /// <param name="largestRank">The most the estimator's construction allows, <c>G − 1</c> for a cluster covariance, which rounding must not raise.</param>
     public static double QuadraticForm(double[] estimate, double[] block, int order, int largestRank)
     {
+        if (largestRank < order)
+        {
+            // Short of full rank whatever the block reads, as an exact fit's zero covariance is: nothing to factor.
+            return double.NaN;
+        }
+
         (int rank, double form, _) = Measure(block, order, estimate);
         return Math.Min(rank, largestRank) < order ? double.NaN : form;
     }

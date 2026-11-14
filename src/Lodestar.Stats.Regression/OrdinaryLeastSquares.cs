@@ -172,7 +172,10 @@ public static class OrdinaryLeastSquares
             : Whiten(LeastSquares.Design(design, rowCount, featureCount, settings.WithIntercept, nameof(design)), rowCount, parameterCount, weights);
 
         return Tabulate(
-            new SolvedFit(coefficients, inverseUpper, residuals, robustMatrix, clusters),
+            new SolvedFit(coefficients, inverseUpper, residuals, robustMatrix, clusters)
+            {
+                ConstantResponse = settings.WithIntercept && IsConstant(response, weights),
+            },
             Vif(design, rowCount, featureCount, settings.WithIntercept),
             totalSumOfSquares,
             rowCount,
@@ -190,7 +193,48 @@ public static class OrdinaryLeastSquares
         double[] InverseUpper,
         double[] RowResiduals,
         double[]? RobustMatrix,
-        ClusterLabels? Clusters = null);
+        ClusterLabels? Clusters = null)
+    {
+        /// <summary>
+        /// The rows as given, intercept column included, and their residuals, for a fit whose whitening mixes rows: its
+        /// forward substitution rounds across rows, which no whitened row's terms bound, so exactness is read here.
+        /// </summary>
+        public (double[] Matrix, double[] Residuals)? GivenRows { get; init; }
+
+        /// <summary>Whether a fit with an intercept was given a response that does not vary, which leaves its F undefined.</summary>
+        public bool ConstantResponse { get; init; }
+    }
+
+    /// <summary>Whether every value equals the first, compared exactly, as the rounded total of squares rarely is zero.</summary>
+    internal static bool IsConstant(ReadOnlySpan<double> values) => IsConstant(values, default);
+
+    /// <summary>Whether every value a positive weight keeps equals the first such, every value where no weights are given.</summary>
+    /// <remarks>A zero weight removes its row from the fit, so a response constant on the others is constant to it (Review A pass 26).</remarks>
+    internal static bool IsConstant(ReadOnlySpan<double> values, ReadOnlySpan<double> weights)
+    {
+        bool seen = false;
+        double first = 0.0;
+        for (int i = 0; i < values.Length; i++)
+        {
+            if (!weights.IsEmpty && !(weights[i] > 0.0))
+            {
+                continue;
+            }
+
+            // S1244: the exact test, the point of reading the response rather than its rounded total.
+#pragma warning disable S1244
+            if (seen && values[i] != first)
+#pragma warning restore S1244
+            {
+                return false;
+            }
+
+            first = values[i];
+            seen = true;
+        }
+
+        return true;
+    }
 
     /// <summary>The inference table on top of a solved fit, shared by the ordinary, weighted and generalized fits.</summary>
     internal static OlsSummary Tabulate(
@@ -221,25 +265,23 @@ public static class OrdinaryLeastSquares
             ? CriticalValue.TwoSided(settings.ConfidenceLevel)
             : CriticalValue.TwoSidedStudent(settings.ConfidenceLevel, residualDegreesOfFreedom);
 
+        // An exact fit's robust covariance is zero: each coefficient's Wald test, as the joint one, is undefined (#1779).
+        bool undefined = sandwich is { Exact: true };
         for (int j = 0; j < parameterCount; j++)
         {
-            tStatistics[j] = coefficients[j] / standardErrors[j];
-            // The square of a standard normal is chi-squared on one degree of freedom, so the
-            // two-sided normal p-value is a tail this package already publishes (decision 0004).
-            pValues[j] = robust
-                ? Distributions.ChiSquaredSf(tStatistics[j] * tStatistics[j], 1.0)
-                : 2.0 * Distributions.StudentSf(
-                    Math.Abs(tStatistics[j]), residualDegreesOfFreedom);
+            (tStatistics[j], pValues[j]) = CoefficientTest(
+                coefficients[j], standardErrors[j], robust, undefined, residualDegreesOfFreedom);
             lower[j] = coefficients[j] - (multiplier * standardErrors[j]);
             upper[j] = coefficients[j] + (multiplier * standardErrors[j]);
         }
 
-        double rSquared = 1.0 - (residualSumOfSquares / totalSumOfSquares);
+        // A constant response under an intercept leaves R² undefined, residuals exactly zero or not: 0/0 at best (pass 26).
+        double rSquared = fit.ConstantResponse ? double.NaN : 1.0 - (residualSumOfSquares / totalSumOfSquares);
         int modelDegreesOfFreedom = parameterCount - (settings.WithIntercept ? 1 : 0);
         // Cluster scores sum to zero, so G clusters span G − 1 directions; the F reads its denominator on that count.
         int? clusterDegreesOfFreedom = fit.Clusters is { } grouped ? grouped.Count - 1 : null;
         (double fStatistic, int numeratorDegreesOfFreedom) = sandwich is null
-            ? (rSquared / modelDegreesOfFreedom / ((1.0 - rSquared) / residualDegreesOfFreedom), modelDegreesOfFreedom)
+            ? (HomoskedasticF(fit.ConstantResponse, totalSumOfSquares, residualSumOfSquares, residuals, modelDegreesOfFreedom, residualDegreesOfFreedom), modelDegreesOfFreedom)
             : RobustCovariance.Wald(sandwich, coefficients, settings.WithIntercept);
 
         int denominatorDegreesOfFreedom = clusterDegreesOfFreedom ?? residualDegreesOfFreedom;
@@ -269,12 +311,60 @@ public static class OrdinaryLeastSquares
         };
     }
 
+    /// <summary>
+    /// statsmodels' <c>mse_model / mse_resid</c>, <c>((TSS − RSS)/df_model)/(RSS/df_resid)</c>; <c>+∞</c> where every
+    /// residual is exactly zero, as the panel's and the IV unadjusted tests; NaN on a constant response under an intercept.
+    /// </summary>
+    /// <remarks>
+    /// Not <c>R²/df_model/((1 − R²)/df_resid)</c>, whose <c>1 − R²</c> read <c>+∞</c> on a noisy fit beside a far row (Review
+    /// A pass 12). Under an intercept, every value a positive weight keeps equal leaves nothing to explain (decision 0010):
+    /// it read <c>−df_resid</c> off the rounding, −98 on 100 rows of 5, as statsmodels does, main −84.65 at 0.1 (passes 23, 25).
+    /// </remarks>
+    private static double HomoskedasticF(
+        bool constantResponse, double totalSumOfSquares, double residualSumOfSquares, double[] residuals, int modelDf, int residualDf)
+    {
+        if (residualSumOfSquares <= 0.0 && ExactFit.Vanishes(residuals))
+        {
+            return double.PositiveInfinity;
+        }
+
+        return constantResponse
+            ? double.NaN
+            : (totalSumOfSquares - residualSumOfSquares) / modelDf / (residualSumOfSquares / residualDf);
+    }
+
+    /// <summary>One coefficient's t statistic and two-sided p-value, both NaN where its covariance is an exact fit's zero.</summary>
+    private static (double T, double P) CoefficientTest(
+        double coefficient, double error, bool robust, bool undefined, int residualDegreesOfFreedom)
+    {
+        if (undefined)
+        {
+            return (double.NaN, double.NaN);
+        }
+
+        double t = coefficient / error;
+        // The square of a standard normal is chi-squared on one degree of freedom, so the
+        // two-sided normal p-value is a tail this package already publishes (decision 0004).
+        return (t, robust
+            ? Distributions.ChiSquaredSf(t * t, 1.0)
+            : 2.0 * Distributions.StudentSf(Math.Abs(t), residualDegreesOfFreedom));
+    }
+
     /// <summary>The robust covariance a fit asked for: its filling, the shared bread, and the type's small-sample factor.</summary>
     private static SandwichParts RobustSandwich(SolvedFit fit, int rowCount, OlsOptions settings)
     {
         double[] matrix = fit.RobustMatrix!;
         int parameterCount = fit.Coefficients.Length;
         double degreesOfFreedomFactor = (double)rowCount / (rowCount - parameterCount);
+        // Rows interpolated, or every residual within its rounding of zero: the covariance is zero in exact arithmetic.
+        if (Interpolates(matrix, parameterCount, rowCount)
+            || (fit.GivenRows is { } given
+                ? ExactFit.Holds(given.Matrix, parameterCount, given.Residuals, fit.Coefficients)
+                : ExactFit.Holds(matrix, parameterCount, fit.RowResiduals, fit.Coefficients)))
+        {
+            return SandwichParts.Zero(parameterCount);
+        }
+
         if (settings.CovarianceType == CovarianceType.Cluster)
         {
             ClusterLabels clusters = fit.Clusters
@@ -284,53 +374,45 @@ public static class OrdinaryLeastSquares
             double? clusterCorrection = settings.SmallSampleCorrection ?? true
                 ? (double)clusters.Count / (clusters.Count - 1) * ((rowCount - 1.0) / (rowCount - parameterCount))
                 : null;
-            int clusterRank = Interpolates(matrix, parameterCount, rowCount) ? 0 : Math.Max(0, spanning - 1);
+            int clusterRank = Math.Max(0, spanning - 1);
             return RobustCovariance.Sandwich(
-                clustered, fit.InverseUpper, parameterCount, clusterCorrection, clusterRank, ClusterScores(fit, rowCount, sums, clusters));
+                clustered, fit.InverseUpper, parameterCount, clusterCorrection, clusterRank, ClusterScores(fit, sums, clusters));
         }
 
-        (double[] meat, double? correction) = settings.CovarianceType switch
+        if (settings.CovarianceType == CovarianceType.Hac)
         {
-            CovarianceType.Hac => (
-                RobustCovariance.HacMeat(matrix, fit.RowResiduals, rowCount, parameterCount, settings.HacLags!.Value),
-                settings.SmallSampleCorrection == true ? degreesOfFreedomFactor : (double?)null),
-            _ => (
-                RobustCovariance.HeteroskedasticMeat(matrix, fit.InverseUpper, fit.RowResiduals, rowCount, parameterCount, settings.CovarianceType),
-                settings.CovarianceType == CovarianceType.Hc1 ? degreesOfFreedomFactor : (double?)null),
-        };
+            int lags = settings.HacLags!.Value;
+            double[] hac = RobustCovariance.HacMeat(matrix, fit.RowResiduals, rowCount, parameterCount, lags);
+            return RobustCovariance.Sandwich(
+                hac, fit.InverseUpper, parameterCount, settings.SmallSampleCorrection == true ? degreesOfFreedomFactor : null,
+                null, () => HacScores(fit, matrix, rowCount, lags));
+        }
 
+        // HC2 and HC3's divisors are read by the filling and, short of full rank, by its score rows: built once for both.
+        double[]? divisors = RobustCovariance.Divisors(matrix, fit.InverseUpper, rowCount, parameterCount, settings.CovarianceType);
+        double[] meat = RobustCovariance.HeteroskedasticMeat(matrix, divisors, fit.RowResiduals, rowCount, parameterCount);
         return RobustCovariance.Sandwich(
-            meat, fit.InverseUpper, parameterCount, correction, Interpolates(matrix, parameterCount, rowCount) ? 0 : null,
-            RowScores(fit, rowCount, settings));
+            meat, fit.InverseUpper, parameterCount, settings.CovarianceType == CovarianceType.Hc1 ? degreesOfFreedomFactor : null,
+            null, () => RobustCovariance.HeteroskedasticScores(
+                matrix, divisors, fit.RowResiduals, Magnitudes(fit, matrix), rowCount, parameterCount));
     }
 
     // The score rows are built only by a test short of full rank; each closure is made here, off the fit's own frame.
-    private static Func<ScoreRows> ClusterScores(SolvedFit fit, int rowCount, double[] sums, ClusterLabels clusters) =>
+    private static Func<ScoreRows> ClusterScores(SolvedFit fit, double[] sums, ClusterLabels clusters) =>
         () => new ScoreRows(
             sums,
             RobustCovariance.AbsoluteClusterSums(
-                fit.RobustMatrix!, Magnitudes(fit, fit.RobustMatrix!, rowCount), clusters.Labels, fit.Coefficients.Length, clusters.Count),
+                fit.RobustMatrix!, Magnitudes(fit, fit.RobustMatrix!), clusters.Labels, fit.Coefficients.Length, clusters.Count),
             clusters.Count);
 
-    private static Func<ScoreRows> RowScores(SolvedFit fit, int rowCount, OlsOptions settings)
-    {
-        CovarianceType type = settings.CovarianceType;
-        int? lags = settings.HacLags;
-        return () => type == CovarianceType.Hac
-            ? HacScores(fit, fit.RobustMatrix!, rowCount, lags!.Value)
-            : RobustCovariance.HeteroskedasticScores(
-                fit.RobustMatrix!, fit.InverseUpper, fit.RowResiduals, Magnitudes(fit, fit.RobustMatrix!, rowCount), rowCount,
-                fit.Coefficients.Length, type);
-    }
-
-    private static double[] Magnitudes(SolvedFit fit, double[] matrix, int rowCount) =>
-        RobustCovariance.ResidualMagnitudes(matrix, fit.RowResiduals, fit.Coefficients, rowCount);
+    private static double[] Magnitudes(SolvedFit fit, double[] matrix) =>
+        RobustCovariance.ResidualMagnitudes(matrix, fit.RowResiduals, fit.Coefficients, fit.RowResiduals.Length);
 
     private static ScoreRows HacScores(SolvedFit fit, double[] matrix, int rowCount, int lags)
     {
         int parameterCount = fit.Coefficients.Length;
         (double[] rows, int count) = RobustCovariance.HacScores(matrix, fit.RowResiduals, rowCount, parameterCount, lags, absolute: false);
-        (double[] sizes, _) = RobustCovariance.HacScores(matrix, Magnitudes(fit, matrix, rowCount), rowCount, parameterCount, lags, absolute: true);
+        (double[] sizes, _) = RobustCovariance.HacScores(matrix, Magnitudes(fit, matrix), rowCount, parameterCount, lags, absolute: true);
         return new ScoreRows(rows, sizes, count);
     }
 

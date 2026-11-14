@@ -11,6 +11,12 @@ internal static class SeriesChecks
     /// <summary>The bias of a double's exponent field.</summary>
     private const int ExponentBias = 1023;
 
+    /// <summary>2⁻¹²⁸, the smallest largest magnitude a series is read at as given.</summary>
+    private const double SmallestUnscaled = 2.938735877055719e-39;
+
+    /// <summary>2¹²⁸, past which a series is read at unit scale.</summary>
+    private const double LargestUnscaled = 3.402823669209385e+38;
+
     internal static void RefuseNonFinite(ReadOnlySpan<double> series)
     {
         for (int row = 0; row < series.Length; row++)
@@ -26,28 +32,22 @@ internal static class SeriesChecks
     }
 
     /// <summary>
-    /// The series times the power of two that brings its largest magnitude into <c>[1, 2)</c>, null when that power is
-    /// one and the series already is at unit scale, and that power.
+    /// The power of two that brings the largest magnitude into <c>[1, 2)</c>, the series times it outside
+    /// <c>[2⁻¹²⁸, 2¹²⁸)</c> or null inside, and the largest magnitude of what the caller then reads.
     /// </summary>
     /// <remarks>
     /// A power of two scales every value exactly, short of the subnormals, so a statistic invariant to the series' scale
-    /// is read at unit scale: no level column far from an intercept's is taken for collinear, and no difference overflows.
+    /// reads the same doubles at either scale wherever nothing it forms overflows or underflows: inside the range no
+    /// square, sum of <c>n³</c> squares or ratio does, below 2³¹ points, and the copy, 8% of ADF at 200 points, is saved
+    /// (#1779). Outside it the copy is read at unit scale: no difference overflows, nor a square underflows.
     /// </remarks>
-    internal static (double[]? Scaled, double Factor) UnitScale(ReadOnlySpan<double> series)
+    internal static (double[]? Scaled, double Factor, double Largest) UnitScale(ReadOnlySpan<double> series)
     {
-        double largest = 0.0;
-        foreach (double value in series)
-        {
-            largest = Math.Max(largest, Math.Abs(value));
-        }
-
+        double largest = LargestMagnitude.Of(series);
         double factor = UnitFactor(largest);
-        // S1244: the factor is a power of two, exactly one or not.
-#pragma warning disable S1244
-        if (factor == 1.0)
-#pragma warning restore S1244
+        if (largest >= SmallestUnscaled && largest < LargestUnscaled)
         {
-            return (null, factor);
+            return (null, factor, largest);
         }
 
         var scaled = new double[series.Length];
@@ -56,7 +56,7 @@ internal static class SeriesChecks
             scaled[row] = series[row] * factor;
         }
 
-        return (scaled, factor);
+        return (scaled, factor, largest * factor);
     }
 
     /// <summary>The power of two that brings <paramref name="largest"/> into <c>[1, 2)</c>, read off its exponent field.</summary>
@@ -114,6 +114,7 @@ internal static class SeriesChecks
     /// <summary>Refuses a series that lies on one straight line, which leaves a regression only rounding.</summary>
     /// <param name="series">The observations, in time order.</param>
     /// <param name="lineResiduals">The same series less its least-squares line, from <see cref="LineFit.Residuals"/>.</param>
+    /// <param name="scale">The series' largest magnitude, as <see cref="UnitScale"/> read it.</param>
     /// <param name="consequence">What a line costs this caller, completing the message after the colon.</param>
     /// <remarks>
     /// A line has to fail both tests. The residual root-mean-square against <c>n·ε</c> of the largest
@@ -125,14 +126,8 @@ internal static class SeriesChecks
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="series"/> lies on one straight line.</exception>
     internal static void RefuseStraightLine(
-        ReadOnlySpan<double> series, double[] lineResiduals, string consequence)
+        ReadOnlySpan<double> series, double[] lineResiduals, double scale, string consequence)
     {
-        double scale = 0.0;
-        foreach (double value in series)
-        {
-            scale = Math.Max(scale, Math.Abs(value));
-        }
-
         double sumOfSquares = 0.0;
         foreach (double residual in lineResiduals)
         {

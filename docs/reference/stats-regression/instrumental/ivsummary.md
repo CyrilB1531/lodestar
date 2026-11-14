@@ -12,13 +12,21 @@ public sealed class IvSummary
 `StandardErrors`, `TStatistics`, `PValues`, `ConfidenceLower` and `ConfidenceUpper`.
 [`CovarianceType`](ivcovariancetype.md), `Debiased`, `Bandwidth` (the kernel's, as given or as
 chosen, else `null`) and `ConfidenceLevel` echo how they were computed. `HasConstant` says whether
-the regressors hold a constant, which centres `RSquared`; `AdjustedRSquared` and
+the regressors hold a constant, which centres `RSquared`, `NaN` with `AdjustedRSquared` on a response that does not vary
+under it ([#1779](https://github.com/CyrilB1531/lodestar/issues/1779)); `AdjustedRSquared` and
 `ResidualDegreesOfFreedom` follow. `ModelTest` is the joint test that every coefficient but the
 constant is zero, a [`WaldTest`](../common/waldtest.md). `Kappa` is the `k`-class parameter, `null` for GMM.
 `FirstStage` holds one [`IvFirstStage`](ivfirststage.md) per endogenous regressor. A test whose
-covariance block is singular, as with at most as many clusters as coefficients tested or on an exact fit, reports a `NaN`
+covariance block is singular, as with at most as many clusters as coefficients tested, or on an exact fit under a robust, kernel or clustered covariance, reports a `NaN`
 statistic and p-value; under an overidentified LIML, whose `κ ≠ 1` leaves its scores a nonzero total, the cluster
-count alone makes the model test singular only below the coefficients tested.
+count alone makes the model test singular only below the coefficients tested. The one singular block read otherwise is
+the unadjusted one residuals exactly zero leave, below. On an exact fit, every residual within
+its rounding of zero, a robust, kernel or clustered covariance is zero: each standard error is 0, each interval the
+point estimate, and each t statistic, p-value and the model test `NaN`. The unadjusted covariance, `s²` times a fixed
+matrix, is the homoskedastic one and reads the rounding there, as the non-robust OLS and the panel's unadjusted
+covariances do; where every residual is exactly zero it is zero, and its model and first-stage tests are `+∞` with
+p-value 0, each t statistic a coefficient over a zero error. A first stage is its own fit, and its instrument test is `NaN` only where that stage is exact under such a
+covariance.
 `Overidentification` is Sargan's test for 2SLS and LIML and Hansen's J for GMM, `null` when the
 model is just identified.
 

@@ -59,6 +59,9 @@ internal sealed class IvFit
 
     public double? Kappa { get; init; }
 
+    /// <summary>Whether every residual lies within its rounding of zero under a robust covariance, which is then zero, so no Wald test is defined.</summary>
+    public bool Exact { get; init; }
+
     /// <summary>GMM's final weight matrix, which its J statistic reads.</summary>
     public double[]? Weight { get; init; }
 
@@ -100,8 +103,12 @@ internal static class IvCore
             right[i] = (xy[i] * (1.0 - kappa)) + (kappa * xhy[i]);
         }
 
-        double[] coefficients = Dense.Multiply(Invert(left, k), right, k, k, 1);
+        double[] solved = Invert(left, k);
+        double[] coefficients = Dense.Multiply(solved, right, k, k, 1);
         double[] residuals = Residuals(problem, coefficients);
+        // An exact fit's robust covariance is zero, and its automatic bandwidth 0/0 (#1779); the unadjusted one, s² times a
+        // fixed matrix, stays the homoskedastic covariance and reads the rounding, as OLS's and the panel's do.
+        bool exact = spec.Type != IvCovarianceType.Unadjusted && ExactFit.Holds(problem.X, k, residuals, coefficients, Conditioning(left, solved, k));
 
         // The bread V: X'P_zX/n, moved towards X'X/n by 1 − κ for LIML.
         var bread = new double[k * k];
@@ -114,12 +121,19 @@ internal static class IvCore
             bread[i] = unitKappa ? xhx[i] / n : (((1.0 - kappa) * xx[i]) + (kappa * xhx[i])) / n;
         }
 
-        (double[] meat, int? bandwidth, int groups) = KClassMeat(problem, xhat, residuals, bread, spec);
+        (double[] meat, int? bandwidth, int groups) = KClassMeat(problem, xhat, residuals, bread, spec, exact);
+        if (exact)
+        {
+            // A robust covariance of an exact fit is zero in exact arithmetic, for every reader: errors, t and Wald tests.
+            return new IvFit(coefficients, new double[k * k], residuals, bandwidth, 0) { Kappa = kappa, Exact = true };
+        }
+
         double[] inverseBread = Invert(bread, k);
         double[] covariance = Dense.Multiply(Dense.Multiply(inverseBread, meat, k, k, k), inverseBread, k, k, k);
         Scale(covariance, 1.0 / n);
         Dense.Symmetrise(covariance, k);
-        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - (unitKappa ? 1 : 0))) { Kappa = kappa };
+        int zeroedTotal = unitKappa ? 1 : 0;
+        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - zeroedTotal)) { Kappa = kappa };
     }
 
     /// <summary>LIML's <c>κ</c>: the smallest eigenvalue of <c>E₁ᵀE₁</c> against <c>E_zᵀE_z</c>, <c>E = [y, X_endog]</c>.</summary>
@@ -181,8 +195,21 @@ internal static class IvCore
         int l = problem.L;
         double[] zz = Dense.Gram(problem.Z, l, n);
         Scale(zz, 1.0 / n);
-        double[] first = GmmEstimate(problem, Invert(zz, l));
+        (double[] first, double firstConditioning) = GmmEstimate(problem, Invert(zz, l));
         double[] firstResiduals = Residuals(problem, first);
+
+        // An exact first step leaves a robust weight zero; the unadjusted one, s² times ZᵀZ/n, only rescales 2SLS's, and is
+        // zero only where every residual is exactly zero (#1779).
+        bool zeroWeight = weightSpec.Type == IvCovarianceType.Unadjusted
+            ? ExactFit.Vanishes(firstResiduals)
+            : ExactFit.Holds(problem.X, problem.K, firstResiduals, first, firstConditioning);
+        if (zeroWeight)
+        {
+            throw new ArgumentException(
+                "The score covariance the second GMM step weights by is zero: the first-step fit is exact, every residual "
+                + "within its rounding of zero, which leaves the weight without an inverse.",
+                designName);
+        }
 
         double[] weightScores = Scores(problem.Z, l, firstResiduals, n);
         (double[] s, _, int weightGroups) = GmmScoreCovariance(problem, weightScores, firstResiduals, weightSpec);
@@ -200,14 +227,14 @@ internal static class IvCore
         if (rank < l)
         {
             throw new ArgumentException(
-                "The score covariance the second GMM step weights by is singular: an exact first-step fit leaves it "
-                + "without an inverse, and so do fewer clusters than instruments, the exogenous columns counted, or "
-                + "as many in a just-identified model, whose first-step scores sum to zero.",
+                "The score covariance the second GMM step weights by is singular: fewer clusters than instruments, the "
+                + "exogenous columns counted, or as many in a just-identified model, whose first-step scores sum to zero, "
+                + "leave it without an inverse.",
                 singularName);
         }
 
         double[] weight = inverse!;
-        double[] coefficients = GmmEstimate(problem, weight);
+        (double[] coefficients, double conditioning) = GmmEstimate(problem, weight);
         double[] residuals = Residuals(problem, coefficients);
 
         int k = problem.K;
@@ -217,6 +244,12 @@ internal static class IvCore
         double[] outer = Invert(Dense.Multiply(xzw, Dense.Transpose(xz, k, l), k, l, k), k);
         double[] scores = Scores(problem.Z, l, residuals, n);
         (double[] meat, int? bandwidth, int groups) = GmmScoreCovariance(problem, scores, residuals, spec);
+        if (spec.Type != IvCovarianceType.Unadjusted && ExactFit.Holds(problem.X, k, residuals, coefficients, conditioning))
+        {
+            // As KClass: a robust covariance of an exact second step is zero for every reader.
+            return new IvFit(coefficients, new double[k * k], residuals, bandwidth, 0) { Weight = weight, Exact = true };
+        }
+
         double[] middle = Dense.Multiply(Dense.Multiply(xzw, meat, k, l, l), Dense.Transpose(xzw, k, l), k, l, k);
         double[] covariance = Dense.Multiply(Dense.Multiply(outer, middle, k, k, k), outer, k, k, k);
         Scale(covariance, 1.0 / n);
@@ -275,7 +308,7 @@ internal static class IvCore
 
     /// <summary>The filling, the bandwidth a kernel used, and the score groups that are not zero (<see cref="IvFit.LargestRank"/>).</summary>
     private static (double[] Meat, int? Bandwidth, int Groups) KClassMeat(
-        IvProblem problem, double[] xhat, double[] residuals, double[] bread, IvCovarianceSpec spec)
+        IvProblem problem, double[] xhat, double[] residuals, double[] bread, IvCovarianceSpec spec, bool exact)
     {
         int n = problem.N;
         int k = problem.K;
@@ -303,6 +336,11 @@ internal static class IvCore
 
         if (spec.Type == IvCovarianceType.Kernel)
         {
+            if (spec.Bandwidth is null && exact)
+            {
+                throw IvScores.UndefinedBandwidth();
+            }
+
             int bandwidth = spec.Bandwidth ?? AutomaticBandwidth(xhat, scores, k, n, spec.Kernel);
             double[] meat = IvScores.Kernel(scores, k, n, IvScores.KernelWeights(spec.Kernel, bandwidth, n - 1));
             Scale(meat, scale);
@@ -407,7 +445,7 @@ internal static class IvCore
         }
     }
 
-    private static double[] GmmEstimate(IvProblem problem, double[] weight)
+    private static (double[] Coefficients, double Conditioning) GmmEstimate(IvProblem problem, double[] weight)
     {
         int n = problem.N;
         int k = problem.K;
@@ -417,7 +455,30 @@ internal static class IvCore
         double[] xzw = Dense.Multiply(xz, weight, k, l, l);
         double[] left = Dense.Multiply(xzw, Dense.Transpose(xz, k, l), k, l, k);
         double[] right = Dense.Multiply(xzw, zy, k, l, 1);
-        return Dense.Multiply(Invert(left, k), right, k, k, 1);
+        double[] solved = Invert(left, k);
+        return (Dense.Multiply(solved, right, k, k, 1), Conditioning(left, solved, k));
+    }
+
+    /// <summary><c>‖A‖₁·‖A⁻¹‖₁</c>, how far the solve's rounding can carry the coefficients the exact-fit test reads.</summary>
+    public static double Conditioning(double[] matrix, double[] inverse, int order) =>
+        ColumnSumNorm(matrix, order) * ColumnSumNorm(inverse, order);
+
+    /// <summary>The largest column sum of magnitudes of a square row-major matrix.</summary>
+    private static double ColumnSumNorm(double[] matrix, int order)
+    {
+        double largest = 0.0;
+        for (int j = 0; j < order; j++)
+        {
+            double total = 0.0;
+            for (int i = 0; i < order; i++)
+            {
+                total += Math.Abs(matrix[(i * order) + j]);
+            }
+
+            largest = Math.Max(largest, total);
+        }
+
+        return largest;
     }
 
     private static double[] Residuals(IvProblem problem, double[] coefficients)
