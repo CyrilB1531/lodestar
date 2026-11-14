@@ -77,7 +77,10 @@ writes a symbolic sequence dimension. That table holds 512 rows for
 positions are the padding offset, reads 512. A configuration sentence-transformers
 refuses to load — not JSON, or a length that is not an integer — is
 refused by the text overloads, and so are a zero and `true`; `Embed` and the
-overload taking an `EncodedBatch` never read it. An encoder you build yourself
+overload taking an `EncodedBatch` never read it. Where the file asks for
+`only_second`, or a `stride` tokenizers cannot cut under, a text past a length
+longer than the template is refused rather than cut, as sentence-transformers
+refuses it ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)). An encoder you build yourself
 is treated the same way when its `MaxLength` is null. A true `do_lower_case` in
 that file lowercases each text before it is encoded, as sentence-transformers
 does ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).

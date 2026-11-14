@@ -21,7 +21,7 @@ finished, as Microsoft.Extensions.AI's own OpenAI generator fills them.
 **Exceptions** — every one of these comes back in the returned task, never from the call itself.
 `ArgumentNullException` when `values` is null. `ArgumentException` when `options`
 asks for a dimension the loaded model does not produce, or when the encoder refuses a text in
-`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None`, or a configured `only_second` refuses one past the configured length — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)), or when the encoder's own `MaxLength` lets a sequence past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md), naming `encoder`. `InvalidOperationException` when the sentence-transformers configuration beside
+`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None`, or a configured `only_second` or `stride` refuses one past a configured length longer than the template — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)), or when the encoder's own `MaxLength`, or a configured length below the template, which cuts nothing, lets a sequence past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md), naming `encoder` ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)). `InvalidOperationException` when the sentence-transformers configuration beside
 the model is refused, as [`EmbedBatch`](../../onnx/inference/onnxtextembedder-embedbatch.md) refuses
 it ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)). `OperationCanceledException` when
 `cancellationToken` is already cancelled, or is cancelled between sub-batches — it is the batch path
@@ -73,12 +73,15 @@ than silently ignored. The check only fires when the model declares a fixed outp
 exports declare a symbolic one, and there the request is left alone, because refusing it would mean
 guessing.
 
-**A text past the model's limit is cut, not refused.** An encoder built without a `MaxLength`
+**A text past the model's limit is cut where the configured length allows it.** An encoder built without a `MaxLength`
 truncates where [`OnnxTextEmbedder.EmbedBatch`](../../onnx/inference/onnxtextembedder-embedbatch.md)
 does: at the length the sentence-transformers configuration exported beside the model states, else at
 256, never past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md) — its
 fixed sequence axis, else its position-embedding table — special tokens kept, under its own
-`Truncation`, so `TruncationStrategy.None` refuses the text, as a configured `only_second` truncation does. A true `do_lower_case` in that file
+`Truncation`, so `TruncationStrategy.None` refuses the text, as a configured `only_second` truncation does
+past a length longer than the template. A configured length shorter than the template cuts nothing, as in
+sentence-transformers, so a text past the model's limit is then refused, naming `encoder`
+([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)). A true `do_lower_case` in that file
 lowercases each text first, as `EmbedBatch` does
 ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
 
