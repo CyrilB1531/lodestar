@@ -10,15 +10,29 @@ public IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(TInput 
 
 **Parameters** — `searchValue` is the query vector, as a `ReadOnlyMemory<float>` or a `float[]`, of
 the collection's vector width. `top` is the most results returned. `options` carries `Filter`, `Skip`
-and `ScoreThreshold`, all honoured; `VectorProperty` and `IncludeVectors` are not read, since a
-record has one vector and is returned whole. `cancellationToken` is checked between results.
+and `ScoreThreshold`, all honoured. `VectorProperty` may select the record's one vector property and
+nothing else, since a schema with two is refused at construction; `IncludeVectors` is not read,
+since a record is returned whole. `cancellationToken` is checked between results.
+
+**Which selector selects the property** — a selector names the property when it reads it straight
+off its parameter, casts and `as` on either side allowed, but not a conversion through a
+user-defined operator. An override answers to the declaration it
+overrides, and a member of an interface the record implements answers through the record's implicit
+implementation of it. Everything else is another property and refused: a base property a `new`
+member hides — which the schema never reads either, marked or not, since the record's code reads the
+member, unless the member is not public, which leaves the base the one listed and read — the same member on another instantiation of a generic type, an explicit interface
+implementation, an interface reached through variance alone, on an interface record type a cast
+down to a class implementing it, and any expression that computes a value
+([#1212](https://github.com/CyrilB1531/lodestar/issues/1212)).
 
 **Returns** — `IAsyncEnumerable<VectorSearchResult<TRecord>>`, best first: each result is a held
 record and its cosine similarity to the query. At most `top` results, fewer only when fewer records
 pass the filter and the threshold after `Skip`.
 
 **Exceptions** — `ArgumentOutOfRangeException` when `top` is less than 1. `ArgumentException` when
-the query is not the collection's vector width — an empty collection included.
+the query is not the collection's vector width — an empty collection included — or when `options`
+sets a `VectorProperty` selecting any property but the vector one
+([#1212](https://github.com/CyrilB1531/lodestar/issues/1212)).
 `NotSupportedException` when `searchValue` is not a vector — a `string` included.
 `OperationCanceledException` when `cancellationToken` is cancelled between results. All of them are
 raised when enumeration begins, not when the method is called.

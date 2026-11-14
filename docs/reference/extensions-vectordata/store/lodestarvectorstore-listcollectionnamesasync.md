@@ -13,8 +13,9 @@ public IAsyncEnumerable<string> ListCollectionNamesAsync(CancellationToken cance
 **Returns** — `IAsyncEnumerable<string>`: one name per collection this store has handed out that
 has been ensured or written to, and not deleted since. No order is promised.
 
-**Exceptions** — `OperationCanceledException` when `cancellationToken` is cancelled while the names
-are enumerated.
+**Exceptions** — `OperationCanceledException` when `cancellationToken` is cancelled when enumeration
+begins, an empty store included, or while the names are enumerated. `ObjectDisposedException` when the store has been disposed, raised when enumeration
+begins.
 
 **Example** — a collection that was only asked for is not listed.
 

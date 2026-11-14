@@ -16,6 +16,7 @@ has been ensured or written to and not deleted since; `false` otherwise, includi
 store has never seen.
 
 **Exceptions** — `ArgumentNullException` when `name` is null ([#1353](https://github.com/CyrilB1531/lodestar/issues/1353)).
+`ObjectDisposedException`, carried by the returned task, when the store has been disposed.
 
 **Example** — requested, ensured, deleted.
 

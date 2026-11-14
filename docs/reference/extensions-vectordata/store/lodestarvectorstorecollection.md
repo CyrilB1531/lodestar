@@ -12,13 +12,20 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord> : VectorStoreCo
 `name` is what `Name` reports. `options` configures the keyword half and the fusion; `null` takes the
 defaults. `definition` is an explicit schema; `null` reads `TRecord`'s `VectorStoreKey`,
 `VectorStoreVector` and `VectorStoreData` attributes. It throws `ArgumentNullException` when `name`
-is null; `ArgumentException` when the schema has no key property, a key property whose type is not
+is null; `ArgumentException` when the schema has no key property or more than one, a key property whose type is not
 `TKey` (or its nullable), no vector property, a vector property that does not hold
-`ReadOnlyMemory<float>`, a full-text indexed property that is not a `string`, or a definition naming
-a property `TRecord` lacks; and `NotSupportedException` when the vector property declares a `DistanceFunction` other than
-`CosineSimilarity`. A collection constructed directly belongs to no
+`ReadOnlyMemory<float>`, a sole full-text indexed property that is not a `string`, a key, vector
+or sole full-text property without a getter, a property marked for two of those roles, a definition naming
+a property `TRecord` lacks, or one listing a property twice — a refusal of a given definition
+naming `definition`; and `NotSupportedException` when the schema has more than one vector
+property — a shape the abstraction allows, and which this store would otherwise search by whichever
+reflection listed first ([#1212](https://github.com/CyrilB1531/lodestar/issues/1212)) — or when the vector property declares
+a `DistanceFunction` other than `CosineSimilarity`. A collection constructed directly belongs to no
 store; one from [`LodestarVectorStore.GetCollection`](lodestarvectorstore-getcollection.md) is the
 same type, held by name.
+
+A `TRecord` that is itself an interface is read for the members it declares, not those of the
+interfaces it extends.
 
 **Properties** — `Name` is the name the collection was constructed with.
 

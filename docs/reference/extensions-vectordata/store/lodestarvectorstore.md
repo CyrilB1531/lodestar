@@ -76,10 +76,21 @@ instance makes it exist again.
 can save itself, and this store does not expose that: a durable store would have to decide how the
 records and the fitted vocabulary are serialized, and the abstraction asks for neither.
 
-**Disposing the store disposes every collection it handed out** and forgets them. `Dispose` is the
-base class's, so it has no entry of its own here.
+**Disposing the store disposes every collection it holds** and forgets them; a collection whose name
+went to another schema is no longer held. `Dispose` is the base class's, so it has no entry of its
+own here.
 
-**Thread safety** — not safe for concurrent writes, which is true of every collection it holds.
+**Thread safety** — the store itself may be shared by concurrent callers, as a dependency-injection
+singleton is: the names it holds are read and written under a lock — by `GetCollection`,
+`CollectionExistsAsync`, `ListCollectionNamesAsync` and the lookup `EnsureCollectionDeletedAsync`
+makes — so two callers asking for one new name get one collection ([#1266](https://github.com/CyrilB1531/lodestar/issues/1266)).
+**A collection owns its own state**: whether it exists or was deleted is written by its writes and
+only read by the store, so a request for its name under another `TKey` or `TRecord` while it is
+written or deleted is a concurrent write, which no collection is safe for. After `Dispose`,
+`GetCollection` throws `ObjectDisposedException`, the tasks that `CollectionExistsAsync` and
+`EnsureCollectionDeletedAsync` return carry it (a null name is still refused first, and a cancelled
+token is answered with a cancelled task before the store is read), and `ListCollectionNamesAsync` throws it when
+enumeration begins; `GetService` still answers, since metadata holds nothing the disposal released.
 
 **Applies to** — net10.0, netstandard2.0.
 

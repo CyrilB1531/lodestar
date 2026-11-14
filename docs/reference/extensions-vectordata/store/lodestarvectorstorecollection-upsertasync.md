@@ -20,7 +20,10 @@ already cancelled ([#1354](https://github.com/CyrilB1531/lodestar/issues/1354)).
 null record. `ArgumentException` when a record's key is null, or when its vector is not the width the
 schema declares; the message names the key and both widths. `InvalidOperationException` when the
 records would take the collection past the largest array, checked before any is written
-([#1338](https://github.com/CyrilB1531/lodestar/issues/1338)).
+([#1338](https://github.com/CyrilB1531/lodestar/issues/1338)): the vectors share one array of
+`float`, so the ceiling is its largest length over the width — 699,050 slots of 3,072 floats,
+1,398,101 of 1,536, on .NET 6 and later. A slot a deletion freed still counts until the collection is
+emptied, so a new key may be refused early, never late ([#1267](https://github.com/CyrilB1531/lodestar/issues/1267)).
 
 **Example** — writing the same key twice replaces the record, and its old vector with it.
 
