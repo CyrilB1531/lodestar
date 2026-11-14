@@ -46,6 +46,11 @@ touches neither half.
 - A vector property declaring a `DistanceFunction` other than `CosineSimilarity` is refused when the
   [`LodestarVectorStoreCollection`](store/lodestarvectorstorecollection.md) is constructed: the index
   scores cosine only, and a declared distance would also turn `ScoreThreshold` around.
+- A record type with two vector properties is refused at construction too: the collection holds
+  one vector per record, and reading the first that reflection lists would search one of them
+  without saying which. Two full-text indexed properties are refused by the hybrid search alone,
+  which has one text per record to index; a vector search never reads them. A `VectorProperty` or
+  `AdditionalProperty` selecting any other property is refused by the search it is passed to.
 
 ## Not trimming- or AOT-safe on the filter path
 

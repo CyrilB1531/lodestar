@@ -14,7 +14,8 @@ namespace Lodestar.Extensions.VectorData;
 /// its slot, and its text staged for the keyword half, which tokenizes what was staged when a
 /// hybrid search next needs it. An updated record's superseded vector is overwritten rather than
 /// masked. Searches may run concurrently with each other; a write may not run beside anything:
-/// an in-memory collection built for one process is not a database.
+/// an in-memory collection built for one process is not a database. Whether it exists or was
+/// deleted is its own state, which a store reads and its writes change (#1266).
 /// </remarks>
 // Every provider of this abstraction names its collection type after the base class it
 // extends; CA1711 flags the suffix, but matching Microsoft.Extensions.VectorData is the point.
@@ -36,8 +37,8 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <param name="options">How the keyword half is built and fused; <see langword="null"/> takes the defaults.</param>
     /// <param name="definition">An explicit schema, or <see langword="null"/> to read <typeparamref name="TRecord"/>'s attributes.</param>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
-    /// <exception cref="ArgumentException">The schema has no key property, no vector property, a vector that is not <c>ReadOnlyMemory&lt;float&gt;</c>, or a definition naming a property <typeparamref name="TRecord"/> lacks.</exception>
-    /// <exception cref="NotSupportedException">The vector declares a distance function other than <c>DistanceFunction.CosineSimilarity</c>.</exception>
+    /// <exception cref="ArgumentException">The schema has no key property or more than one, a key that is not <typeparamref name="TKey"/>, no vector property, a vector that is not <c>ReadOnlyMemory&lt;float&gt;</c>, a sole full-text property that is not a <see cref="string"/>, a key, vector or sole full-text property without a getter, a property marked for two of those roles, or a definition naming a property <typeparamref name="TRecord"/> lacks, or one listing a property twice.</exception>
+    /// <exception cref="NotSupportedException">The schema has more than one vector property, or the vector declares a distance function other than <c>DistanceFunction.CosineSimilarity</c>.</exception>
     public LodestarVectorStoreCollection(
         string name,
         LodestarVectorStoreOptions? options = null,
@@ -59,9 +60,6 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <summary>The schema this collection reads its records through.</summary>
     internal RecordSchema<TKey, TRecord> Schema => _schema;
-
-    /// <summary>The options the keyword half and the fusion were configured with.</summary>
-    internal LodestarVectorStoreOptions Options => _options;
 
     /// <inheritdoc />
     public override Task<bool> CollectionExistsAsync(CancellationToken cancellationToken = default) =>
@@ -312,7 +310,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
-    /// <exception cref="ArgumentException">The query is not the collection's vector width.</exception>
+    /// <exception cref="ArgumentException">The query is not the collection's vector width, or <paramref name="options"/> selects a <c>VectorProperty</c> other than the record's vector property.</exception>
     /// <exception cref="NotSupportedException"><paramref name="searchValue"/> is not a vector, and this package generates none.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
@@ -330,6 +328,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Guard.NotLessThan(top, 1);
         ReadOnlyMemory<float> query = QueryOf(searchValue);
         VectorSearchOptions<TRecord> settings = options ?? new VectorSearchOptions<TRecord>();
+        _schema.CheckVectorSelector(settings.VectorProperty, nameof(options));
         List<VectorSearchResult<TRecord>> results = Nearest(query, top, settings);
 
         foreach (VectorSearchResult<TRecord> result in results)
@@ -368,10 +367,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         where TInput : notnull
     {
         ReadOnlyMemory<float> query = AsVector(searchValue);
-        if (query.Length != Schema.Dimension)
+        if (query.Length != _schema.Dimension)
         {
             throw new ArgumentException(
-                $"query length {query.Length} != dimension {Schema.Dimension}.", nameof(searchValue));
+                $"query length {query.Length} != dimension {_schema.Dimension}.", nameof(searchValue));
         }
 
         return query;
@@ -396,9 +395,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <param name="cancellationToken">Checked between results.</param>
     /// <exception cref="ArgumentNullException"><paramref name="keywords"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1, or the options' vectorizer or BM25 settings are outside their range.</exception>
-    /// <exception cref="ArgumentException">The query is not the collection's vector width, or the options' <c>NgramRange</c> is not an ascending range from 1.</exception>
+    /// <exception cref="ArgumentException">The query is not the collection's vector width, <paramref name="options"/> selects a <c>VectorProperty</c> or <c>AdditionalProperty</c> other than the record's vector or full-text property, or the options' <c>NgramRange</c> is not an ascending range from 1.</exception>
     /// <exception cref="InvalidOperationException">The options' <c>MaxDf</c> corresponds to fewer records than their <c>MinDf</c>.</exception>
-    /// <exception cref="NotSupportedException">The record type marks no <c>IsFullTextIndexed</c> property, the search value is not a vector, or <paramref name="options"/> sets <c>ScoreThreshold</c>.</exception>
+    /// <exception cref="NotSupportedException">The record type marks no <c>IsFullTextIndexed</c> property or several, the search value is not a vector, or <paramref name="options"/> sets <c>ScoreThreshold</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> is cancelled between results.</exception>
     /// <remarks>
     /// A term the collection never saw scores nothing rather than failing. A document the
@@ -418,11 +417,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         Guard.NotNull(keywords);
         Guard.NotLessThan(top, 1);
         ReadOnlyMemory<float> query = QueryOf(searchValue);
-        if (!Schema.HasFullText)
+        if (_schema.KeywordRefusal is { } refusal)
         {
-            throw new NotSupportedException(
-                $"{typeof(TRecord).Name} marks no property [VectorStoreData(IsFullTextIndexed = true)], "
-                + "so this collection has no keyword half to fuse with.");
+            throw new NotSupportedException(refusal);
         }
 
         HybridSearchOptions<TRecord> settings = options ?? new HybridSearchOptions<TRecord>();
@@ -433,6 +430,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
                 + "1 / (k + rank) over the rankings, not a similarity, so no threshold written for "
                 + "similarities means anything against it.");
         }
+
+        _schema.CheckVectorSelector(settings.VectorProperty, nameof(options));
+        _schema.CheckFullTextSelector(settings.AdditionalProperty, nameof(options));
 
         List<VectorSearchResult<TRecord>> results = Fused(query, keywords, top, settings);
         foreach (VectorSearchResult<TRecord> result in results)
@@ -464,7 +464,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         KeywordMatches matched = _keywords!.Matched(keywords);
         int wanted = (int)Math.Min((long)top + settings.Skip, _held.Count);
         List<(int Slot, double Score)> fused = FusedTop.Select(
-            _held, query.Span, matched, Options.RankFusionK, wanted, RecordFilter.Compile(settings.Filter));
+            _held, query.Span, matched, _options.RankFusionK, wanted, RecordFilter.Compile(settings.Filter));
 
         return [.. fused
             .Select(hit => new VectorSearchResult<TRecord>(_held.At(hit.Slot)!, hit.Score))

@@ -258,6 +258,19 @@ public sealed class CollectionWriteTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => Hybrid(collection, "cat"));
     }
 
+    // #1211's case: MinDf = 2 over one record is past MaxDf's one, and only the keyword half reads it.
+    [Fact]
+    public async Task A_minimum_document_frequency_one_record_cannot_meet_leaves_the_vector_search_answering()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>(
+            "documents", new LodestarVectorStoreOptions { Vectorizer = new() { MinDf = 2 } });
+        await collection.UpsertAsync(Doc("a", "the cat sat", 1f, 0f, 0f));
+
+        Assert.Equal("a", Assert.Single(await Nearest(collection, TowardA, 2)).Record.Id);
+        Assert.Equal(0, collection.TokenizedTexts);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Hybrid(collection, "cat"));
+    }
+
     [Fact]
     public async Task Out_of_range_bm25_options_are_refused_by_the_first_hybrid_search_and_nothing_is_lost()
     {

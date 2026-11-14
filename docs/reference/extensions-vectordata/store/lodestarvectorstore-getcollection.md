@@ -15,11 +15,14 @@ is an explicit schema; `null` reads the key, vector and data attributes on `TRec
 abstraction's `VectorStoreCollection<TKey, TRecord>`. Cast it to `IKeywordHybridSearchable<TRecord>`
 to reach [`LodestarVectorStoreCollection.HybridSearchAsync`](lodestarvectorstorecollection-hybridsearchasync.md).
 
-**Exceptions** — `ArgumentNullException` when `name` is null. `ArgumentException` when `name` is
+**Exceptions** — `ArgumentNullException` when `name` is null. `ObjectDisposedException` when the
+store has been disposed. `ArgumentException` when `name` is
 already held over a different `TKey` or `TRecord` and has not been deleted since, or when the schema
-is unusable: no key property, a key property whose type is not `TKey`, no vector property, a vector
-property that does not hold `ReadOnlyMemory<float>`, a full-text indexed property that is not a
-`string`, or a definition naming a property `TRecord` lacks. `NotSupportedException` when the vector property declares a
+is unusable: no key property or more than one, a key property whose type is not `TKey`, no vector property, a vector
+property that does not hold `ReadOnlyMemory<float>`, a sole full-text indexed property that is not a
+`string`, a key, vector or sole full-text property without a getter, a property marked for two of those
+roles, a definition naming a property `TRecord` lacks, or one listing a property twice. `NotSupportedException` when the schema has more than one
+vector property, or when the vector property declares a
 `DistanceFunction` other than `CosineSimilarity`.
 
 **Example** — the same name twice is the same collection, and asking for it does not create it.
@@ -45,13 +48,16 @@ string seen = AskTwiceAsync().GetAwaiter().GetResult();  // => True False True
 ```
 
 **Remarks** — **the first request decides the schema.** A second call with the same name returns the
-collection already held, and its `definition` is not read: a store cannot hold two schemas under one
+collection already held, and its `definition` is not read — concurrent first requests are answered
+as sequential ones are, one of them deciding: a store cannot hold two schemas under one
 name, and quietly rebuilding the first would drop its records. A different `TKey` or `TRecord` is
 refused rather than ignored, because the cast that would follow could only fail somewhere less
 helpful. **A deleted name is free again**: once
 [`LodestarVectorStore.EnsureCollectionDeletedAsync`](lodestarvectorstore-ensurecollectiondeletedasync.md)
 has run and nothing has written to the collection since, a different `TKey` or `TRecord` gets a new
-collection under that name, while the same ones still get the instance already held.
+collection under that name, while the same ones still get the instance already held. The instance
+it replaces is no longer the store's: the store neither lists nor disposes it, and a handle kept to
+it writes to that instance alone.
 
 The collection is **created, not made to exist**. It answers `false` to
 [`LodestarVectorStore.CollectionExistsAsync`](lodestarvectorstore-collectionexistsasync.md) until

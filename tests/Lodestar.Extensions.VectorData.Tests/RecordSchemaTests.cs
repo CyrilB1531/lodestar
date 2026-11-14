@@ -93,8 +93,550 @@ public sealed class NumberMarkedFullText
     public ReadOnlyMemory<float> Embedding { get; set; }
 }
 
+/// <summary>Two vectors, a shape the abstraction allows and this store does not search.</summary>
+public sealed class TwoVectors
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Title { get; set; }
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Body { get; set; }
+}
+
+/// <summary>Two full-text indexed texts, of which the keyword half would index one.</summary>
+public sealed class TwoTexts
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Title { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Body { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>Two keys, of which a write would address the record by one.</summary>
+public sealed class TwoKeys
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreKey]
+    public string OtherId { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector reached through an interface, as generic repository code reads it.</summary>
+public interface IEmbedded
+{
+    ReadOnlyMemory<float> Embedding { get; }
+}
+
+/// <summary>A record implementing <see cref="IEmbedded"/>.</summary>
+public sealed class EmbeddedNote : IEmbedded
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A key also marked as data, two roles a definition could not list.</summary>
+public sealed class KeyAsText
+{
+    [VectorStoreKey]
+    [VectorStoreData]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector whose getter <see cref="SetterOverride"/> inherits.</summary>
+public class VirtualVector
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public virtual ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>An override of the setter alone, which reflection lists without a getter.</summary>
+public sealed class SetterOverride : VirtualVector
+{
+    public override ReadOnlyMemory<float> Embedding
+    {
+        set => base.Embedding = value;
+    }
+}
+
+/// <summary>A key the store could write but never read back.</summary>
+public sealed class SetterOnlyKey
+{
+    // S2376, CA1044, CA1822: write-only and stateless on purpose, the shape the schema has to refuse.
+#pragma warning disable S2376, CA1044, CA1822
+    [VectorStoreKey]
+    public string Id
+    {
+        set => _ = value;
+    }
+#pragma warning restore S2376, CA1044, CA1822
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A sole full-text property the store could write but never read back.</summary>
+public sealed class SetterOnlyText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    // S2376, CA1044, CA1822: write-only and stateless on purpose, the shape the schema has to refuse.
+#pragma warning disable S2376, CA1044, CA1822
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Text
+    {
+        set => _ = value;
+    }
+#pragma warning restore S2376, CA1044, CA1822
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+// S2376, CA1044, S1185: a write-only `new` slot and its override are the shape the schema has to refuse.
+#pragma warning disable S2376, CA1044, S1185
+/// <summary>A virtual vector a <c>new</c> slot with no getter hides, which <see cref="OverNewSlot"/> overrides.</summary>
+public class NewSlot : VirtualVector
+{
+    public new virtual ReadOnlyMemory<float> Embedding
+    {
+        set => base.Embedding = value;
+    }
+}
+
+/// <summary>An override of the <c>new</c> slot's setter: its own code has no getter to read.</summary>
+public sealed class OverNewSlot : NewSlot
+{
+    [VectorStoreVector(3)]
+    public override ReadOnlyMemory<float> Embedding
+    {
+        set => base.Embedding = value;
+    }
+}
+#pragma warning restore S2376, CA1044, S1185
+
+/// <summary>A vector the store could write but never read back.</summary>
+public sealed class SetterOnlyVector
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    // S2376, CA1044, CA1822: write-only and stateless on purpose, the shape the schema has to refuse.
+#pragma warning disable S2376, CA1044, CA1822
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding
+    {
+        set => _ = value;
+    }
+#pragma warning restore S2376, CA1044, CA1822
+}
+
+/// <summary>A full-text property, which <see cref="UnmarkedHider"/> hides with a member of its own.</summary>
+public class MarkedText
+{
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Text { get; set; } = string.Empty;
+}
+
+/// <summary>An unmarked <c>new</c> member over a marked base one: the record's code reads this one.</summary>
+public sealed class UnmarkedHider : MarkedText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new int Text { get; set; }
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A <c>new</c> member of the same type over a marked base text, which hides it from the full listing.</summary>
+public sealed class SameTypeHider : MarkedText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new string Text { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A base text the full-text property of <see cref="HidingNote"/> hides.</summary>
+public class PlainText
+{
+    public string Text { get; set; } = string.Empty;
+}
+
+/// <summary>A full-text property declared with <c>new</c> over a base property of the same name.</summary>
+public sealed class HidingNote : PlainText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public new string Text { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector declared abstract, which an expression names by this declaration.</summary>
+public abstract class AbstractNote
+{
+    public abstract ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>The override reflection lists for <see cref="AbstractNote.Embedding"/>.</summary>
+public sealed class OverridingNote : AbstractNote
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public override ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A record type that is itself an interface, which the class constraint admits.</summary>
+public interface INote
+{
+    [VectorStoreKey]
+    string Id { get; }
+
+    [VectorStoreVector(3)]
+    ReadOnlyMemory<float> Embedding { get; }
+}
+
+/// <summary>What an <see cref="INote"/> collection holds.</summary>
+public sealed class Note : INote
+{
+    public string Id { get; set; } = string.Empty;
+
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>One generic interface, implemented twice by <see cref="TwiceHeld"/>.</summary>
+public interface IHas<out T>
+{
+    T Value { get; }
+}
+
+/// <summary>A vector that implements one instantiation of <see cref="IHas{T}"/>, and a string the other.</summary>
+public sealed class TwiceHeld : IHas<ReadOnlyMemory<float>>, IHas<string>
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Value { get; set; }
+
+    string IHas<string>.Value => Id;
+}
+
+/// <summary>A key declared on a base interface.</summary>
+public interface IKeyed
+{
+    [VectorStoreKey]
+    string Id { get; }
+}
+
+/// <summary>A record interface whose key it inherits from <see cref="IKeyed"/>.</summary>
+public interface IKeyedNote : IKeyed
+{
+    [VectorStoreVector(3)]
+    ReadOnlyMemory<float> Embedding { get; }
+}
+
 public sealed class RecordSchemaTests
 {
+    private static readonly float[] Query = [1f, 0f, 0f];
+
+    private static async Task<LodestarVectorStoreCollection<string, Document>> OneRecordAsync()
+    {
+        var collection = new LodestarVectorStoreCollection<string, Document>("documents");
+        await collection.UpsertAsync(new Document { Id = "a", Text = "the cat", Embedding = Query });
+        return collection;
+    }
+
+    private static VectorStoreCollectionDefinition DocumentDefinition(params VectorStoreProperty[] extra) => new()
+    {
+        Properties =
+        [
+            new VectorStoreKeyProperty("Id", typeof(string)),
+            new VectorStoreVectorProperty("Embedding", typeof(ReadOnlyMemory<float>), 3),
+            .. extra,
+        ],
+    };
+
+    [Fact]
+    public void Two_vector_properties_are_refused_at_construction_naming_both()
+    {
+        NotSupportedException error = Assert.Throws<NotSupportedException>(
+            () => new LodestarVectorStoreCollection<string, TwoVectors>("vectors"));
+
+        Assert.Contains("(Body, Title)", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Two_full_text_properties_refuse_the_hybrid_search_naming_both_and_not_the_vector_one()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, TwoTexts>("texts");
+        await collection.UpsertAsync(new TwoTexts { Id = "a", Title = "cat", Body = "dog", Embedding = Query });
+
+        Assert.Single(await collection.SearchAsync(Query, 1).ToListAsync());
+        NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(
+            async () => await collection.HybridSearchAsync(Query, ["cat"], 1).ToListAsync());
+        Assert.Contains("(Body, Title)", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_key_properties_are_refused_at_construction_naming_both()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, TwoKeys>("keys"));
+
+        Assert.Contains("(Id, OtherId)", error.Message, StringComparison.Ordinal);
+        Assert.Null(error.ParamName);
+    }
+
+    [Fact]
+    public void A_null_entry_in_a_definition_is_skipped_as_it_was()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, Document>(
+            "documents", definition: DocumentDefinition((VectorStoreProperty)null!));
+
+        Assert.Equal(3, collection.Schema.Dimension);
+    }
+
+    [Fact]
+    public async Task A_selector_casting_with_as_is_honoured()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, OverridingNote>("notes");
+        await collection.UpsertAsync(new OverridingNote { Id = "a", Embedding = Query });
+
+        Assert.Single(await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<OverridingNote> { VectorProperty = n => (n as AbstractNote).Embedding }).ToListAsync());
+    }
+
+    [Fact]
+    public void A_record_interface_is_read_for_its_own_members_and_not_its_bases()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, IKeyedNote>("notes"));
+
+        Assert.Contains("[VectorStoreKey]", error.Message, StringComparison.Ordinal);
+        Assert.Contains("interfaces it extends are not read", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_definition_with_two_of_a_kind_is_refused_as_the_attributes_are()
+    {
+        var vectors = new VectorStoreCollectionDefinition
+        {
+            Properties =
+            [
+                new VectorStoreKeyProperty("Id", typeof(string)),
+                new VectorStoreVectorProperty("Title", typeof(ReadOnlyMemory<float>), 3),
+                new VectorStoreVectorProperty("Body", typeof(ReadOnlyMemory<float>), 3),
+            ],
+        };
+
+        NotSupportedException twoVectors = Assert.Throws<NotSupportedException>(
+            () => new LodestarVectorStoreCollection<string, TwoVectors>("vectors", definition: vectors));
+        using var twoTexts = new LodestarVectorStoreCollection<string, TwoTexts>(
+            "texts",
+            definition: DocumentDefinition(
+                new VectorStoreDataProperty("Title", typeof(string)) { IsFullTextIndexed = true },
+                new VectorStoreDataProperty("Body", typeof(string)) { IsFullTextIndexed = true }));
+        ArgumentException twoKeys = Assert.Throws<ArgumentException>(() => new LodestarVectorStoreCollection<string, Document>(
+            "documents", definition: DocumentDefinition(new VectorStoreKeyProperty("Text", typeof(string)))));
+
+        Assert.Contains("(Body, Title)", twoVectors.Message, StringComparison.Ordinal);
+        Assert.Contains("(Body, Title)", twoTexts.Schema.KeywordRefusal, StringComparison.Ordinal);
+        Assert.Contains("(Id, Text)", twoKeys.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_selector_through_another_instantiation_of_one_generic_interface_is_refused()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, TwiceHeld>("held");
+        await collection.UpsertAsync(new TwiceHeld { Id = "a", Value = Query });
+
+        Assert.Single(await collection.SearchAsync(Query, 1, new VectorSearchOptions<TwiceHeld>
+        {
+            VectorProperty = r => ((IHas<ReadOnlyMemory<float>>)r).Value,
+        }).ToListAsync());
+        await Assert.ThrowsAsync<ArgumentException>(async () => await collection.SearchAsync(Query, 1, new VectorSearchOptions<TwiceHeld>
+        {
+            VectorProperty = r => ((IHas<string>)r).Value,
+        }).ToListAsync());
+    }
+
+    [Fact]
+    public void A_definition_listing_one_property_twice_is_refused_as_malformed()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new LodestarVectorStoreCollection<string, Document>(
+            "documents",
+            definition: DocumentDefinition(new VectorStoreVectorProperty("Embedding", typeof(ReadOnlyMemory<float>), 3))));
+
+        Assert.Equal("definition", error.ParamName);
+        Assert.Contains("Embedding more than once", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_selector_written_against_an_interface_the_record_implements_is_honoured()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, EmbeddedNote>("notes");
+        await collection.UpsertAsync(new EmbeddedNote { Id = "a", Embedding = Query });
+
+        Assert.Single(await collection.SearchAsync(Query, 1, Selecting<EmbeddedNote>()).ToListAsync());
+    }
+
+    [Fact]
+    public void A_property_marked_for_two_roles_is_refused_as_a_definition_listing_it_twice_is()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, KeyAsText>("roles"));
+
+        Assert.Contains("KeyAsText.Id", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_vector_overriding_only_its_setter_reads_through_the_getter_it_inherits()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, SetterOverride>("vectors");
+        await collection.UpsertAsync(new SetterOverride { Id = "a", Embedding = Query });
+
+        Assert.Single(await collection.SearchAsync(Query, 1).ToListAsync());
+    }
+
+    [Fact]
+    public void An_override_whose_chain_has_no_getter_is_refused_rather_than_read_through_a_hidden_base()
+    {
+        Assert.Contains("has no getter", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, OverNewSlot>("vectors")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_vector_without_a_getter_is_refused_at_construction()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, SetterOnlyVector>("vectors"));
+
+        Assert.Contains("has no getter", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_marked_base_property_a_new_member_hides_is_not_read()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, UnmarkedHider>("hidden");
+
+        Assert.False(collection.Schema.HasFullText);
+        Assert.Contains("MarkedText.Text is marked, and a `new` member hides it", collection.Schema.KeywordRefusal, StringComparison.Ordinal);
+
+        using var sameType = new LodestarVectorStoreCollection<string, SameTypeHider>("hidden");
+        Assert.Contains("MarkedText.Text is marked, and a `new` member hides it", sameType.Schema.KeywordRefusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_selector_reaching_a_hidden_base_property_of_the_same_name_is_refused()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, HidingNote>("notes");
+        await collection.UpsertAsync(new HidingNote { Id = "a", Text = "the cat", Embedding = Query });
+
+        await Assert.ThrowsAsync<ArgumentException>(async () => await collection.HybridSearchAsync(
+            Query, ["cat"], 1, new HybridSearchOptions<HidingNote> { AdditionalProperty = n => ((PlainText)n).Text }).ToListAsync());
+        Assert.Single(await collection.HybridSearchAsync(
+            Query, ["cat"], 1, new HybridSearchOptions<HidingNote> { AdditionalProperty = n => n.Text }).ToListAsync());
+    }
+
+    [Fact]
+    public async Task A_selector_naming_the_abstract_declaration_an_override_implements_is_honoured()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, OverridingNote>("notes");
+        await collection.UpsertAsync(new OverridingNote { Id = "a", Embedding = Query });
+
+        Assert.Single(await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<OverridingNote> { VectorProperty = n => ((AbstractNote)n).Embedding }).ToListAsync());
+    }
+
+    [Fact]
+    public async Task A_selector_on_a_record_type_that_is_an_interface_is_honoured()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, INote>("notes");
+        await collection.UpsertAsync(new Note { Id = "a", Embedding = Query });
+
+        Assert.Single(await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<INote> { VectorProperty = n => n.Embedding }).ToListAsync());
+    }
+
+    [Fact]
+    public async Task A_selector_converted_twice_is_honoured()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await OneRecordAsync();
+
+        Assert.Single(await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<Document> { VectorProperty = d => (object?)(ReadOnlyMemory<float>?)d.Embedding }).ToListAsync());
+    }
+
+    // Generic code constrained to an interface: the compiler casts the parameter before reading the member.
+    private static VectorSearchOptions<T> Selecting<T>()
+        where T : class, IEmbedded => new() { VectorProperty = record => record.Embedding };
+
+    [Fact]
+    public async Task A_vector_selector_naming_the_vector_is_honoured_and_any_other_refused()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await OneRecordAsync();
+
+        Assert.Single(await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<Document> { VectorProperty = d => d.Embedding }).ToListAsync());
+
+        ArgumentException error = await Assert.ThrowsAsync<ArgumentException>(async () => await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<Document> { VectorProperty = d => d.Text }).ToListAsync());
+        Assert.Equal("options", error.ParamName);
+        Assert.Contains("Embedding", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Hybrid_selectors_naming_the_vector_and_the_text_are_honoured_and_any_other_refused()
+    {
+        using LodestarVectorStoreCollection<string, Document> collection = await OneRecordAsync();
+
+        Assert.Single(await collection.HybridSearchAsync(Query, ["cat"], 1, new HybridSearchOptions<Document>
+        {
+            VectorProperty = d => d.Embedding,
+            AdditionalProperty = d => d.Text,
+        }).ToListAsync());
+
+        await Assert.ThrowsAsync<ArgumentException>(async () => await collection.HybridSearchAsync(
+            Query, ["cat"], 1, new HybridSearchOptions<Document> { AdditionalProperty = d => d.Id }).ToListAsync());
+        await Assert.ThrowsAsync<ArgumentException>(async () => await collection.HybridSearchAsync(
+            Query, ["cat"], 1, new HybridSearchOptions<Document> { VectorProperty = d => d.Text }).ToListAsync());
+    }
+
     [Fact]
     public void A_key_property_of_another_type_than_the_collection_key_is_refused_at_construction()
     {
@@ -161,6 +703,25 @@ public sealed class RecordSchemaTests
     }
 
     [Fact]
+    public void A_definition_naming_a_plain_data_property_the_type_lacks_is_refused_too()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new LodestarVectorStoreCollection<string, Document>(
+            "documents", definition: DocumentDefinition(new VectorStoreDataProperty("Tag", typeof(string)))));
+
+        Assert.Equal("definition", error.ParamName);
+        Assert.Contains("Tag", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_key_or_a_sole_text_without_a_getter_is_refused_at_construction()
+    {
+        Assert.Contains("has no getter", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, SetterOnlyKey>("keys")).Message, StringComparison.Ordinal);
+        Assert.Contains("has no getter", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, SetterOnlyText>("texts")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_definition_naming_a_property_the_type_lacks_is_refused_at_construction()
     {
         var definition = new VectorStoreCollectionDefinition
@@ -223,7 +784,7 @@ public sealed class RecordSchemaTests
         RecordSchema<string, Document> schema = RecordSchema<string, Document>.Create(null);
         var record = new Document { Id = "a", Text = "the cat sat", Embedding = new float[] { 1f, 0f, 0f } };
 
-        Assert.Equal("a", schema.KeyOf(record));
+        Assert.Equal("a", schema.Admit(record, "record"));
         Assert.Equal("the cat sat", schema.FullTextOf(record));
         Assert.Equal(3, schema.Dimension);
         Assert.True(schema.HasFullText);

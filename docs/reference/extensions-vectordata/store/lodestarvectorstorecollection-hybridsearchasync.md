@@ -11,9 +11,10 @@ public IAsyncEnumerable<VectorSearchResult<TRecord>> HybridSearchAsync<TInput>(T
 **Parameters** — `searchValue` is the query vector, as a `ReadOnlyMemory<float>` or a `float[]`.
 `keywords` are the terms the keyword half scores, joined into one query document. `top` is the most
 results returned. `options` carries `Filter` and `Skip`, both applied to the fused ranking;
-`ScoreThreshold` is refused, and `VectorProperty`, `AdditionalProperty` and `IncludeVectors` are not
-read.
-`cancellationToken` is checked between results.
+`ScoreThreshold` is refused. `VectorProperty` and `AdditionalProperty` may select the record's one
+vector and one full-text indexed property and nothing else, by the rule
+[`LodestarVectorStoreCollection.SearchAsync`](lodestarvectorstorecollection-searchasync.md) states;
+`IncludeVectors` is not read. `cancellationToken` is checked between results.
 
 **Returns** — `IAsyncEnumerable<VectorSearchResult<TRecord>>`, best first. Each score is the record's
 **reciprocal-rank fusion score**, `Σ 1 / (k + rank)` over the rankings it appears in, not a
@@ -22,11 +23,13 @@ similarity. An empty collection returns no results.
 **Exceptions** — `ArgumentNullException` when `keywords` is null. `ArgumentOutOfRangeException` when
 `top` is less than 1, or when the collection's `Vectorizer` or `Bm25` options are outside their range.
 `ArgumentException` when the query is not the collection's vector width, an empty collection
-included, or when the `Vectorizer` options' `NgramRange` is not an ascending range from 1.
+included, when `options` sets a `VectorProperty` selecting any property but the vector one, or an
+`AdditionalProperty` selecting any property but the full-text indexed one
+([#1212](https://github.com/CyrilB1531/lodestar/issues/1212)), or when the `Vectorizer` options' `NgramRange` is not an ascending range from 1.
 `InvalidOperationException` when the `Vectorizer` options' `MaxDf` corresponds to fewer
 records than their `MinDf`, as a `CountVectorizer` fit refuses it. Options are checked by the first
 hybrid search over a non-empty collection; a vector search never reads them.
-`NotSupportedException` when `TRecord` marks no `IsFullTextIndexed` property, when `searchValue` is
+`NotSupportedException` when `TRecord` marks no `IsFullTextIndexed` property or several, when `searchValue` is
 not a vector, or when `options` sets `ScoreThreshold`. `OperationCanceledException`
 when `cancellationToken` is cancelled between results. All of them are raised when enumeration
 begins, not when the method is called.
