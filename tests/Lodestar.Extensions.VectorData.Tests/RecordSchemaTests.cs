@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.Extensions.VectorData;
 using Xunit;
 
@@ -370,6 +371,160 @@ public interface IKeyedNote : IKeyed
     ReadOnlyMemory<float> Embedding { get; }
 }
 
+/// <summary>A key, which <see cref="KeyHider"/> hides with an unmarked member of its own.</summary>
+public class MarkedKey
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+}
+
+/// <summary>An unmarked <c>new</c> member over a marked base key.</summary>
+public sealed class KeyHider : MarkedKey
+{
+    public new string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector, which <see cref="VectorHider"/> hides with an unmarked member of its own.</summary>
+public class MarkedVector
+{
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>An unmarked <c>new</c> member over a marked base vector.</summary>
+public sealed class VectorHider : MarkedVector
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector decoded into one buffer every record shares, as a getter avoiding an allocation may.</summary>
+public sealed class SharedBuffer(float[] scratch, float[] values)
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding
+    {
+        get
+        {
+            values.CopyTo(scratch, 0);
+            return scratch;
+        }
+    }
+}
+
+/// <summary>A virtual full-text property, which <see cref="UnflaggedOverride"/> overrides as plain data.</summary>
+public class VirtualText
+{
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public virtual string Text { get; set; } = string.Empty;
+}
+
+/// <summary>An override whose own mark turns the full-text flag off: no <c>new</c> member hides anything.</summary>
+public sealed class UnflaggedOverride : VirtualText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreData]
+    public override string Text { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector on a generic base, which <see cref="GenericVectorHider"/> hides.</summary>
+/// <typeparam name="T">Unused: the base is generic so that reflection names it with an arity suffix.</typeparam>
+#pragma warning disable S2326 // T is unused on purpose: the base only has to be generic.
+public class GenericMarkedVector<T>
+#pragma warning restore S2326
+{
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>An unmarked <c>new</c> member over a marked generic base vector.</summary>
+public sealed class GenericVectorHider : GenericMarkedVector<int>
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>An override of <see cref="VirtualKey.Id"/> that inherits its mark without repeating it.</summary>
+public class InheritedKey : VirtualKey
+{
+    public override string Id { get; set; } = string.Empty;
+}
+
+/// <summary>An unmarked <c>new</c> member over the override <see cref="InheritedKey"/> declares.</summary>
+public sealed class InheritedKeyHider : InheritedKey
+{
+    public new string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A marked virtual key, which <see cref="InheritedKey"/> overrides.</summary>
+public class VirtualKey
+{
+    [VectorStoreKey]
+    public virtual string Id { get; set; } = string.Empty;
+}
+
+/// <summary>A record whose key, text or vector getter throws, the one <see cref="Throws"/> names.</summary>
+public sealed class ThrowingGetters(string id, string? throws = null)
+{
+    /// <summary>The property whose getter throws, or <see langword="null"/> for none.</summary>
+    public string? Throws { get; } = throws;
+
+    [VectorStoreKey]
+    public string Id => Fail(nameof(Id), id);
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Text => Fail(nameof(Text), "the cat");
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding => Fail(nameof(Embedding), new ReadOnlyMemory<float>([1f, 0f, 0f]));
+
+    private T Fail<T>(string name, T value) =>
+        Throws == name ? throw new InvalidOperationException($"{name} cannot be read.") : value;
+}
+
+/// <summary>An unmarked <c>new</c> member over <see cref="VirtualText.Text"/>, which does hide it.</summary>
+public sealed class NewOverVirtualText : VirtualText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new string Text { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A vector whose getter answers a wider buffer on every read after the first, as a recomputed cache may.</summary>
+public sealed class ShiftingVector
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding => ++Reads == 1 ? new float[] { 1f, 0f, 0f } : new float[] { 0f, 1f, 0f, 0f };
+
+    /// <summary>How many times <see cref="Embedding"/> was read.</summary>
+    public int Reads { get; private set; }
+}
+
 public sealed class RecordSchemaTests
 {
     private static readonly float[] Query = [1f, 0f, 0f];
@@ -531,6 +686,85 @@ public sealed class RecordSchemaTests
         await collection.UpsertAsync(new SetterOverride { Id = "a", Embedding = Query });
 
         Assert.Single(await collection.SearchAsync(Query, 1).ToListAsync());
+        Assert.Single(await collection.SearchAsync(
+            Query, 1, new VectorSearchOptions<SetterOverride> { VectorProperty = r => r.Embedding }).ToListAsync());
+    }
+
+    [Fact]
+    public void No_expression_tree_reads_the_override_reflection_lists_without_a_getter()
+    {
+        // So no selector can name it, and the selector check needs no chain of its own (#1798).
+        ParameterExpression record = Expression.Parameter(typeof(SetterOverride), "record");
+        MemberExpression unreadable = Expression.Property(
+            record, typeof(SetterOverride).GetProperty(nameof(SetterOverride.Embedding))!);
+
+        Assert.Throws<ArgumentException>(() => Expression.Convert(unreadable, typeof(object)));
+        Assert.Throws<ArgumentException>(() => Expression.Lambda<Func<SetterOverride, ReadOnlyMemory<float>>>(unreadable, record));
+    }
+
+    [Theory]
+    [InlineData(nameof(ThrowingGetters.Text))]
+    [InlineData(nameof(ThrowingGetters.Embedding))]
+    public async Task A_getter_that_throws_fails_the_batch_before_any_record_is_written(string failing)
+    {
+        using var collection = new LodestarVectorStoreCollection<string, ThrowingGetters>("records");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => collection.UpsertAsync([new ThrowingGetters("a"), new ThrowingGetters("b", failing)]));
+
+        Assert.Null(await collection.GetAsync("a"));
+    }
+
+    [Theory]
+    [InlineData(nameof(ThrowingGetters.Id))]
+    [InlineData(nameof(ThrowingGetters.Text))]
+    [InlineData(nameof(ThrowingGetters.Embedding))]
+    public async Task A_getter_that_throws_fails_the_upsert_unwrapped_before_the_record_is_held(string failing)
+    {
+        using var collection = new LodestarVectorStoreCollection<string, ThrowingGetters>("records");
+
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => collection.UpsertAsync(new ThrowingGetters("a", failing)));
+
+        Assert.StartsWith(failing, error.Message, StringComparison.Ordinal);
+        Assert.Null(await collection.GetAsync("a"));
+    }
+
+    [Fact]
+    public async Task A_batch_holds_each_record_s_vector_though_the_getter_reuses_one_buffer()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, SharedBuffer>("vectors");
+        float[] scratch = new float[3];
+
+        await collection.UpsertAsync([
+            new SharedBuffer(scratch, [1f, 0f, 0f]) { Id = "a" },
+            new SharedBuffer(scratch, [0f, 1f, 0f]) { Id = "b" },
+        ]);
+
+        VectorSearchResult<SharedBuffer> hit = Assert.Single(await collection.SearchAsync(Query, 1).ToListAsync());
+        Assert.Equal("a", hit.Record.Id);
+        Assert.Equal(1d, hit.Score!.Value, 6);
+    }
+
+    [Fact]
+    public void A_hidden_mark_on_a_generic_base_or_an_override_names_the_declaration_hidden()
+    {
+        Assert.Contains("GenericMarkedVector<Int32>.Embedding is marked", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, GenericVectorHider>("vectors")).Message, StringComparison.Ordinal);
+        Assert.Contains("InheritedKey.Id is marked", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, InheritedKeyHider>("keys")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_override_that_drops_the_full_text_mark_is_not_called_a_hidden_member()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, UnflaggedOverride>("texts");
+
+        Assert.False(collection.Schema.HasFullText);
+        Assert.DoesNotContain("hides", collection.Schema.KeywordRefusal, StringComparison.Ordinal);
+
+        using var hidden = new LodestarVectorStoreCollection<string, NewOverVirtualText>("texts");
+        Assert.Contains("VirtualText.Text is marked, and a `new` member hides it", hidden.Schema.KeywordRefusal, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -538,6 +772,31 @@ public sealed class RecordSchemaTests
     {
         Assert.Contains("has no getter", Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, OverNewSlot>("vectors")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_key_or_vector_a_new_member_hides_is_named_in_the_refusal()
+    {
+        Assert.Contains("MarkedKey.Id is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, KeyHider>("keys")).Message, StringComparison.Ordinal);
+        Assert.Contains("MarkedVector.Embedding is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, VectorHider>("vectors")).Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_write_stores_the_vector_its_width_was_checked_on(bool batch)
+    {
+        using var collection = new LodestarVectorStoreCollection<string, ShiftingVector>("vectors");
+        var record = new ShiftingVector { Id = "a" };
+
+        // The getter's second read is four wide, which the slot's copy would refuse after the slot was taken (#1801).
+        await (batch ? collection.UpsertAsync([record]) : collection.UpsertAsync(record));
+
+        Assert.Equal(1, record.Reads);
+        VectorSearchResult<ShiftingVector> hit = Assert.Single(await collection.SearchAsync(Query, 1).ToListAsync());
+        Assert.Equal(1d, hit.Score!.Value, 6);
     }
 
     [Fact]
@@ -784,11 +1043,12 @@ public sealed class RecordSchemaTests
         RecordSchema<string, Document> schema = RecordSchema<string, Document>.Create(null);
         var record = new Document { Id = "a", Text = "the cat sat", Embedding = new float[] { 1f, 0f, 0f } };
 
-        Assert.Equal("a", schema.Admit(record, "record"));
-        Assert.Equal("the cat sat", schema.FullTextOf(record));
+        RecordSchema<string, Document>.Admitted admitted = schema.Admit(record, "record");
+        Assert.Equal("a", admitted.Key);
+        Assert.Equal("the cat sat", admitted.Text);
         Assert.Equal(3, schema.Dimension);
         Assert.True(schema.HasFullText);
-        Assert.Equal(1f, schema.VectorOf(record).Span[0]);
+        Assert.Equal(1f, admitted.Vector.Span[0]);
     }
 
     [Fact]
