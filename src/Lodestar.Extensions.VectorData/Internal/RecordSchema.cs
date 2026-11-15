@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.VectorData;
 
 namespace Lodestar.Extensions.VectorData;
@@ -66,42 +67,56 @@ internal sealed class RecordSchema<TKey, TRecord>
             : FromDefinition(properties, definition, nameof(definition));
     }
 
-    /// <summary>The record's key, once its vector has been checked against <see cref="Dimension"/>.</summary>
-    /// <remarks>What a write calls before it changes anything, so a refused record leaves nothing behind.</remarks>
+    /// <summary>Everything a write holds of the record, once its vector has been checked against <see cref="Dimension"/>.</summary>
+    /// <remarks>
+    /// What a write calls before it changes anything, so a refused record leaves nothing behind. Each property
+    /// is read once, here, so the vector written is the one checked whatever its getter does, and a getter
+    /// that throws does so before any record of a batch is written (#1801), propagating as thrown, unwrapped.
+    /// </remarks>
     /// <param name="record">The record about to be written.</param>
     /// <param name="paramName">The caller's parameter, which the exception names.</param>
     /// <exception cref="ArgumentNullException"><paramref name="record"/> is null.</exception>
     /// <exception cref="ArgumentException">The key is null, or the vector is not <see cref="Dimension"/> long.</exception>
-    public TKey Admit(TRecord record, string paramName)
+    public Admitted Admit(TRecord record, string paramName)
     {
         if (record is null)
         {
             throw new ArgumentNullException(paramName, "A null record cannot be written.");
         }
 
-        TKey key = _key.GetValue(record) is { } held
+        TKey key = Read(_key, record) is { } held
             ? (TKey)held
             : throw new ArgumentException(
-                $"A {typeof(TRecord).Name} carries a null {_key.Name}, and a record is addressed by its key.",
+                $"A {RecordName} carries a null {_key.Name}, and a record is addressed by its key.",
                 paramName);
-        int width = VectorOf(record).Length;
-        if (width != Dimension)
+        var vector = (ReadOnlyMemory<float>)Read(_vectorSearched.Property, record)!;
+        if (vector.Length != Dimension)
         {
             throw new ArgumentException(
-                $"The record keyed {key} carries a vector of {width} where this collection is "
+                $"The record keyed {key} carries a vector of {vector.Length} where this collection is "
                 + $"{Dimension} wide.", paramName);
         }
 
-        return key;
+        // The text BM25 indexes, the empty string when the record leaves it null or has none.
+        string text = _fullTextSearched is null
+            ? string.Empty
+            : (string?)Read(_fullTextSearched.Property, record) ?? string.Empty;
+        return new Admitted(record, key, vector, text);
     }
 
-    /// <summary>The record's vector, which the index holds a copy of.</summary>
-    public ReadOnlyMemory<float> VectorOf(TRecord record) =>
-        (ReadOnlyMemory<float>)_vectorSearched.Property.GetValue(record)!;
-
-    /// <summary>The text BM25 indexes, or the empty string when the record leaves it null.</summary>
-    /// <remarks>Never called when <see cref="HasFullText"/> is false.</remarks>
-    public string FullTextOf(TRecord record) => (string?)_fullTextSearched!.Property.GetValue(record) ?? string.Empty;
+    // Rethrows what the getter threw rather than the TargetInvocationException reflection wraps it in.
+    private static object? Read(PropertyInfo property, TRecord record)
+    {
+        try
+        {
+            return property.GetValue(record);
+        }
+        catch (TargetInvocationException wrapped) when (wrapped.InnerException is { } thrown)
+        {
+            ExceptionDispatchInfo.Capture(thrown).Throw();
+            throw;
+        }
+    }
 
     /// <summary>Refuses a search's <c>VectorProperty</c> unless it selects the one vector this schema holds (#1212).</summary>
     /// <param name="selector">The options' selector, or <see langword="null"/> when none was set.</param>
@@ -131,9 +146,13 @@ internal sealed class RecordSchema<TKey, TRecord>
         }
 
         PropertyInfo key = AtMostOne(keys, p => p.Name, names => TwoKeys(names, paramName: null))
-            ?? throw new ArgumentException($"{typeof(TRecord).Name} carries no [{KeyAttribute}] property{OwnMembersOnly}.");
+            ?? throw new ArgumentException(
+                $"{RecordName} carries no [{KeyAttribute}] property{OwnMembersOnly}"
+                + $"{Hidden(properties, IsMarked<VectorStoreKeyAttribute>)}.");
         VectorMember vector = AtMostOne(vectors, p => p.Property.Name, TwoVectors)
-            ?? throw new ArgumentException($"{typeof(TRecord).Name} carries no [VectorStoreVector] property{OwnMembersOnly}.");
+            ?? throw new ArgumentException(
+                $"{RecordName} carries no [VectorStoreVector] property{OwnMembersOnly}"
+                + $"{Hidden(properties, IsMarked<VectorStoreVectorAttribute>)}.");
 
         return Build(
             key, vector.Property, texts, vector.Attribute.Dimensions, vector.Attribute.DistanceFunction, fromDefinition: false, paramName: null);
@@ -149,7 +168,7 @@ internal sealed class RecordSchema<TKey, TRecord>
         if ((isKey ? 1 : 0) + (vectorMark is null ? 0 : 1) + (dataMark is null ? 0 : 1) > 1)
         {
             throw new ArgumentException(
-                $"{typeof(TRecord).Name}.{property.Name} is marked for more than one of key, vector and data; "
+                $"{RecordName}.{property.Name} is marked for more than one of key, vector and data; "
                 + "each property plays one role.");
         }
 
@@ -219,14 +238,14 @@ internal sealed class RecordSchema<TKey, TRecord>
         bool fromDefinition,
         string? paramName)
     {
-        // Checked here rather than left to the casts in Admit and FullTextOf, which would throw
-        // InvalidCastException on the first upsert or, for the text, only inside a later search.
+        // Checked here rather than left to the casts in Admit, which would throw
+        // InvalidCastException on the first upsert rather than at construction.
         Type keyType = Nullable.GetUnderlyingType(key.PropertyType) ?? key.PropertyType;
         if (!typeof(TKey).IsAssignableFrom(keyType))
         {
             throw new ArgumentException(
-                $"{typeof(TRecord).Name}.{key.Name} is {key.PropertyType.Name}, and this collection is "
-                + $"keyed by {typeof(TKey).Name}; the key property has to be the collection's key type.", paramName);
+                $"{RecordName}.{key.Name} is {DisplayName(key.PropertyType)}, and this collection is "
+                + $"keyed by {DisplayName(typeof(TKey))}; the key property has to be the collection's key type.", paramName);
         }
 
         // Only a text the keyword half will read is checked: several refuse the hybrid search whatever their types.
@@ -234,7 +253,7 @@ internal sealed class RecordSchema<TKey, TRecord>
         if (text is not null && text.PropertyType != typeof(string))
         {
             throw new ArgumentException(
-                $"{typeof(TRecord).Name}.{text.Name} is {text.PropertyType.Name}; a full-text indexed "
+                $"{RecordName}.{text.Name} is {DisplayName(text.PropertyType)}; a full-text indexed "
                 + "property is a string, which is what the keyword half tokenizes.", paramName);
         }
 
@@ -246,7 +265,7 @@ internal sealed class RecordSchema<TKey, TRecord>
         if (vector.PropertyType != typeof(ReadOnlyMemory<float>))
         {
             throw new ArgumentException(
-                $"{typeof(TRecord).Name}.{vector.Name} is {vector.PropertyType.Name}; this store "
+                $"{RecordName}.{vector.Name} is {DisplayName(vector.PropertyType)}; this store "
                 + "holds ReadOnlyMemory<float>, which is what EmbeddingIndex takes.", paramName);
         }
 
@@ -255,7 +274,7 @@ internal sealed class RecordSchema<TKey, TRecord>
         if (distanceFunction is not null && distanceFunction != DistanceFunction.CosineSimilarity)
         {
             throw new NotSupportedException(
-                $"{typeof(TRecord).Name}.{vector.Name} declares {distanceFunction}; this store scores "
+                $"{RecordName}.{vector.Name} declares {distanceFunction}; this store scores "
                 + "cosine similarity over normalised vectors only, and a distance function would also "
                 + "invert what ScoreThreshold means. Declare DistanceFunction.CosineSimilarity or none.");
         }
@@ -269,11 +288,11 @@ internal sealed class RecordSchema<TKey, TRecord>
     {
         string subject = (textNames.Length, fromDefinition) switch
         {
-            (0, true) => $"The definition of {typeof(TRecord).Name} names no VectorStoreDataProperty with IsFullTextIndexed",
-            (0, false) => $"{typeof(TRecord).Name} marks no property [VectorStoreData(IsFullTextIndexed = true)]"
-                + $"{OwnMembersOnly}{HiddenText}",
-            (_, true) => $"The definition of {typeof(TRecord).Name} names several full-text indexed properties",
-            _ => $"{typeof(TRecord).Name} marks several properties full-text indexed",
+            (0, true) => $"The definition of {RecordName} names no VectorStoreDataProperty with IsFullTextIndexed",
+            (0, false) => $"{RecordName} marks no property [VectorStoreData(IsFullTextIndexed = true)]"
+                + $"{OwnMembersOnly}{Hidden(VisibleProperties(), IsFullText)}",
+            (_, true) => $"The definition of {RecordName} names several full-text indexed properties",
+            _ => $"{RecordName} marks several properties full-text indexed",
         };
 
         return textNames.Length == 0
@@ -291,31 +310,44 @@ internal sealed class RecordSchema<TKey, TRecord>
             .GroupBy(p => p.Name, StringComparer.Ordinal)
             .Select(named => named.OrderByDescending(p => Depth(p.DeclaringType)).First())];
 
-    // What the refusal adds when a marked base text is there, hidden by a `new` member the schema reads instead.
-    // Each base type is read on its own, since a member of the same type hides the base from the full listing.
-    private static string HiddenText
+    // What a refusal of a role no visible property plays adds when a base property marked for it is hidden by a
+    // `new` member the schema reads instead (#1799). Each base type is read on its own, as the full listing omits it.
+    private static string Hidden(PropertyInfo[] visible, Func<PropertyInfo, bool> marked)
     {
-        get
+        Dictionary<string, PropertyInfo> read = visible.ToDictionary(p => p.Name, StringComparer.Ordinal);
+        for (Type? type = typeof(TRecord).BaseType; type is not null; type = type.BaseType)
         {
-            Dictionary<string, PropertyInfo> read = VisibleProperties().ToDictionary(p => p.Name, StringComparer.Ordinal);
-            for (Type? type = typeof(TRecord).BaseType; type is not null; type = type.BaseType)
+            PropertyInfo? hidden = Array.Find(
+                type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                p => p.GetIndexParameters().Length == 0
+                    && marked(p)
+                    && read.TryGetValue(p.Name, out PropertyInfo? member)
+                    && member.DeclaringType != type
+                    && !Overrides(member, p));
+            if (hidden is not null)
             {
-                PropertyInfo? hidden = Array.Find(
-                    type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                    p => p.GetIndexParameters().Length == 0
-                        && p.GetCustomAttribute<VectorStoreDataAttribute>(inherit: false) is { IsFullTextIndexed: true }
-                        && read.TryGetValue(p.Name, out PropertyInfo? member)
-                        && member.DeclaringType != type
-                        && member.GetCustomAttribute<VectorStoreDataAttribute>() is not { IsFullTextIndexed: true });
-                if (hidden is not null)
-                {
-                    return $" of its own; {type.Name}.{hidden.Name} is marked, and a `new` member hides it";
-                }
+                return $" of its own; {DisplayName(type)}.{hidden.Name} is marked, and a `new` member hides it";
             }
-
-            return string.Empty;
         }
+
+        return string.Empty;
     }
+
+    // An override shares the root of an accessor with what it overrides, where a `new` member starts its own.
+    private static bool Overrides(PropertyInfo member, PropertyInfo declared) =>
+        SameRoot(member.GetGetMethod(nonPublic: true), declared.GetGetMethod(nonPublic: true))
+        || SameRoot(member.GetSetMethod(nonPublic: true), declared.GetSetMethod(nonPublic: true));
+
+    private static bool SameRoot(MethodInfo? a, MethodInfo? b) =>
+        a is not null && b is not null && SameDeclaration(a.GetBaseDefinition(), b.GetBaseDefinition());
+
+    // Inherited marks count, as Classify reads them, so an override that does not repeat one is the declaration named.
+    private static bool IsMarked<TMark>(PropertyInfo property)
+        where TMark : Attribute =>
+        Attribute.IsDefined(property, typeof(TMark), inherit: true);
+
+    private static bool IsFullText(PropertyInfo property) =>
+        property.GetCustomAttribute<VectorStoreDataAttribute>(inherit: true) is { IsFullTextIndexed: true };
 
     /// <summary>The property itself, or the base one whose getter it inherits when it overrides only the setter.</summary>
     /// <remarks>Reflection lists such an override with no getter, though the record reads the base's, dispatched virtually.</remarks>
@@ -344,13 +376,13 @@ internal sealed class RecordSchema<TKey, TRecord>
         }
 
         throw new ArgumentException(
-            $"{typeof(TRecord).Name}.{property.Name} has no getter, and the store reads it from every record.", paramName);
+            $"{RecordName}.{property.Name} has no getter, and the store reads it from every record.", paramName);
     }
 
     private static PropertyInfo Named(PropertyInfo[] properties, string name, string paramName) =>
         Array.Find(properties, p => p.Name == name)
         ?? throw new ArgumentException(
-            $"The definition names {name}, which {typeof(TRecord).Name} does not declare{OwnMembersOnly}.", paramName);
+            $"The definition names {name}, which {RecordName} does not declare{OwnMembersOnly}.", paramName);
 
     private static int Depth(Type? type)
     {
@@ -375,18 +407,26 @@ internal sealed class RecordSchema<TKey, TRecord>
     private static string OwnMembersOnly =>
         typeof(TRecord).IsInterface ? " of its own; the members of the interfaces it extends are not read" : string.Empty;
 
+    private static string RecordName => DisplayName(typeof(TRecord));
+
+    /// <summary>A type's name as its source writes it: a generic one with its arguments rather than the arity suffix.</summary>
+    internal static string DisplayName(Type type) =>
+        type.IsGenericType
+            ? $"{type.Name.Split('`')[0]}<{string.Join(", ", type.GetGenericArguments().Select(DisplayName))}>"
+            : type.Name;
+
     // Sorted, so a message reads the same whatever order reflection listed the properties in.
     private static string Names(IEnumerable<string> names) =>
         string.Join(", ", names.OrderBy(n => n, StringComparer.Ordinal));
 
     // One key addresses a record, so two is a malformed schema rather than an unsupported one.
     private static ArgumentException TwoKeys(string names, string? paramName) => new(
-        $"The schema of {typeof(TRecord).Name} declares several key properties ({names}); "
+        $"The schema of {RecordName} declares several key properties ({names}); "
         + "a record is addressed by one key.", paramName);
 
     // Several vectors are a shape the abstraction allows and this store does not search.
     private static NotSupportedException TwoVectors(string names) => new(
-        $"The schema of {typeof(TRecord).Name} declares several vector properties ({names}); this store "
+        $"The schema of {RecordName} declares several vector properties ({names}); this store "
         + "holds one vector per record, and searching the first found would search one without saying which.");
 
     // The token is shared by every closed instantiation of one generic type, so the type is compared too.
@@ -424,7 +464,7 @@ internal sealed class RecordSchema<TKey, TRecord>
                 // A selector naming another property used to be ignored, and the search answered over this one.
                 throw new ArgumentException(
                     $"The options select {Unconverted(selector.Body)}, and the {_kind} property of "
-                    + $"{typeof(TRecord).Name} is {Property.Name}, the only one this collection searches.", paramName);
+                    + $"{RecordName} is {Property.Name}, the only one this collection searches.", paramName);
             }
         }
 
@@ -435,7 +475,7 @@ internal sealed class RecordSchema<TKey, TRecord>
         /// a cast or with <c>as</c>. Getters compare by the declaration they override, so an override
         /// answers to the base member an expression names, while a base property a <c>new</c> member
         /// hides does not; an interface member answers through the record's own implementation of it, and
-        /// an explicit implementation, a member of its own, is another property.
+        /// an explicit implementation, a member of its own, is another property. No tree reads a getter-less override (#1798).
         /// </remarks>
         private bool Selects(LambdaExpression selector) =>
             Unconverted(selector.Body) is MemberExpression { Member: PropertyInfo selected } access
@@ -499,6 +539,9 @@ internal sealed class RecordSchema<TKey, TRecord>
             return [.. aliases];
         }
     }
+
+    /// <summary>A record <see cref="Admit"/> accepted, with its key, its vector and the text the keyword half stages.</summary>
+    public readonly record struct Admitted(TRecord Record, TKey Key, ReadOnlyMemory<float> Vector, string Text);
 
     /// <summary>A vector property and the attribute that marks it, read together.</summary>
     private sealed record VectorMember(PropertyInfo Property, VectorStoreVectorAttribute Attribute);

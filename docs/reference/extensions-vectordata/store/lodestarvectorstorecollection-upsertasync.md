@@ -24,6 +24,9 @@ records would take the collection past the largest array, checked before any is 
 `float`, so the ceiling is its largest length over the width — 699,050 slots of 3,072 floats,
 1,398,101 of 1,536, on .NET 6 and later. A slot a deletion freed still counts until the collection is
 emptied, so a new key may be refused early, never late ([#1267](https://github.com/CyrilB1531/lodestar/issues/1267)).
+A key, vector or full-text getter that throws propagates what it threw, unwrapped: each is read once,
+every record before any is written, so a refused batch writes nothing and the vector written is the one
+whose width was checked ([#1801](https://github.com/CyrilB1531/lodestar/issues/1801)).
 
 **Example** — writing the same key twice replaces the record, and its old vector with it.
 

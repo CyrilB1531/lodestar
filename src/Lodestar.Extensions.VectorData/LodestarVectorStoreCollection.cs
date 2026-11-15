@@ -29,8 +29,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     private readonly KeywordIndex? _keywords;
     private readonly RecordSchema<TKey, TRecord> _schema;
     private readonly LodestarVectorStoreOptions _options;
-    private bool _exists;
-    private bool _deleted;
+
+    // Volatile because the store reads them from whichever thread calls it, under a lock this collection never takes (#1802).
+    private volatile bool _exists;
+    private volatile bool _deleted;
 
     /// <summary>Creates a collection over a record type the schema is read from.</summary>
     /// <param name="name">The collection's name, which <see cref="Name"/> reports.</param>
@@ -99,7 +101,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <exception cref="InvalidOperationException">The record would take the collection past the largest array.</exception>
     public override Task UpsertAsync(TRecord record, CancellationToken cancellationToken = default)
     {
-        TKey key = _schema.Admit(record, nameof(record));
+        RecordSchema<TKey, TRecord>.Admitted admitted = _schema.Admit(record, nameof(record));
 
         // A token cancelled before the write leaves the collection as it was (#1354).
         if (cancellationToken.IsCancellationRequested)
@@ -107,9 +109,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             return Task.FromCanceled(cancellationToken);
         }
 
-        _held.EnsureRoomFor([key]);
+        _held.EnsureRoomFor([admitted.Key]);
 
-        Write(key, record);
+        Write(admitted);
         _exists = true;
         _deleted = false;
         return Task.CompletedTask;
@@ -123,10 +125,12 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     public override Task UpsertAsync(IEnumerable<TRecord> records, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(records);
-        var admitted = new List<KeyValuePair<TKey, TRecord>>();
+        var admitted = new List<RecordSchema<TKey, TRecord>.Admitted>(records is ICollection<TRecord> sized ? sized.Count : 0);
         foreach (TRecord record in records)
         {
-            admitted.Add(new KeyValuePair<TKey, TRecord>(_schema.Admit(record, nameof(records)), record));
+            // Copied now: a getter may hand every record one reused buffer, which the later write would read as the last's.
+            RecordSchema<TKey, TRecord>.Admitted read = _schema.Admit(record, nameof(records));
+            admitted.Add(read with { Vector = read.Vector.ToArray() });
         }
 
         // Checked once the batch is read and before any of it is written: a cancelled batch writes nothing.
@@ -137,9 +141,9 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
 
         _held.EnsureRoomFor(admitted.ConvertAll(entry => entry.Key));
 
-        foreach (KeyValuePair<TKey, TRecord> entry in admitted)
+        foreach (RecordSchema<TKey, TRecord>.Admitted entry in admitted)
         {
-            Write(entry.Key, entry.Value);
+            Write(entry);
         }
 
         _exists = true;
@@ -186,11 +190,11 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         return Task.CompletedTask;
     }
 
-    /// <summary>Holds an admitted record: its vector into its slot, its text staged.</summary>
-    private void Write(TKey key, TRecord record)
+    /// <summary>Holds an admitted record: the vector its admission read into its slot, the text it read staged.</summary>
+    private void Write(RecordSchema<TKey, TRecord>.Admitted admitted)
     {
-        int slot = _held.Put(key, record, _schema.VectorOf(record).Span);
-        _keywords?.Stage(slot, _schema.FullTextOf(record));
+        int slot = _held.Put(admitted.Key, admitted.Record, admitted.Vector.Span);
+        _keywords?.Stage(slot, admitted.Text);
     }
 
     private void Erase(TKey key)
@@ -382,7 +386,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             ReadOnlyMemory<float> memory => memory,
             float[] array => array,
             _ => throw new NotSupportedException(
-                $"{typeof(TInput).Name} is not a vector, and this package generates none: supply a "
+                $"{RecordSchema<TKey, TRecord>.DisplayName(typeof(TInput))} is not a vector, and this package generates none: supply a "
                 + "ReadOnlyMemory<float> or a float[], or embed the text with Lodestar.Extensions.AI first."),
         };
 

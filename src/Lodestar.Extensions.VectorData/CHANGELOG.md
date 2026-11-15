@@ -21,6 +21,9 @@ sentence, the issue and the commit, as [`CONTRIBUTING.md`](https://github.com/Cy
 
 ### Fixed
 
+- A record type whose marked key or vector a `new` member hides is refused with a message naming the hidden property, as a hidden full-text property already was, and the refusals name a generic type with its arguments rather than its arity suffix. ([#1799](https://github.com/CyrilB1531/lodestar/issues/1799))
+- A write reads a record's key, vector and full-text property once, before any record is written, so the vector stored is the one whose width was checked and a getter that throws fails a batch that wrote nothing, with what it threw rather than a `TargetInvocationException`. ([#1801](https://github.com/CyrilB1531/lodestar/issues/1801))
+- A collection's exists and deleted flags are volatile, so the store's reads of them are neither cached nor reordered. ([#1802](https://github.com/CyrilB1531/lodestar/issues/1802))
 - `LodestarVectorStore` reads and writes the names it holds under a lock, so concurrent `GetCollection` calls for new names get one collection per name where they could corrupt the dictionary. ([#1266](https://github.com/CyrilB1531/lodestar/issues/1266))
 - Before .NET 6 — on .NET Framework, .NET Core and .NET 5, and on legacy Mono, held there unmeasured — the refusals of an array past the largest one read those runtimes' bound for elements wider than a byte, `0x7FEFFFFF`, where a count between it and `Array.MaxLength` passed them and failed to allocate. ([#1614](https://github.com/CyrilB1531/lodestar/issues/1614))
 - A query is normalized in double, as the stored vectors are, so one whose components pass about 1e19 ranks by direction where its float norm overflowed and every score came back zero. ([#1214](https://github.com/CyrilB1531/lodestar/issues/1214))
