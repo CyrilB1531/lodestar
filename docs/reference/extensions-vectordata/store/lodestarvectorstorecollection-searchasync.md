@@ -9,7 +9,8 @@ public IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(TInput 
 ```
 
 **Parameters** — `searchValue` is the query vector, as a `ReadOnlyMemory<float>` or a `float[]`, of
-the collection's vector width. `top` is the most results returned. `options` carries `Filter`, `Skip`
+the collection's vector width; a `ReadOnlyMemory<float>?` holding one is read as the vector it holds, though `TInput`'s
+`notnull` constraint warns at such a call. `top` is the most results returned. `options` carries `Filter`, `Skip`
 and `ScoreThreshold`, all honoured. `VectorProperty` may select the record's one vector property and
 nothing else, since a schema with two is refused at construction; `IncludeVectors` is not read,
 since a record is returned whole. `cancellationToken` is checked between results.
@@ -29,7 +30,8 @@ down to a class implementing it, and any expression that computes a value
 record and its cosine similarity to the query. At most `top` results, fewer only when fewer records
 pass the filter and the threshold after `Skip`.
 
-**Exceptions** — `ArgumentOutOfRangeException` when `top` is less than 1. `ArgumentException` when
+**Exceptions** — `ArgumentNullException` when `searchValue` is null. `ArgumentOutOfRangeException`
+when `top` is less than 1. `ArgumentException` when
 the query is not the collection's vector width — an empty collection included — or when `options`
 sets a `VectorProperty` selecting any property but the vector one
 ([#1212](https://github.com/CyrilB1531/lodestar/issues/1212)).
