@@ -403,6 +403,90 @@ public sealed class VectorHider : MarkedVector
     public new ReadOnlyMemory<float> Embedding { get; set; }
 }
 
+/// <summary>Two marked base keys, declared out of ordinal order, which <see cref="TwoKeysHider"/> both hides.</summary>
+public class TwoMarkedKeys
+{
+    [VectorStoreKey]
+    public string Zeta { get; set; } = string.Empty;
+
+    [VectorStoreKey]
+    public string Alpha { get; set; } = string.Empty;
+}
+
+/// <summary>Unmarked <c>new</c> members over both keys of <see cref="TwoMarkedKeys"/>.</summary>
+public sealed class TwoKeysHider : TwoMarkedKeys
+{
+    public new string Zeta { get; set; } = string.Empty;
+
+    public new string Alpha { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>Two marked base vectors, declared out of ordinal order, which <see cref="TwoVectorsHider"/> both hides.</summary>
+public class TwoMarkedVectors
+{
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Zeta { get; set; }
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Alpha { get; set; }
+}
+
+/// <summary>Unmarked <c>new</c> members over both vectors of <see cref="TwoMarkedVectors"/>.</summary>
+public sealed class TwoVectorsHider : TwoMarkedVectors
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new ReadOnlyMemory<float> Zeta { get; set; }
+
+    public new ReadOnlyMemory<float> Alpha { get; set; }
+}
+
+/// <summary>Two marked base keys, declared in ordinal order, which <see cref="AlphaFirstKeysHider"/> both hides.</summary>
+public class AlphaFirstKeys
+{
+    [VectorStoreKey]
+    public string Alpha { get; set; } = string.Empty;
+
+    [VectorStoreKey]
+    public string Zeta { get; set; } = string.Empty;
+}
+
+/// <summary>Unmarked <c>new</c> members over both keys of <see cref="AlphaFirstKeys"/>.</summary>
+public sealed class AlphaFirstKeysHider : AlphaFirstKeys
+{
+    public new string Alpha { get; set; } = string.Empty;
+
+    public new string Zeta { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>Two marked base vectors, declared in ordinal order, which <see cref="AlphaFirstVectorsHider"/> both hides.</summary>
+public class AlphaFirstVectors
+{
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Alpha { get; set; }
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Zeta { get; set; }
+}
+
+/// <summary>Unmarked <c>new</c> members over both vectors of <see cref="AlphaFirstVectors"/>.</summary>
+public sealed class AlphaFirstVectorsHider : AlphaFirstVectors
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new ReadOnlyMemory<float> Alpha { get; set; }
+
+    public new ReadOnlyMemory<float> Zeta { get; set; }
+}
+
 /// <summary>A vector decoded into one buffer every record shares, as a getter avoiding an allocation may.</summary>
 public sealed class SharedBuffer(float[] scratch, float[] values)
 {
@@ -457,6 +541,132 @@ public sealed class GenericVectorHider : GenericMarkedVector<int>
     public string Id { get; set; } = string.Empty;
 
     public new ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>Two marked base texts, declared Title first, which <see cref="TwoTextsHider"/> both hides.</summary>
+public class TwoMarkedTexts
+{
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Title { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Body { get; set; } = string.Empty;
+}
+
+/// <summary>Unmarked <c>new</c> members over both texts of <see cref="TwoMarkedTexts"/>.</summary>
+public sealed class TwoTextsHider : TwoMarkedTexts
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new string Title { get; set; } = string.Empty;
+
+    public new string Body { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>Two marked base texts, declared Body first, which <see cref="BodyFirstHider"/> both hides.</summary>
+public class BodyFirstTexts
+{
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Body { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Title { get; set; } = string.Empty;
+}
+
+/// <summary>Unmarked <c>new</c> members over both texts of <see cref="BodyFirstTexts"/>.</summary>
+public sealed class BodyFirstHider : BodyFirstTexts
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new string Body { get; set; } = string.Empty;
+
+    public new string Title { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A marked key two levels above <see cref="LayeredKeyHider"/>, ordinally before <see cref="NearKey.Zeta"/>.</summary>
+public class FarKey
+{
+    [VectorStoreKey]
+    public string Alpha { get; set; } = string.Empty;
+}
+
+/// <summary>A marked key one level above <see cref="LayeredKeyHider"/>, which the walk over the bases reaches first.</summary>
+public class NearKey : FarKey
+{
+    [VectorStoreKey]
+    public string Zeta { get; set; } = string.Empty;
+}
+
+/// <summary>Unmarked <c>new</c> members over a marked key on each of two bases.</summary>
+public sealed class LayeredKeyHider : NearKey
+{
+    public new string Alpha { get; set; } = string.Empty;
+
+    public new string Zeta { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
+}
+
+/// <summary>A marked vector two levels above <see cref="LayeredVectorHider"/>, ordinally before <see cref="NearVector.Zeta"/>.</summary>
+public class FarVector
+{
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Alpha { get; set; }
+}
+
+/// <summary>A marked vector one level above <see cref="LayeredVectorHider"/>, which the walk over the bases reaches first.</summary>
+public class NearVector : FarVector
+{
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Zeta { get; set; }
+}
+
+/// <summary>Unmarked <c>new</c> members over a marked vector on each of two bases.</summary>
+public sealed class LayeredVectorHider : NearVector
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new ReadOnlyMemory<float> Alpha { get; set; }
+
+    public new ReadOnlyMemory<float> Zeta { get; set; }
+}
+
+/// <summary>A marked text two levels above <see cref="LayeredHider"/>, ordinally before <see cref="NearText.Zeta"/>.</summary>
+public class FarText
+{
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Alpha { get; set; } = string.Empty;
+}
+
+/// <summary>A marked text one level above <see cref="LayeredHider"/>, which the walk over the bases reaches first.</summary>
+public class NearText : FarText
+{
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Zeta { get; set; } = string.Empty;
+}
+
+/// <summary>Unmarked <c>new</c> members over a marked text on each of two bases.</summary>
+public sealed class LayeredHider : NearText
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    public new string Alpha { get; set; } = string.Empty;
+
+    public new string Zeta { get; set; } = string.Empty;
+
+    [VectorStoreVector(3)]
+    public ReadOnlyMemory<float> Embedding { get; set; }
 }
 
 /// <summary>An override of <see cref="VirtualKey.Id"/> that inherits its mark without repeating it.</summary>
@@ -703,15 +913,19 @@ public sealed class RecordSchemaTests
     }
 
     [Theory]
+    [InlineData(nameof(ThrowingGetters.Id))]
     [InlineData(nameof(ThrowingGetters.Text))]
     [InlineData(nameof(ThrowingGetters.Embedding))]
     public async Task A_getter_that_throws_fails_the_batch_before_any_record_is_written(string failing)
     {
         using var collection = new LodestarVectorStoreCollection<string, ThrowingGetters>("records");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => collection.UpsertAsync([new ThrowingGetters("a"), new ThrowingGetters("b", failing)]));
+        // Not awaited: the getter's exception comes out of the call itself, as the documentation says.
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+            () => { _ = collection.UpsertAsync([new ThrowingGetters("a"), new ThrowingGetters("b", failing)]); });
 
+        // The getter's own exception, not the past-the-largest-array refusal of the same type (#1810).
+        Assert.StartsWith(failing, error.Message, StringComparison.Ordinal);
         Assert.Null(await collection.GetAsync("a"));
     }
 
@@ -723,8 +937,9 @@ public sealed class RecordSchemaTests
     {
         using var collection = new LodestarVectorStoreCollection<string, ThrowingGetters>("records");
 
-        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => collection.UpsertAsync(new ThrowingGetters("a", failing)));
+        // Not awaited: the getter's exception comes out of the call itself, as the documentation says.
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+            () => { _ = collection.UpsertAsync(new ThrowingGetters("a", failing)); });
 
         Assert.StartsWith(failing, error.Message, StringComparison.Ordinal);
         Assert.Null(await collection.GetAsync("a"));
@@ -751,6 +966,7 @@ public sealed class RecordSchemaTests
     {
         Assert.Contains("GenericMarkedVector<Int32>.Embedding is marked", Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, GenericVectorHider>("vectors")).Message, StringComparison.Ordinal);
+        // VirtualKey.Id and its override InheritedKey.Id are both hidden: the nearer is named.
         Assert.Contains("InheritedKey.Id is marked", Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, InheritedKeyHider>("keys")).Message, StringComparison.Ordinal);
     }
@@ -775,12 +991,70 @@ public sealed class RecordSchemaTests
     }
 
     [Fact]
+    public void Of_several_hidden_marked_properties_the_refusal_names_the_ordinal_first()
+    {
+        // Declared in both orders, so whichever order reflection lists them in, one fixture lists Title first (#1805).
+        using var titleFirst = new LodestarVectorStoreCollection<string, TwoTextsHider>("hidden");
+        using var bodyFirst = new LodestarVectorStoreCollection<string, BodyFirstHider>("hidden");
+
+        Assert.Contains("TwoMarkedTexts.Body is marked, and a `new` member hides it", titleFirst.Schema.KeywordRefusal, StringComparison.Ordinal);
+        Assert.Contains("BodyFirstTexts.Body is marked, and a `new` member hides it", bodyFirst.Schema.KeywordRefusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Of_hidden_marked_properties_on_several_bases_the_refusal_names_the_ordinal_first_of_all()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, LayeredHider>("hidden");
+
+        Assert.Contains("FarText.Alpha is marked, and a `new` member hides it", collection.Schema.KeywordRefusal, StringComparison.Ordinal);
+        Assert.Contains("FarKey.Alpha is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, LayeredKeyHider>("keys")).Message, StringComparison.Ordinal);
+        Assert.Contains("FarVector.Alpha is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, LayeredVectorHider>("vectors")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_key_or_vector_a_new_member_hides_is_named_in_the_refusal()
     {
         Assert.Contains("MarkedKey.Id is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, KeyHider>("keys")).Message, StringComparison.Ordinal);
         Assert.Contains("MarkedVector.Embedding is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, VectorHider>("vectors")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Of_several_hidden_marked_keys_or_vectors_the_refusal_names_the_ordinal_first()
+    {
+        // Declared in both orders, so whichever order reflection lists them in, one fixture lists Zeta first (#1805).
+        Assert.Contains("TwoMarkedKeys.Alpha is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, TwoKeysHider>("keys")).Message, StringComparison.Ordinal);
+        Assert.Contains("AlphaFirstKeys.Alpha is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, AlphaFirstKeysHider>("keys")).Message, StringComparison.Ordinal);
+        Assert.Contains("TwoMarkedVectors.Alpha is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, TwoVectorsHider>("vectors")).Message, StringComparison.Ordinal);
+        Assert.Contains("AlphaFirstVectors.Alpha is marked, and a `new` member hides it", Assert.Throws<ArgumentException>(
+            () => new LodestarVectorStoreCollection<string, AlphaFirstVectorsHider>("vectors")).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_refused_upsert_throws_from_the_call_itself_and_a_failing_enumeration_writes_nothing()
+    {
+        using var collection = new LodestarVectorStoreCollection<string, ThrowingGetters>("records");
+
+        // Neither task is awaited: the exception has to come out of the call, not out of a faulted task.
+        InvalidOperationException getter = Assert.Throws<InvalidOperationException>(
+            () => { _ = collection.UpsertAsync(new ThrowingGetters("a", nameof(ThrowingGetters.Id))); });
+        Assert.Throws<FormatException>(() => { _ = collection.UpsertAsync(GoodThenFailing()); });
+
+        // The getter's own exception, not the past-the-largest-array refusal of the same type.
+        Assert.StartsWith(nameof(ThrowingGetters.Id), getter.Message, StringComparison.Ordinal);
+        Assert.Null(await collection.GetAsync("a"));
+
+        static IEnumerable<ThrowingGetters> GoodThenFailing()
+        {
+            yield return new ThrowingGetters("a");
+            throw new FormatException("The second record cannot be parsed.");
+        }
     }
 
     [Theory]
@@ -922,7 +1196,7 @@ public sealed class RecordSchemaTests
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, NumberMarkedFullText>("numbers"));
 
-        Assert.Contains("NumberMarkedFullText.Count is Int32", error.Message, StringComparison.Ordinal);
+        Assert.Contains("NumberMarkedFullText.Count is Int32; a full-text indexed property is a String,", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -949,7 +1223,7 @@ public sealed class RecordSchemaTests
         ArgumentException error = Assert.Throws<ArgumentException>(
             () => new LodestarVectorStoreCollection<string, DoubleVector>("doubles"));
 
-        Assert.Contains("ReadOnlyMemory<float>", error.Message, StringComparison.Ordinal);
+        Assert.Contains("holds ReadOnlyMemory<Single>,", error.Message, StringComparison.Ordinal);
     }
 
     // No collection-side check exists for a width below 1: the abstraction refuses it first, in

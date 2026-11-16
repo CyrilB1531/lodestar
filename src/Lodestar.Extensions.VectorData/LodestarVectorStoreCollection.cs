@@ -99,6 +99,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <exception cref="ArgumentNullException"><paramref name="record"/> is null.</exception>
     /// <exception cref="ArgumentException">The record's key is null, or its vector is not the collection's width.</exception>
     /// <exception cref="InvalidOperationException">The record would take the collection past the largest array.</exception>
+    /// <remarks>
+    /// A key, vector or full-text getter's own exception propagates as thrown, before the record is written. It and every
+    /// exception above are thrown by the call itself; only a cancelled token is reported through the returned task.
+    /// </remarks>
     public override Task UpsertAsync(TRecord record, CancellationToken cancellationToken = default)
     {
         RecordSchema<TKey, TRecord>.Admitted admitted = _schema.Admit(record, nameof(record));
@@ -121,7 +125,12 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <exception cref="ArgumentNullException"><paramref name="records"/> is null, or holds a null record.</exception>
     /// <exception cref="ArgumentException">A record's key is null, or its vector is not the collection's width.</exception>
     /// <exception cref="InvalidOperationException">The records would take the collection past the largest array; checked before any is written.</exception>
-    /// <remarks>Every record is checked before any is written, so a refused batch writes nothing.</remarks>
+    /// <remarks>
+    /// Every record is checked before any is written, so a refused batch writes nothing. A key, vector or full-text
+    /// getter's own exception, or one the enumeration of <paramref name="records"/> throws, propagates as thrown and fails
+    /// the batch before any record is written too. These and every exception above are thrown by the call itself; only
+    /// a cancelled token is reported through the returned task.
+    /// </remarks>
     public override Task UpsertAsync(IEnumerable<TRecord> records, CancellationToken cancellationToken = default)
     {
         Guard.NotNull(records);
@@ -313,6 +322,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         new() { VectorStoreSystemName = "lodestar", CollectionName = Name };
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentNullException"><paramref name="searchValue"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1.</exception>
     /// <exception cref="ArgumentException">The query is not the collection's vector width, or <paramref name="options"/> selects a <c>VectorProperty</c> other than the record's vector property.</exception>
     /// <exception cref="NotSupportedException"><paramref name="searchValue"/> is not a vector, and this package generates none.</exception>
@@ -330,7 +340,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         Guard.NotLessThan(top, 1);
-        ReadOnlyMemory<float> query = QueryOf(searchValue);
+        ReadOnlyMemory<float> query = QueryOf(searchValue, nameof(searchValue));
         VectorSearchOptions<TRecord> settings = options ?? new VectorSearchOptions<TRecord>();
         _schema.CheckVectorSelector(settings.VectorProperty, nameof(options));
         List<VectorSearchResult<TRecord>> results = Nearest(query, top, settings);
@@ -366,29 +376,56 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <summary>The search value as a vector of the collection's width.</summary>
+    /// <param name="searchValue">The value the caller searched with.</param>
+    /// <param name="paramName">The public parameter's name, given by the caller so the refusals do not hang on this one's.</param>
     /// <remarks>Checked against the schema, not the index, so an empty collection refuses a wrong width too.</remarks>
-    private ReadOnlyMemory<float> QueryOf<TInput>(TInput searchValue)
+    private ReadOnlyMemory<float> QueryOf<TInput>(TInput searchValue, string paramName)
         where TInput : notnull
     {
+        // Tested in place: Guard.NotNull names its argument's expression, and S3236 refuses passing paramName in its stead.
+        if (searchValue is null)
+        {
+            throw new ArgumentNullException(paramName);
+        }
+
         ReadOnlyMemory<float> query = AsVector(searchValue);
         if (query.Length != _schema.Dimension)
         {
             throw new ArgumentException(
-                $"query length {query.Length} != dimension {_schema.Dimension}.", nameof(searchValue));
+                $"query length {query.Length} != dimension {_schema.Dimension}.", paramName);
         }
 
         return query;
     }
 
     private static ReadOnlyMemory<float> AsVector<TInput>(TInput searchValue)
-        where TInput : notnull => searchValue switch
+        where TInput : notnull
+    {
+        if (VectorOf<TInput>.Read is { } read)
+        {
+            return read(searchValue);
+        }
+
+        if (typeof(TInput).IsValueType)
+        {
+            throw NotAVector(typeof(TInput));
+        }
+
+        return searchValue switch
         {
             ReadOnlyMemory<float> memory => memory,
             float[] array => array,
-            _ => throw new NotSupportedException(
-                $"{RecordSchema<TKey, TRecord>.DisplayName(typeof(TInput))} is not a vector, and this package generates none: supply a "
-                + "ReadOnlyMemory<float> or a float[], or embed the text with Lodestar.Extensions.AI first."),
+            _ => throw NotAVector(TypeNames.Declared(searchValue)),
         };
+    }
+
+    private static NotSupportedException NotAVector(Type declared)
+    {
+        RefusalName[] names = TypeNames.Names(declared, typeof(ReadOnlyMemory<float>), typeof(float[]));
+        return new NotSupportedException(
+            $"{names[0]} is not a vector, and this package generates none: supply a {names[1]} or a {names[2]}, "
+            + "or embed the text with Lodestar.Extensions.AI first and pass the embedding's Vector.");
+    }
 
     /// <summary>Fuses the vector ranking with a BM25 ranking over the keywords.</summary>
     /// <typeparam name="TInput">The search value's type; a vector, since this package generates none.</typeparam>
@@ -397,7 +434,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <param name="top">How many fused results to return.</param>
     /// <param name="options">A filter and a skip, applied to the fused ranking.</param>
     /// <param name="cancellationToken">Checked between results.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="keywords"/> is null.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="searchValue"/> or <paramref name="keywords"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="top"/> is less than 1, or the options' vectorizer or BM25 settings are outside their range.</exception>
     /// <exception cref="ArgumentException">The query is not the collection's vector width, <paramref name="options"/> selects a <c>VectorProperty</c> or <c>AdditionalProperty</c> other than the record's vector or full-text property, or the options' <c>NgramRange</c> is not an ascending range from 1.</exception>
     /// <exception cref="InvalidOperationException">The options' <c>MaxDf</c> corresponds to fewer records than their <c>MinDf</c>.</exception>
@@ -420,7 +457,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     {
         Guard.NotNull(keywords);
         Guard.NotLessThan(top, 1);
-        ReadOnlyMemory<float> query = QueryOf(searchValue);
+        ReadOnlyMemory<float> query = QueryOf(searchValue, nameof(searchValue));
         if (_schema.KeywordRefusal is { } refusal)
         {
             throw new NotSupportedException(refusal);
@@ -479,6 +516,12 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     /// <summary>Releases resources — none, here: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>
     protected override void Dispose(bool disposing) => base.Dispose(disposing);
+
+    /// <inheritdoc />
+    Type IExistingCollection.KeyType => typeof(TKey);
+
+    /// <inheritdoc />
+    Type IExistingCollection.RecordType => typeof(TRecord);
 
     /// <inheritdoc />
     bool IExistingCollection.Exists => _exists;
