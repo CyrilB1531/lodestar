@@ -9,7 +9,8 @@ namespace Lodestar.Extensions.VectorData;
 /// or written to it, which is what <see cref="ListCollectionNamesAsync"/> reports — asking for
 /// a collection by name does not create it, the way asking a database for a table does not.
 /// The names it holds are read and written under a lock, so the store can be shared by concurrent
-/// callers, a dependency-injection singleton's (#1266); a collection's own state is the collection's.
+/// callers, a dependency-injection singleton's (#1266); a collection's own state is the collection's,
+/// which the store changes only by asking it to delete itself or by disposing it.
 /// </remarks>
 public sealed class LodestarVectorStore : VectorStore
 {
@@ -26,6 +27,12 @@ public sealed class LodestarVectorStore : VectorStore
         _options = options ?? new LodestarVectorStoreOptions();
 
     /// <inheritdoc />
+    /// <remarks>
+    /// To successfully request a collection, either <typeparamref name="TRecord"/> must be annotated with attributes that
+    /// define the schema of the record type, or <paramref name="definition"/> must be provided, as the base class says. A
+    /// different key or record type that gets a new collection under a deleted name disposes the collection the name held,
+    /// so a handle kept to it is to be dropped.
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
     /// <exception cref="ObjectDisposedException">The store has been disposed.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is already held under a different key or record type and not deleted since, or the schema is unusable.</exception>
@@ -50,18 +57,21 @@ public sealed class LodestarVectorStore : VectorStore
                 return same;
             }
 
-            // A deleted name is free again.
+            // A deleted name is free again, and the collection it held leaves the store, disposed as the store's
+            // Dispose would have; its Dispose releases nothing and runs no caller code, so the lock waits on nothing.
             if (existing is null or { Deleted: true })
             {
                 var created = new LodestarVectorStoreCollection<TKey, TRecord>(name, _options, definition);
                 _collections[name] = created;
+                existing?.Dispose();
                 return created;
             }
 
             otherwise = existing;
         }
 
-        // Named once the lock is released: the naming reflects over the four types, and no other caller waits on it.
+        // Decided under the lock and named once it is released, from key and record types fixed for the held collection's
+        // life, so the refusal reports the store as it stood when decided (#1814); no other caller waits on the naming.
         throw HeldOtherwise(name, otherwise, typeof(TKey), typeof(TRecord));
     }
 
@@ -191,7 +201,7 @@ public sealed class LodestarVectorStore : VectorStore
     // the netstandard2.0 build loaded beside a newer target's abstractions throws MissingMethodException.
     private static VectorStoreMetadata Metadata() => new() { VectorStoreSystemName = "lodestar" };
 
-    /// <summary>Disposes every collection the store holds; a collection whose name went to another schema is no longer held.</summary>
+    /// <summary>Disposes every collection the store holds; one whose deleted name went to another schema was disposed then.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>
     protected override void Dispose(bool disposing)
     {

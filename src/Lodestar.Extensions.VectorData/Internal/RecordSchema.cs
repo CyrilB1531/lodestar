@@ -195,7 +195,7 @@ internal sealed class RecordSchema<TKey, TRecord>
             if (named.ContainsKey(name))
             {
                 throw new ArgumentException(
-                    $"The definition lists {name} more than once; each entry describes one property.", paramName);
+                    $"The definition lists {Shown.Value(name)} more than once; each entry describes one property.", paramName);
             }
 
             named.Add(name, Named(properties, name, paramName));
@@ -402,7 +402,7 @@ internal sealed class RecordSchema<TKey, TRecord>
     private static PropertyInfo Named(PropertyInfo[] properties, string name, string paramName) =>
         Array.Find(properties, p => p.Name == name)
         ?? throw new ArgumentException(
-            $"The definition names {name}, which {ThisRecord} does not declare{OwnMembersOnly}.", paramName);
+            $"The definition names {Shown.Value(name)}, which {ThisRecord} does not declare{OwnMembersOnly}.", paramName);
 
     private static int Depth(Type? type)
     {
@@ -449,7 +449,8 @@ internal sealed class RecordSchema<TKey, TRecord>
             return Unprintable("threw");
         }
 
-        // An empty or blank key is a key, quoted so it shows; only a null text says nothing of the key.
+        // Shown as any caller's value is, so an empty, blank or many-word key still shows where it ends; a null text says
+        // nothing of the key, so the key is named by its type instead.
         return text is null ? Unprintable("returned null") : Shown.Value(text);
 
         string Unprintable(string why) => $"(of type {TypeNames.Names(TypeNames.Declared(key))[0]}, whose ToString {why})";
@@ -459,9 +460,10 @@ internal sealed class RecordSchema<TKey, TRecord>
     // The record alone; its Member names a property before what tells the record apart from a type of its name.
     private static RefusalName ThisRecord => TypeNames.Names(typeof(TRecord))[0];
 
-    // Sorted, so a message reads the same whatever order reflection listed the properties in.
+    // Sorted, so a message reads the same whatever order reflection listed the properties in, and each shown as a
+    // caller's value is, so a name holding the separator does not read as two.
     private static string SortedNames(IEnumerable<string> names) =>
-        string.Join(", ", names.OrderBy(n => n, StringComparer.Ordinal));
+        string.Join(", ", names.OrderBy(n => n, StringComparer.Ordinal).Select(Shown.Value));
 
     // One key addresses a record, so two is a malformed schema rather than an unsupported one.
     private static ArgumentException TwoKeys(string names, string? paramName) => new(

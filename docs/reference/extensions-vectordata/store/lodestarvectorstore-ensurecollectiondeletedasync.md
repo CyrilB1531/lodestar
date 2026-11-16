@@ -48,7 +48,8 @@ with the same name returns the same, now empty, instance, and a write to it make
 Forgetting it would let a second request build a second collection under a name a caller may still
 hold the first one for. The name is **not reserved for the old schema**, though: a request under a
 different `TKey` or `TRecord`, before anything writes to the deleted collection, replaces it with a
-new one, and the store then answers for the new one alone.
+new one, and the store then answers for the new one alone and disposes the old: a handle kept to it
+holds a disposed collection, to be dropped rather than used.
 
 **Applies to** — net10.0, netstandard2.0.
 

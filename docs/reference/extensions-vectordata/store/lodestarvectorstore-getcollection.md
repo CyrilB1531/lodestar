@@ -56,8 +56,9 @@ helpful. **A deleted name is free again**: once
 [`LodestarVectorStore.EnsureCollectionDeletedAsync`](lodestarvectorstore-ensurecollectiondeletedasync.md)
 has run and nothing has written to the collection since, a different `TKey` or `TRecord` gets a new
 collection under that name, while the same ones still get the instance already held. The instance
-it replaces is no longer the store's: the store neither lists nor disposes it, and a handle kept to
-it writes to that instance alone.
+it replaces leaves the store, which disposes it then and never lists it again: a handle kept to it
+holds a disposed collection, to be dropped rather than used. A request whose schema is refused
+replaces nothing and disposes nothing.
 
 The collection is **created, not made to exist**. It answers `false` to
 [`LodestarVectorStore.CollectionExistsAsync`](lodestarvectorstore-collectionexistsasync.md) until

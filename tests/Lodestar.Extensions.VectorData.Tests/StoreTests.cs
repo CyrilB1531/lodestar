@@ -99,6 +99,10 @@ public sealed class StoreTests
         Assert.StartsWith(
             "The collection documents is already held over String keys and Document records, and this asks for "
             + "Int32 keys and VectorOnly records;", error.Message, StringComparison.Ordinal);
+
+        // #1814, #1821: the refusal leaves the held collection held and undisposed.
+        Assert.False(((LodestarVectorStoreCollection<string, Document>)documents).Disposed);
+        Assert.Same(documents, store.GetCollection<string, Document>("documents"));
     }
 
     [Fact]
@@ -212,5 +216,37 @@ public sealed class StoreTests
         }
 
         Assert.Equal(Names, (await store.ListCollectionNamesAsync().ToListAsync()).Count);
+    }
+
+    // #1821: the store disposes every collection it holds, so one its name leaves is disposed when it leaves.
+    [Fact]
+    public async Task A_deleted_collection_whose_name_goes_to_another_schema_is_disposed_then_and_the_new_one_with_the_store()
+    {
+        LodestarVectorStoreCollection<int, VectorOnly> vectors;
+        using (var store = new LodestarVectorStore())
+        {
+            var documents = (LodestarVectorStoreCollection<string, Document>)store.GetCollection<string, Document>("documents");
+            await store.EnsureCollectionDeletedAsync("documents");
+
+            vectors = (LodestarVectorStoreCollection<int, VectorOnly>)store.GetCollection<int, VectorOnly>("documents");
+            Assert.True(documents.Disposed);
+            Assert.False(vectors.Disposed);
+        }
+
+        Assert.True(vectors.Disposed);
+    }
+
+    // #1821: a schema refused at construction takes nothing over, so the deleted collection stays held and undisposed.
+    [Fact]
+    public async Task A_deleted_collection_stays_held_and_undisposed_when_the_schema_taking_its_name_is_refused()
+    {
+        using var store = new LodestarVectorStore();
+        var documents = (LodestarVectorStoreCollection<string, Document>)store.GetCollection<string, Document>("documents");
+        await store.EnsureCollectionDeletedAsync("documents");
+
+        Assert.Throws<NotSupportedException>(() => store.GetCollection<string, TwoVectors>("documents"));
+
+        Assert.False(documents.Disposed);
+        Assert.Same(documents, store.GetCollection<string, Document>("documents"));
     }
 }

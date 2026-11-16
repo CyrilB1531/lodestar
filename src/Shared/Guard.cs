@@ -1,7 +1,4 @@
 using System;
-#if NET
-using System.Diagnostics;
-#endif
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -11,9 +8,10 @@ namespace Lodestar.Internal;
 /// <remarks>
 /// The range guard calls <c>ArgumentOutOfRangeException.ThrowIfLessThan</c> on net10 and checks by
 /// hand on the netstandard targets; the null guard checks by hand everywhere, generic so it need not box
-/// a value type, its frames hidden from stack traces on net10 alone, as netstandard lacks the attribute.
-/// Those splits, and the one in <c>Guard.Disposal.cs</c>, which <c>Lodestar.Abstractions</c> does
-/// not compile (#1490), keep every call site clean.
+/// a value type, and hides its frames on no target, as netstandard has no <c>StackTraceHidden</c>.
+/// That split, and the one in <c>Guard.Disposal.cs</c>, which <c>Lodestar.Abstractions</c> does
+/// not compile (#1490), keep every call site clean and throw one exception type, parameter, value and object name:
+/// only the wording and the frames differ, which no caller is promised, so neither is a behavioural split (#1819).
 /// </remarks>
 internal static partial class Guard
 {
@@ -23,9 +21,6 @@ internal static partial class Guard
     /// <c>ArgumentNullException.ThrowIfNull</c> takes it. The <c>is null</c> test is a box a JIT folds away; one that
     /// does not, as an old Mono or the .NET Framework x86 JIT may not, still boxes a nullable value type here.
     /// </remarks>
-#if NET
-    [StackTraceHidden]
-#endif
     public static void NotNull<T>(
         [NotNull] T value,
         [CallerArgumentExpression(nameof(value))] string? paramName = null)
@@ -38,9 +33,6 @@ internal static partial class Guard
 
     // Out of line, so the exception's construction is in this one method rather than in every instantiation's body.
     [DoesNotReturn]
-#if NET
-    [StackTraceHidden]
-#endif
     private static void ThrowNull(string? paramName) => throw new ArgumentNullException(paramName);
 
     /// <summary>Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="value"/> is below <paramref name="min"/>.</summary>

@@ -43,6 +43,7 @@ public sealed class SearchTests
             await collection.SearchAsync(new ReadOnlyMemory<float>([1f, 0f]), 1).ToListAsync());
 
         Assert.Contains("query length 2 != dimension 3", error.Message, StringComparison.Ordinal);
+        Assert.Equal("searchValue", error.ParamName);
     }
 
     [Fact]

@@ -189,7 +189,10 @@ A change is not finished until all of these hold:
    An entry whose commit closed no issue keeps the sentence and the commit link alone, rather than
    a fabricated issue link. New public surface, a fixed defect and a measured performance change
    all qualify; a refusal does not, because it changed nothing a caller can observe — the decision
-   record is where that lives.
+   record is where that lives. Nor does a change to the frames an exception's stack trace carries
+   while its type, parameter name and message stay, such as a shared `src/Shared/` guard throwing
+   from another method: no caller is promised those frames
+   ([#1818](https://github.com/CyrilB1531/lodestar/issues/1818)).
 
    This is item 7 rather than a line beside the release procedure because it was one, and four lots shipped
    without it — including [#450](https://github.com/CyrilB1531/lodestar/issues/450), a whole
