@@ -14,7 +14,7 @@ namespace Lodestar.Extensions.VectorData;
 public sealed class LodestarVectorStore : VectorStore
 {
     private readonly object _gate = new();
-    private readonly Dictionary<string, object> _collections = [];
+    private readonly Dictionary<string, IExistingCollection> _collections = [];
     private readonly LodestarVectorStoreOptions _options;
 
     // Read and written under the lock, as the names are.
@@ -37,37 +37,40 @@ public sealed class LodestarVectorStore : VectorStore
 
         // A read that may insert, whole under the lock, the schema's reflection included: callers racing
         // for one new name get one collection, and each name pays that reflection once.
+        IExistingCollection otherwise;
         lock (_gate)
         {
             Guard.NotDisposed(_disposed, this);
-            if (_collections.TryGetValue(name, out object? existing)
-                && existing is not IExistingCollection { Deleted: true })
+            _collections.TryGetValue(name, out IExistingCollection? existing);
+
+            // The same schema gets the object it holds, deleted or not, so a handle kept across a
+            // deletion stays the collection that name answers with.
+            if (existing is LodestarVectorStoreCollection<TKey, TRecord> same)
             {
-                return existing as LodestarVectorStoreCollection<TKey, TRecord>
-                    ?? throw new ArgumentException(
-                        $"The collection {name} is already held over a different key or record type; "
-                        + "one name is one schema.", nameof(name));
+                return same;
             }
 
-            // A deleted name is free again. The same schema still gets the object it held, so a
-            // handle kept across the deletion stays the collection that name answers with.
-            if (existing is LodestarVectorStoreCollection<TKey, TRecord> kept)
+            // A deleted name is free again.
+            if (existing is null or { Deleted: true })
             {
-                return kept;
+                var created = new LodestarVectorStoreCollection<TKey, TRecord>(name, _options, definition);
+                _collections[name] = created;
+                return created;
             }
 
-            var created = new LodestarVectorStoreCollection<TKey, TRecord>(name, _options, definition);
-            _collections[name] = created;
-            return created;
+            otherwise = existing;
         }
+
+        // Named once the lock is released: the naming reflects over the four types, and no other caller waits on it.
+        throw HeldOtherwise(name, otherwise, typeof(TKey), typeof(TRecord));
     }
 
     /// <summary>What a Task-returning lookup answers for the collection under <paramref name="name"/>.</summary>
     /// <remarks>A disposed store is reported through the task, as a cancelled token is.</remarks>
-    private TTask Lookup<TTask>(string name, Func<object?, TTask> answer, Func<Exception, TTask> fault)
+    private TTask Lookup<TTask>(string name, Func<IExistingCollection?, TTask> answer, Func<Exception, TTask> fault)
         where TTask : Task
     {
-        object? held;
+        IExistingCollection? held;
         try
         {
             held = Held(name);
@@ -82,12 +85,12 @@ public sealed class LodestarVectorStore : VectorStore
 
     /// <summary>The collection held under <paramref name="name"/>, if any, read under the lock.</summary>
     /// <exception cref="ObjectDisposedException">The store has been disposed.</exception>
-    private object? Held(string name)
+    private IExistingCollection? Held(string name)
     {
         lock (_gate)
         {
             Guard.NotDisposed(_disposed, this);
-            return _collections.TryGetValue(name, out object? held) ? held : null;
+            return _collections.TryGetValue(name, out IExistingCollection? held) ? held : null;
         }
     }
 
@@ -103,6 +106,16 @@ public sealed class LodestarVectorStore : VectorStore
         throw new NotSupportedException(
             "This store serves typed records only. Its filters compile an expression over a "
             + "record's properties, which a dictionary does not have.");
+
+    // Key and record named one by one, so the message shows which of the two differs.
+    private static ArgumentException HeldOtherwise(string name, IExistingCollection held, Type key, Type record)
+    {
+        RefusalName[] names = TypeNames.Names(held.KeyType, held.RecordType, key, record);
+        return new ArgumentException(
+            $"The collection {Shown.Value(name)} is already held over {names[0]} keys and {names[1]} records, and this asks for "
+            + $"{names[2]} keys and {names[3]} records; one name is one schema.",
+            nameof(name));
+    }
 
     /// <inheritdoc />
     /// <exception cref="ObjectDisposedException">The store has been disposed.</exception>
@@ -120,7 +133,7 @@ public sealed class LodestarVectorStore : VectorStore
         {
             Guard.NotDisposed(_disposed, this);
             names = [.. _collections
-                .Where(entry => entry.Value is IExistingCollection { Exists: true })
+                .Where(entry => entry.Value.Exists)
                 .Select(entry => entry.Key)];
         }
 
@@ -145,7 +158,7 @@ public sealed class LodestarVectorStore : VectorStore
             return Task.FromCanceled<bool>(cancellationToken);
         }
 
-        return Lookup(name, held => Task.FromResult(held is IExistingCollection { Exists: true }), Task.FromException<bool>);
+        return Lookup(name, held => Task.FromResult(held is { Exists: true }), Task.FromException<bool>);
     }
 
     /// <inheritdoc />
@@ -162,7 +175,7 @@ public sealed class LodestarVectorStore : VectorStore
         // Deleting empties the collection, a write to it, so it runs outside the store's lock.
         return Lookup(
             name,
-            held => held is IExistingCollection collection ? collection.EnsureDeletedAsync(cancellationToken) : Task.CompletedTask,
+            held => held?.EnsureDeletedAsync(cancellationToken) ?? Task.CompletedTask,
             Task.FromException);
     }
 
@@ -184,7 +197,7 @@ public sealed class LodestarVectorStore : VectorStore
     {
         if (disposing)
         {
-            object[] held;
+            IExistingCollection[] held;
             lock (_gate)
             {
                 held = [.. _collections.Values];
@@ -192,9 +205,9 @@ public sealed class LodestarVectorStore : VectorStore
                 _disposed = true;
             }
 
-            foreach (object collection in held)
+            foreach (IExistingCollection collection in held)
             {
-                (collection as IDisposable)?.Dispose();
+                collection.Dispose();
             }
         }
 
@@ -204,11 +217,18 @@ public sealed class LodestarVectorStore : VectorStore
 
 /// <summary>What the store needs of a collection without knowing its type arguments.</summary>
 /// <remarks>
-/// The store holds collections as <see cref="object"/>, since each closes the generic
-/// differently. This is the narrow surface that lets it answer about existence anyway.
+/// Each collection closes the generic differently, so the store holds them through this narrow
+/// surface: it answers about existence, deletes and disposes them, and names the key and record
+/// types a name is held over when another schema asks for it.
 /// </remarks>
-internal interface IExistingCollection
+internal interface IExistingCollection : IDisposable
 {
+    /// <summary>The key type the collection is held over.</summary>
+    Type KeyType { get; }
+
+    /// <summary>The record type the collection is held over.</summary>
+    Type RecordType { get; }
+
     /// <summary>Whether the collection has been created or written to.</summary>
     bool Exists { get; }
 

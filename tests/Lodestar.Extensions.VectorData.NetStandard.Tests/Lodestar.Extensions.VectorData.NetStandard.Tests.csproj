@@ -18,6 +18,8 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- TypeNamesTests declares a function-pointer property, the one type whose reflected name is empty. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Lodestar.Extensions.VectorData.NetStandard.Tests</AssemblyName>
     <RootNamespace>Lodestar.Extensions.VectorData.Tests</RootNamespace>
   </PropertyGroup>

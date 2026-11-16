@@ -8,7 +8,9 @@ Fuses the vector ranking with a BM25 ranking over keywords.
 public IAsyncEnumerable<VectorSearchResult<TRecord>> HybridSearchAsync<TInput>(TInput searchValue, ICollection<string> keywords, int top, HybridSearchOptions<TRecord> options = null, CancellationToken cancellationToken = default) where TInput : notnull
 ```
 
-**Parameters** — `searchValue` is the query vector, as a `ReadOnlyMemory<float>` or a `float[]`.
+**Parameters** — `searchValue` is the query vector, as a `ReadOnlyMemory<float>` or a `float[]`; a
+`ReadOnlyMemory<float>?` holding one is read as the vector it holds, though `TInput`'s `notnull` constraint warns at
+such a call.
 `keywords` are the terms the keyword half scores, joined into one query document. `top` is the most
 results returned. `options` carries `Filter` and `Skip`, both applied to the fused ranking;
 `ScoreThreshold` is refused. `VectorProperty` and `AdditionalProperty` may select the record's one
@@ -20,8 +22,9 @@ vector and one full-text indexed property and nothing else, by the rule
 **reciprocal-rank fusion score**, `Σ 1 / (k + rank)` over the rankings it appears in, not a
 similarity. An empty collection returns no results.
 
-**Exceptions** — `ArgumentNullException` when `keywords` is null. `ArgumentOutOfRangeException` when
-`top` is less than 1, or when the collection's `Vectorizer` or `Bm25` options are outside their range.
+**Exceptions** — `ArgumentNullException` when `searchValue` or `keywords` is null.
+`ArgumentOutOfRangeException` when `top` is less than 1, or when the collection's `Vectorizer` or
+`Bm25` options are outside their range.
 `ArgumentException` when the query is not the collection's vector width, an empty collection
 included, when `options` sets a `VectorProperty` selecting any property but the vector one, or an
 `AdditionalProperty` selecting any property but the full-text indexed one

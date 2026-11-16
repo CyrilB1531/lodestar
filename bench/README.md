@@ -762,12 +762,7 @@ sizes. A fixed per-call cost the netstandard2.0 build pays and net10 does not,
 drowned once O(samples) work dominates.
 
 This is still **not** the `VectorMath.Dot` story from section 2, where the gap
-is 4.2×–5.3×. `Lodestar.Metrics` has no `Vector<T>` SIMD path, and every
-benchmark here is a scalar loop over `int[]`/`double[]`. The one piece of
-target-conditional code in its dependencies is `Lodestar.Internal.Guard`, which
-picks `ArgumentNullException.ThrowIfNull` on net10 and a hand-written check on
-netstandard2.0 — a null test outside every loop, which cannot produce a
-per-sample difference and does not.
+is 4.2×–5.3×.
 
 ### vs Python
 

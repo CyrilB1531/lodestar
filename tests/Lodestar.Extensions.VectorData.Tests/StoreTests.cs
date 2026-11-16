@@ -95,7 +95,10 @@ public sealed class StoreTests
         await store.EnsureCollectionDeletedAsync("documents");
         await documents.EnsureCollectionExistsAsync();
 
-        Assert.Throws<ArgumentException>(() => store.GetCollection<int, VectorOnly>("documents"));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => store.GetCollection<int, VectorOnly>("documents"));
+        Assert.StartsWith(
+            "The collection documents is already held over String keys and Document records, and this asks for "
+            + "Int32 keys and VectorOnly records;", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
