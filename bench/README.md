@@ -762,7 +762,20 @@ sizes. A fixed per-call cost the netstandard2.0 build pays and net10 does not,
 drowned once O(samples) work dominates.
 
 This is still **not** the `VectorMath.Dot` story from section 2, where the gap
-is 4.2×–5.3×.
+is 4.2×–5.3×. When these runs were made, at `196bca83`, the package — then
+`DataNet.Metrics` — had no `Vector<T>` path, and every benchmark here was a
+scalar loop over `int[]`/`double[]`. The one target-conditional code it reached
+was the shared `Guard`, whose `NotNull` called `ArgumentNullException.ThrowIfNull`
+and whose `NotLessThan`, which `Report` calls, called
+`ArgumentOutOfRangeException.ThrowIfLessThan` on net10, both checking by hand on
+netstandard2.0 — tests outside every loop, which cannot produce a per-sample
+difference. Since then the finiteness scan of
+`sample_weight` that `MatrixWeighted` reaches has gained a `Vector<T>` path on
+.NET 5 and later alone (`eda97d96`), and so has `Accuracy`'s label comparison
+(`f713ed28`); the precision family's column sums have gained one on both
+targets (`0bfc2163`), and `Guard.NotNull` checks by hand on both
+([#1804](https://github.com/CyrilB1531/lodestar/issues/1804)); none of the
+figures above has been re-measured against that code.
 
 ### vs Python
 

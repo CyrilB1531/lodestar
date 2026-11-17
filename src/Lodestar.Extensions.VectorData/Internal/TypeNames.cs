@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
@@ -50,13 +49,7 @@ internal static class TypeNames
 
     private static RefusalName[] Names(Type[] types, Mention? mention)
     {
-        var components = new Dictionary<Type, int>(SameComponent.Instance);
-        foreach (Type type in types)
-        {
-            Collect(type, components);
-        }
-
-        Dictionary<Type, RefusalName> heads = Heads(types, components, mention);
+        Dictionary<Type, RefusalName> heads = Heads(new Problem(types, mention));
         return [.. types.Select(type => Name(type, heads))];
     }
 
@@ -67,32 +60,14 @@ internal static class TypeNames
     internal static Type Declared<T>(T value)
         where T : notnull => typeof(T) == typeof(object) ? value.GetType() : typeof(T);
 
-    // What a name is built of, each numbered in the order met: a type without its own arguments, which are components
-    // of their own. A generic parameter is one, so an open type reads apart from one closed over a type of its name.
-    private static void Collect(Type type, Dictionary<Type, int> components)
-    {
-        type = Component(type);
-        if (!components.ContainsKey(type))
-        {
-            components[type] = components.Count;
-        }
-
-        foreach (Type argument in type.GetGenericArguments())
-        {
-            Collect(argument, components);
-        }
-    }
-
     // Heads settle at the levels they hold before any level rises. Only what the message prints is compared, and a head
     // whose declaring types pass arguments still alike waits for those to part, since they may part it too.
-    private static Dictionary<Type, RefusalName> Heads(Type[] types, Dictionary<Type, int> index, Mention? mention)
+    private static Dictionary<Type, RefusalName> Heads(Problem problem)
     {
-        var problem = new Problem(types, index, mention);
-        Type[] components = problem.Components;
+        (Type[] components, int[][] passed) = (problem.Components, problem.Passed);
         int count = components.Length;
         int[] levels = new int[count];
         int[] ranks = new int[count];
-        int[][] passed = [.. components.Select(component => Passed(component, index))];
         var heads = new Dictionary<Type, RefusalName>(SameComponent.Instance);
         Settle(problem, levels, ranks, heads);
 
@@ -238,41 +213,41 @@ internal static class TypeNames
         }
     }
 
-    // Recomputed until no head moves: a head at Full or past names the heads of the arguments its declaring types pass,
-    // which nest no deeper than there are components, so that many rounds and one more reach the fixed point.
+    // Each head after the heads it names, those of the arguments its declaring types pass: those arguments are parts of
+    // its type, which no component is of itself, so the order is well founded and one pass in it settles every head.
     private static void Settle(Problem problem, int[] levels, int[] ranks, Dictionary<Type, RefusalName> heads)
     {
-        Type[] components = problem.Components;
-        for (int round = 0; round <= components.Length; round++)
-        {
-            bool moved = false;
-            for (int i = 0; i < components.Length; i++)
-            {
-                RefusalName head = Leaf(components[i], levels[i], ranks[i], heads);
-                moved |= !heads.TryGetValue(components[i], out RefusalName held) || held != head;
-                heads[components[i]] = head;
-            }
+        (Type[] components, int[][] passed) = (problem.Components, problem.Passed);
 
-            if (!moved)
+        // A component met again while its own heads are read would be one naming itself.
+        bool[] reading = new bool[components.Length];
+        bool[] settled = new bool[components.Length];
+        for (int i = 0; i < components.Length; i++)
+        {
+            Head(i);
+        }
+
+        void Head(int i)
+        {
+            if (settled[i])
             {
                 return;
             }
+
+            if (reading[i])
+            {
+                throw new InvalidOperationException($"{components[i]} names itself through the arguments its declaring types pass.");
+            }
+
+            reading[i] = true;
+            foreach (int j in passed[i])
+            {
+                Head(j);
+            }
+
+            settled[i] = true;
+            heads[components[i]] = Leaf(components[i], levels[i], ranks[i], heads);
         }
-
-        // Unreachable while the bound above holds; a head naming itself through its arguments would end here.
-        Debug.Fail("The heads did not settle within as many rounds as there are components.");
-    }
-
-    // The components a head names through the arguments its declaring types pass, at any depth.
-    private static int[] Passed(Type component, Dictionary<Type, int> index)
-    {
-        var found = new Dictionary<Type, int>(SameComponent.Instance);
-        foreach (Type argument in Qualifying(component).SelectMany(outer => outer.Arguments))
-        {
-            Collect(argument, found);
-        }
-
-        return [.. found.Keys.Select(type => index[type])];
     }
 
     private static RefusalName Name(Type type, Dictionary<Type, RefusalName> heads)
@@ -490,17 +465,71 @@ internal static class TypeNames
     /// <summary>A member a refusal prints beside the types it names: which type owns it, and its name.</summary>
     private readonly record struct Mention(int Owner, string Member);
 
-    /// <summary>What one <see cref="Names(Type[])"/> call names, fixed across its rounds.</summary>
-    /// <param name="Types">The types the refusal prints.</param>
-    /// <param name="Index">Each component's number.</param>
-    /// <param name="Mention">The member printed beside them, if any.</param>
-    private sealed record Problem(Type[] Types, Dictionary<Type, int> Index, Mention? Mention)
+    /// <summary>What one <see cref="Names(Type[])"/> call names, fixed across its rounds, so read once.</summary>
+    private sealed class Problem
     {
+        /// <summary>Collects and numbers the components of <paramref name="types"/>.</summary>
+        /// <param name="types">The types the refusal prints.</param>
+        /// <param name="mention">The member printed beside them, if any.</param>
+        internal Problem(Type[] types, Mention? mention)
+        {
+            (Types, Mention) = (types, mention);
+            Index = new Dictionary<Type, int>(SameComponent.Instance);
+            foreach (Type type in types)
+            {
+                Collect(type, Index);
+            }
+
+            Components = [.. Index.OrderBy(entry => entry.Value).Select(entry => entry.Key)];
+            Own = [.. Components.Select(component => Split(component).Own.Length)];
+            Passed = [.. Components.Select(component => Named(component, Index))];
+        }
+
+        /// <summary>The types the refusal prints.</summary>
+        internal Type[] Types { get; }
+
+        /// <summary>Each component's number.</summary>
+        internal Dictionary<Type, int> Index { get; }
+
+        /// <summary>The member printed beside them, if any.</summary>
+        internal Mention? Mention { get; }
+
         /// <summary>The components, in number order.</summary>
-        public Type[] Components { get; } = [.. Index.OrderBy(entry => entry.Value).Select(entry => entry.Key)];
+        internal Type[] Components { get; }
 
         /// <summary>How many arguments of its own each component takes, in the same order.</summary>
-        public int[] Own => [.. Components.Select(component => Split(component).Own.Length)];
+        internal int[] Own { get; }
+
+        /// <summary>The components each one's head names, through the arguments its declaring types pass, in the same order.</summary>
+        internal int[][] Passed { get; }
+
+        // The components a head names through the arguments its declaring types pass, at any depth.
+        private static int[] Named(Type component, Dictionary<Type, int> index)
+        {
+            var found = new Dictionary<Type, int>(SameComponent.Instance);
+            foreach (Type argument in Qualifying(component).SelectMany(outer => outer.Arguments))
+            {
+                Collect(argument, found);
+            }
+
+            return [.. found.Keys.Select(type => index[type])];
+        }
+
+        // What a name is built of, each numbered in the order met: a type without its own arguments, which are components
+        // of their own. A generic parameter is one, so an open type reads apart from one closed over a type of its name.
+        private static void Collect(Type type, Dictionary<Type, int> components)
+        {
+            type = Component(type);
+            if (!components.ContainsKey(type))
+            {
+                components[type] = components.Count;
+            }
+
+            foreach (Type argument in type.GetGenericArguments())
+            {
+                Collect(argument, components);
+            }
+        }
     }
 }
 

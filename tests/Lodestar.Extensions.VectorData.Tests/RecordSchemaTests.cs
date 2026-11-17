@@ -871,6 +871,17 @@ public sealed class RecordSchemaTests
         Assert.Contains("Embedding more than once", error.Message, StringComparison.Ordinal);
     }
 
+    // #1820: a definition's names are the caller's strings, shown as a collection name is.
+    [Fact]
+    public void A_definition_name_the_record_lacks_is_quoted_when_it_holds_a_space()
+    {
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new LodestarVectorStoreCollection<string, Document>(
+            "documents",
+            definition: DocumentDefinition(new VectorStoreDataProperty(" Id", typeof(string)))));
+
+        Assert.StartsWith("The definition names \" Id\", which Document does not declare", error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_selector_written_against_an_interface_the_record_implements_is_honoured()
     {

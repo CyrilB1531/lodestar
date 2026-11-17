@@ -239,6 +239,7 @@ public sealed class HybridSearchTests
             await collection.HybridSearchAsync(new ReadOnlyMemory<float>([1f, 0f]), ["elephant"], 1).ToListAsync());
 
         Assert.Contains("query length 2 != dimension 3", error.Message, StringComparison.Ordinal);
+        Assert.Equal("searchValue", error.ParamName);
     }
 
     [Fact]

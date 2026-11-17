@@ -34,6 +34,10 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     private volatile bool _exists;
     private volatile bool _deleted;
 
+    // Volatile as the two above are, for a reader on another thread than the disposing one: GetCollection disposes
+    // under the store's lock a collection a name leaves (#1821), the store's Dispose after it.
+    private volatile bool _disposed;
+
     /// <summary>Creates a collection over a record type the schema is read from.</summary>
     /// <param name="name">The collection's name, which <see cref="Name"/> reports.</param>
     /// <param name="options">How the keyword half is built and fused; <see langword="null"/> takes the defaults.</param>
@@ -340,7 +344,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         Guard.NotLessThan(top, 1);
-        ReadOnlyMemory<float> query = QueryOf(searchValue, nameof(searchValue));
+        ReadOnlyMemory<float> query = QueryOf(searchValue);
         VectorSearchOptions<TRecord> settings = options ?? new VectorSearchOptions<TRecord>();
         _schema.CheckVectorSelector(settings.VectorProperty, nameof(options));
         List<VectorSearchResult<TRecord>> results = Nearest(query, top, settings);
@@ -376,23 +380,17 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     }
 
     /// <summary>The search value as a vector of the collection's width.</summary>
-    /// <param name="searchValue">The value the caller searched with.</param>
-    /// <param name="paramName">The public parameter's name, given by the caller so the refusals do not hang on this one's.</param>
+    /// <param name="searchValue">The value the caller searched with, under the public parameter's own name, which the refusals carry.</param>
     /// <remarks>Checked against the schema, not the index, so an empty collection refuses a wrong width too.</remarks>
-    private ReadOnlyMemory<float> QueryOf<TInput>(TInput searchValue, string paramName)
+    private ReadOnlyMemory<float> QueryOf<TInput>(TInput searchValue)
         where TInput : notnull
     {
-        // Tested in place: Guard.NotNull names its argument's expression, and S3236 refuses passing paramName in its stead.
-        if (searchValue is null)
-        {
-            throw new ArgumentNullException(paramName);
-        }
-
+        Guard.NotNull(searchValue);
         ReadOnlyMemory<float> query = AsVector(searchValue);
         if (query.Length != _schema.Dimension)
         {
             throw new ArgumentException(
-                $"query length {query.Length} != dimension {_schema.Dimension}.", paramName);
+                $"query length {query.Length} != dimension {_schema.Dimension}.", nameof(searchValue));
         }
 
         return query;
@@ -457,7 +455,7 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
     {
         Guard.NotNull(keywords);
         Guard.NotLessThan(top, 1);
-        ReadOnlyMemory<float> query = QueryOf(searchValue, nameof(searchValue));
+        ReadOnlyMemory<float> query = QueryOf(searchValue);
         if (_schema.KeywordRefusal is { } refusal)
         {
             throw new NotSupportedException(refusal);
@@ -513,9 +511,20 @@ public sealed class LodestarVectorStoreCollection<TKey, TRecord>
             .Take(top)];
     }
 
-    /// <summary>Releases resources — none, here: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
+    /// <summary>Releases nothing, holding nothing to release, and records that it ran: the base class declares the pattern and a consumer's <c>using</c> has to reach something.</summary>
     /// <param name="disposing"><see langword="true"/> when called from <see cref="IDisposable.Dispose"/> rather than a finalizer.</param>
-    protected override void Dispose(bool disposing) => base.Dispose(disposing);
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _disposed = true;
+        }
+
+        base.Dispose(disposing);
+    }
+
+    /// <summary>Whether <see cref="IDisposable.Dispose"/> has run, the one trace a dispose that releases nothing leaves.</summary>
+    internal bool Disposed => _disposed;
 
     /// <inheritdoc />
     Type IExistingCollection.KeyType => typeof(TKey);
