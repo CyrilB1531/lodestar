@@ -44,9 +44,12 @@ model, or the `onnx/` it sits in, when a `modules.json` lists it there, at `""` 
 parent's — the first of the seven legacy names Python finds true, a `model_max_length` in its `tokenizer_args` or
 `processor_kwargs` over its `max_seq_length`, and a `max_length` or a `truncation` that cuts nothing in its
 `processing_kwargs`, its `text` and `common` buckets merged key by key, `common`'s winning, over both, read once, from
-the folder the model was opened from, when a text overload first needs it, else 256; its `do_lower_case` is read there too, and
+the folder the model was opened from, when a text overload first needs it, else 256, and none under an `only_second`
+tokenizers is handed no length for ([#1793](https://github.com/CyrilB1531/lodestar/issues/1793)); its `do_lower_case` is read there too, and
 lowercases the texts [`EmbedBatch`](onnxtextembedder-embedbatch.md) encodes
-([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
+([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)). A relative `tokenizer_name_or_path` in it names a folder
+from the directory current when the constructor ran, as sentence-transformers resolves it at load
+([#1794](https://github.com/CyrilB1531/lodestar/issues/1794)).
 
 **Example** — the shape of a call. It is not executed: see below.
 

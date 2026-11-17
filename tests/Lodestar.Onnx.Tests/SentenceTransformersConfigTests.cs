@@ -126,15 +126,15 @@ public sealed class SentenceTransformersConfigTests
     }
 
     /// <summary>
-    /// What sentence-transformers refuses at load is refused by both text overloads; a zero, which it loads and then cuts
-    /// nothing with, and <c>true</c>, which Python reads as 1, are refused with them. The model still opens, and the entry
-    /// points taking encoded rows, which never read the length, run as on <c>main</c>.
+    /// What sentence-transformers refuses at load, or a length that fails each encode it reaches, is refused by both
+    /// text overloads; a zero, which it loads and then cuts nothing with, and <c>true</c>, which Python reads as 1, are
+    /// refused with them. The model still opens, and the entry points taking encoded rows, which never read the
+    /// length, run as on <c>main</c>.
     /// </summary>
     [Theory]
     [InlineData("""{"max_seq_length": "5"}""")]
     [InlineData("""{"max_seq_length": 5.0}""")]
     [InlineData("""{"max_seq_length": 5.5}""")]
-    [InlineData("""{"max_seq_length": 1e400}""")]
     [InlineData("""{"max_seq_length": 0}""")]
     [InlineData("""{"max_seq_length": -1}""")]
     [InlineData("""{"max_seq_length": -99999999999999999999}""")]
@@ -191,6 +191,29 @@ public sealed class SentenceTransformersConfigTests
     [InlineData("""{"max_seq_length": 4, "modality_config": {}, "module_output_name": 5}""", 4)]
     [InlineData("""{"max_seq_length": 4, "transformer_task": "fill-mask"}""", 4)]
     [InlineData("""{"max_seq_length": 4, "transformer_task": "any-to-any"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": null, "query_length": "x", "document_length": "x"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "strategy": "min", "length": 100000000000000000000000, "attend": true, "token": "zzz"}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "min", "length": 4, "attend": false, "token": null}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4, "token": {"a": 1}}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4, "token": ["a", "b"]}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}, "query_length": 4}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}, "query_length": 4.0}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}, "query_length": 3.9999999999999999}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}, "query_length": NaN}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}, "query_length": 1e400}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 4}, "query_length": null}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "query_expansion": {"strategy": "fixed", "length": 1}, "query_length": true}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "tokenizer_name_or_path": null}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "tokenizer_name_or_path": "abc"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "tokenizer_name_or_path": "_ab/Foo-BAR_foo.bar123"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "tokenizer_name_or_path": "/"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": 1e-400, "cache_dir": 5, "backend": 5, "unpad_inputs": "x"}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": {"text": {"padding": "longest"}, "common": {"padding": "do_not_pad"}}}""", 4)]
+    [InlineData("""{"max_seq_length": 4, "processing_kwargs": {"text": {"padding": "max_length"}}}""", 4)]
+    [InlineData("""{"max_seq_length": "5", "processing_kwargs": {"text": {"max_length": 3}}}""", 3)]
+    [InlineData("""{"max_seq_length": 5.5, "processing_kwargs": {"common": {"max_length": 3}}}""", 3)]
+    [InlineData("""{"tokenizer_args": {"model_max_length": {}}, "processing_kwargs": {"text": [["max_length", 3]]}}""", 3)]
     public void What_python_reads_is_read(string json, int expected)
     {
         using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
@@ -464,8 +487,23 @@ public sealed class SentenceTransformersConfigTests
     [InlineData("""{"max_seq_length": 1099511627776, "processing_kwargs": {"text": {"stride": 34359738368}}}""")]
     [InlineData("""{"max_seq_length": 1000000000000000000000, "processing_kwargs": {"text": {"stride": 34359738368}}}""")]
     [InlineData("""{"max_seq_length": 2, "processing_kwargs": {"text": {"truncation": null, "max_length": 3}}}""")]
-    [InlineData("""{"max_seq_length": 2, "processing_kwargs": {"text": {"truncation": null, "padding": 0, "max_length": 3}}}""")]
     [InlineData("""{"max_seq_length": 2, "processing_kwargs": {"text": {"truncation": null, "padding": false, "max_length": null}}}""")]
+    [InlineData("""{"max_seq_length": 5.5, "processing_kwargs": {"text": {"truncation": false}}}""")]
+    [InlineData("""{"max_seq_length": -1, "processing_kwargs": {"text": {"truncation": "do_not_truncate"}}}""")]
+    [InlineData("""{"max_seq_length": NaN, "processing_kwargs": {"text": {"truncation": false, "padding": "longest"}}}""")]
+    [InlineData("""{"max_seq_length": 18446744073709551616, "processing_kwargs": {"text": {"truncation": false, "padding": true}}}""")]
+    [InlineData("""{"max_seq_length": "5", "processing_kwargs": {"text": {"truncation": false, "max_length": 7}}}""")]
+    [InlineData("""{"max_seq_length": [5], "processing_kwargs": {"text": {"truncation": false, "padding": "max_length", "max_length": 7}}}""")]
+    [InlineData("""{"max_seq_length": 5.5, "processing_kwargs": {"text": {"truncation": false, "max_length": "x"}}}""")]
+    [InlineData("""{"max_seq_length": Infinity}""")]
+    [InlineData("""{"max_seq_length": 1e400}""")]
+    [InlineData("""{"max_seq_length": 1e30}""")]
+    [InlineData("""{"max_seq_length": 1.0000000000000002e20}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": Infinity}}""")]
+    [InlineData("""{"max_seq_length": 100000000000000000001, "processing_kwargs": {"text": {"truncation": false, "padding": "max_length"}}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": null}, "processing_kwargs": {"text": {"stride": "1"}}}""")]
+    [InlineData("""{"max_seq_length": 1e30, "processing_kwargs": {"text": {"stride": 100}}}""")]
+    [InlineData("""{"max_seq_length": 100000000000000000001, "processing_kwargs": {"text": {"stride": "x"}}}""")]
     public void What_tokenizers_is_not_handed_to_cut_at_leaves_the_model_limit(string json)
     {
         using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
@@ -517,6 +555,7 @@ public sealed class SentenceTransformersConfigTests
     [InlineData("""{"processing_kwargs": {"common": [{"\ud800": 1, "\ud800": 2}]}}""")]
     [InlineData("""{"processing_kwargs": {"text": {"truncation": "longest"}}}""")]
     [InlineData("""{"processing_kwargs": {"common": {"truncation": 1}}}""")]
+    [InlineData("""{"max_seq_length": 2, "processing_kwargs": {"text": {"truncation": null, "padding": 0, "max_length": 3}}}""")]
     public void A_bucket_or_a_strategy_sentence_transformers_cannot_use_is_refused(string json)
     {
         AssertRefused(Encoding.UTF8.GetBytes(json));
@@ -728,7 +767,27 @@ public sealed class SentenceTransformersConfigTests
 
         Assert.Equal("texts", byOptions.ParamName);
         Assert.Equal("texts", byEncoder.ParamName);
-        Assert.StartsWith("The text at position 1 is refused: it encodes to 5 tokens", byOptions.Message, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "The text at position 1 is refused: it encodes to 5 tokens, past the configured length 4,", byOptions.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Where the file states no length, the one a text is refused past is the default, capped at the model's limit, and
+    /// the refusal says so rather than calling it configured.
+    /// </summary>
+    [Theory]
+    [InlineData(Unbounded, "past the default length 256,")]
+    [InlineData(Positional, "past the length 6, the default 256 capped at the model's limit,")]
+    public void Only_second_past_the_default_names_the_default(string fixture, string named)
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(
+            fixture, ("sentence_bert_config.json", """{"processing_kwargs": {"text": {"truncation": "only_second"}}}"""));
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(FarPast, cancellationToken: token));
+        Assert.Equal("texts", refusal.ParamName);
+        Assert.Contains(named, refusal.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -840,8 +899,203 @@ public sealed class SentenceTransformersConfigTests
     [InlineData("""{"transformer_task": null}""")]
     [InlineData("""{"transformer_task": ["feature-extraction"]}""")]
     [InlineData("""{"transformer_task": ""}""")]
-    public void A_constructor_field_sentence_transformers_refuses_at_load_is_refused(string json) =>
-        AssertRefused(Encoding.UTF8.GetBytes(json));
+    [InlineData("""{"query_expansion": {}}""")]
+    [InlineData("""{"query_expansion": 5}""")]
+    [InlineData("""{"query_expansion": "abc"}""")]
+    [InlineData("""{"query_expansion": ""}""")]
+    [InlineData("""{"query_expansion": []}""")]
+    [InlineData("""{"query_expansion": false}""")]
+    [InlineData("""{"query_expansion": NaN}""")]
+    [InlineData("""{"query_expansion": {"strategy": "min", "length": 4, "attend": 1}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "attend": null}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "FIXED", "length": 4}}""")]
+    [InlineData("""{"query_expansion": {"strategy": null, "length": 4}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed"}}""")]
+    [InlineData("""{"query_expansion": {"length": 4}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixe\ud800", "length": 4}}""")]
+    [InlineData("""{"transformer_task": "\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80"}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4.0}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": -0}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": true}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": "4"}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "length": 0}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "bogus": 1}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "\ud800": 1}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": 5}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": false}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": NaN}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": [5]}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": [["a"]]}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": ""}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": "[MASK]\ud800"}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": ["\ud800"]}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4, "token": {"\ud800": 1}}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": 2}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": "x"}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": true}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": false}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": 3.5}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": -Infinity}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": [1]}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": {}}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 4}, "query_length": -0.5}""")]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": 100000000000000000000001}, "query_length": 1e23}""")]
+    [InlineData("""{"model_name_or_path": null}""")]
+    [InlineData("""{"model_name_or_path": "x"}""")]
+    [InlineData("""{"tokenizer_name_or_path": 5}""")]
+    [InlineData("""{"tokenizer_name_or_path": true}""")]
+    [InlineData("""{"tokenizer_name_or_path": NaN}""")]
+    [InlineData("""{"tokenizer_name_or_path": []}""")]
+    [InlineData("""{"tokenizer_name_or_path": "no/such/folder"}""")]
+    [InlineData("""{"tokenizer_name_or_path": ""}""")]
+    [InlineData("""{"tokenizer_name_or_path": "a/b/c"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "a--b"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "a..b"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "ab.git"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "-ab"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "a/b-"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "caf\u00e9"}""")]
+    [InlineData("""{"tokenizer_name_or_path": "\ud800"}""")]
+    [InlineData("""{"processing_kwargs": 5}""")]
+    [InlineData("""{"processing_kwargs": true}""")]
+    [InlineData("""{"processing_kwargs": 1.5}""")]
+    [InlineData("""{"processing_kwargs": -1}""")]
+    [InlineData("""{"processing_kwargs": NaN}""")]
+    [InlineData("""{"processing_kwargs": -Infinity}""")]
+    [InlineData("""{"processing_kwargs": 1e400}""")]
+    [InlineData("""{"processing_kwargs": [[1]]}""")]
+    [InlineData("""{"processing_kwargs": [{}]}""")]
+    [InlineData("""{"processing_kwargs": ["a", {}]}""")]
+    [InlineData("""{"processing_kwargs": [1, [1]]}""")]
+    [InlineData("""{"max_seq_length": 0}""")]
+    [InlineData("""{"max_seq_length": -0}""")]
+    [InlineData("""{"max_seq_length": true}""")]
+    [InlineData("""{"max_seq_length": false}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": 0}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": false}}""")]
+    public void A_constructor_field_sentence_transformers_refuses_at_load_is_refused(string json) => AssertRefusedAtLoad(json);
+
+    /// <summary>
+    /// A relative <c>tokenizer_name_or_path</c> names a folder from where the model was opened, as Python's
+    /// <c>os.path.isdir</c> resolves it: read past there, refused once the folder is gone, its name being no
+    /// repository id (#1794).
+    /// </summary>
+    [Fact]
+    public void A_tokenizer_folder_is_read_past_and_one_that_is_gone_is_refused()
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(Positional);
+        // The folder sits beside neither the model nor the directory current at the first text, only where it was opened.
+        string elsewhere = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lodestar-1794-{Guid.NewGuid():N}");
+        string folder = System.IO.Path.Combine(elsewhere, "tok enizer");
+        Directory.CreateDirectory(folder);
+        model.WriteRoot("sentence_bert_config.json", Encoding.UTF8.GetBytes("""{"max_seq_length": 4, "tokenizer_name_or_path": "tok enizer"}"""));
+        string before = Directory.GetCurrentDirectory();
+        try
+        {
+            Directory.SetCurrentDirectory(elsewhere);
+            using var opened = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+            Directory.SetCurrentDirectory(model.Root);
+            Assert.NotEmpty(opened.EmbedBatch(FarPast, cancellationToken: token));
+
+            Directory.CreateDirectory(System.IO.Path.Combine(model.Root, "tok enizer"));
+            Directory.Delete(folder);
+            Directory.SetCurrentDirectory(elsewhere);
+            using var gone = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+            Directory.SetCurrentDirectory(model.Root);
+            Assert.Throws<InvalidOperationException>(() => gone.EmbedBatch([], cancellationToken: token));
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(before);
+            Directory.Delete(elsewhere, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Handed no length, a null <c>model_max_length</c> or one past transformers' <c>LARGE_INTEGER</c>, tokenizers
+    /// cuts nothing under <c>only_second</c>, a stride unchecked: a text within the model's limit is embedded whole,
+    /// and one past it is refused by that limit, as the graph fails it in Python (#1793).
+    /// </summary>
+    [Theory]
+    [InlineData("""{"tokenizer_args": {"model_max_length": null}, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    [InlineData("""{"max_seq_length": 3, "tokenizer_args": {"model_max_length": null}, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": 100000000000000000001}, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    [InlineData("""{"max_seq_length": 100000000000000000001, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    [InlineData("""{"max_seq_length": Infinity, "processing_kwargs": {"text": {"truncation": "only_second", "stride": 3}}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": null}, "processing_kwargs": {"text": {"stride": -1, "truncation": "only_second"}}}""")]
+    [InlineData("""{"max_seq_length": 1e30, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    public void Only_second_handed_no_length_cuts_no_text(string json)
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
+        using var plain = new ModelDirectory(Positional);
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+        using var reference = new OnnxTextEmbedder(plain.Path, BatchCorpus.Tokenizer());
+        string[] within = ["the dog", "the dog the dog"];
+        string[] past = ["the dog", "the dog the dog the"];
+
+        Assert.Equal(reference.EmbedBatch(within, cancellationToken: token), embedder.EmbedBatch(within, cancellationToken: token));
+        ArgumentException byOptions = Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(past, cancellationToken: token));
+        ArgumentException byEncoder = Assert.Throws<ArgumentException>(
+            () => embedder.EmbedBatch(past, new BatchEncoder(BatchCorpus.Tokenizer()), token));
+        Assert.Equal("options", byOptions.ParamName);
+        Assert.Equal("encoder", byEncoder.ParamName);
+        Assert.Contains("position-embedding table", byOptions.Message, StringComparison.Ordinal);
+        Assert.StartsWith("The text at position 1 is refused", byOptions.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The field named is the one sentence-transformers 6.2.0 fails on first, measured: <c>load_config</c> looks
+    /// <c>trust_remote_code</c> up, then, without a <c>modality_config</c>, the task's defaults, before the call takes
+    /// <c>model_name_or_path</c> twice; with one, the task waits for <c>__init__</c>.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"transformer_task": "bogus", "model_name_or_path": "x"}""", "transformer_task")]
+    [InlineData("""{"transformer_task": [1], "model_kwargs": 5}""", "model_kwargs")]
+    [InlineData("""{"modality_config": null, "transformer_task": "bogus"}""", "modality_config")]
+    [InlineData("""{"modality_config": {"message": 5}}""", "the modality_config entry 'message'")]
+    [InlineData("""{"processing_kwargs": {"text": 5, "common": 5}}""", "processing_kwargs.common")]
+    [InlineData("""{"modality_config": {"text": {"method": "forward", "method_output_name": "token_embeddings"}}, "module_output_name": "token_embeddings", "transformer_task": "bogus", "model_name_or_path": "x"}""", "model_name_or_path")]
+    public void A_constructor_field_is_named_in_the_order_sentence_transformers_fails_on_it(string json, string field)
+    {
+        using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
+
+        Assert.Contains($"states {field} ", RefusalAt(model.Path), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A refusal shows the value as the file spells it, a named literal nested in it unquoted, and a file string that
+    /// merely holds the marker kept whole.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"query_expansion": {"strategy": "fixed", "length": NaN}}""", "\"length\": NaN}")]
+    [InlineData("""{"processing_kwargs": [-Infinity, [1]]}""", "[-Infinity, [1]]")]
+    [InlineData("""{"processing_kwargs": ["a\"\u0001NaN", [1]]}""", "[\"a\\\"\\u0001NaN\", [1]]")]
+    public void A_refusal_spells_a_nested_named_literal_as_the_file_does(string json, string shown)
+    {
+        using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
+
+        string refusal = RefusalAt(model.Path);
+        Assert.Contains(shown, refusal, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// tokenizers' <c>enable_truncation</c> takes <c>max_length</c> before <c>stride</c>, and transformers compares a
+    /// string length before either: a length it refuses is the one named, beside a stride it refuses too.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"max_seq_length": "5", "processing_kwargs": {"text": {"stride": -1}}}""", "max_seq_length")]
+    [InlineData("""{"max_seq_length": 18446744073709551616, "processing_kwargs": {"text": {"stride": "x"}}}""", "max_seq_length")]
+    [InlineData("""{"processing_kwargs": {"text": {"max_length": "x", "stride": -1}}}""", "max_length")]
+    public void A_length_tokenizers_refuses_is_named_before_the_stride(string json, string field)
+    {
+        using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
+
+        string refusal = RefusalAt(model.Path);
+        Assert.Contains(field, refusal, StringComparison.Ordinal);
+        Assert.DoesNotContain("stride", refusal, StringComparison.Ordinal);
+    }
 
     /// <summary>Two texts, the second past a length of four, then a failure no refusal at the second lets the caller see.</summary>
     private static IEnumerable<string> StopsAfterTheSecond()
@@ -863,6 +1117,47 @@ public sealed class SentenceTransformersConfigTests
     [InlineData("""{"max_seq_length": 18446744073709551616}""")]
     [InlineData("""{"tokenizer_args": {"model_max_length": 18446744073709551616}}""")]
     [InlineData("""{"max_seq_length": 99999999999999999999}""")]
+    [InlineData("""{"processing_kwargs": [1]}""")]
+    [InlineData("""{"processing_kwargs": "abc"}""")]
+    [InlineData("""{"max_seq_length": "5"}""")]
+    [InlineData("""{"max_seq_length": "abc"}""")]
+    [InlineData("""{"max_seq_length": ""}""")]
+    [InlineData("""{"max_seq_length": 5.0}""")]
+    [InlineData("""{"max_seq_length": 5.5}""")]
+    [InlineData("""{"max_seq_length": 0.0}""")]
+    [InlineData("""{"max_seq_length": 1e-400}""")]
+    [InlineData("""{"max_seq_length": 1e20}""")]
+    [InlineData("""{"max_seq_length": -1}""")]
+    [InlineData("""{"max_seq_length": -100000000000000000000000}""")]
+    [InlineData("""{"max_seq_length": [5]}""")]
+    [InlineData("""{"max_seq_length": {}}""")]
+    [InlineData("""{"max_seq_length": NaN}""")]
+    [InlineData("""{"max_seq_length": -Infinity}""")]
+    [InlineData("""{"max_seq_length": -1e400}""")]
+    [InlineData("""{"max_seq_length": 100000000000000000000}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": "5"}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": 5.5}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": -1}}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": [5]}}""")]
+    [InlineData("""{"max_seq_length": "5", "processing_kwargs": {"text": {"truncation": false}}}""")]
+    [InlineData("""{"max_seq_length": "\u0001x", "processing_kwargs": {"text": {"truncation": false}}}""")]
+    [InlineData("""{"max_seq_length": {}, "processing_kwargs": {"text": {"truncation": "do_not_truncate", "max_length": null}}}""")]
+    [InlineData("""{"max_seq_length": 5.5, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    [InlineData("""{"max_seq_length": 5.5, "processing_kwargs": {"text": {"truncation": false, "padding": "max_length"}}}""")]
+    [InlineData("""{"max_seq_length": -1, "processing_kwargs": {"text": {"truncation": false, "padding": "max_length"}}}""")]
+    [InlineData("""{"max_seq_length": 18446744073709551616, "processing_kwargs": {"text": {"truncation": false, "padding": "max_length"}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"truncation": false, "padding": "max_length", "max_length": "x"}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"truncation": false, "padding": "max_length", "max_length": -1}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"truncation": false, "padding": "max_length", "max_length": 0}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"truncation": false, "padding": "max_length", "max_length": true}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"max_length": false}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"padding": "bogus"}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"padding": "\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80"}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"truncation": "\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80\udc80"}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"padding": "LONGEST"}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"padding": null}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"padding": 1}}}""")]
+    [InlineData("""{"processing_kwargs": {"text": {"padding": NaN, "truncation": false}}}""")]
     public void An_encode_time_refusal_leaves_an_empty_batch_empty(string json)
     {
         CancellationToken token = TestContext.Current.CancellationToken;
@@ -872,6 +1167,16 @@ public sealed class SentenceTransformersConfigTests
         Assert.Empty(embedder.EmbedBatch([], cancellationToken: token));
         Assert.Empty(embedder.EmbedBatch([], new BatchEncoder(BatchCorpus.Tokenizer()), token));
         AssertRefused(Encoding.UTF8.GetBytes(json));
+        AssertOneSentence(RefusalAt(model.Path));
+    }
+
+    /// <summary>A refusal is one sentence naming the file once, however many readers it passed through.</summary>
+    private static void AssertOneSentence(string refusal)
+    {
+        const string Opening = "The sentence-transformers configuration '";
+        Assert.StartsWith(Opening, refusal, StringComparison.Ordinal);
+        Assert.Equal(refusal.IndexOf(Opening, StringComparison.Ordinal), refusal.LastIndexOf(Opening, StringComparison.Ordinal));
+        Assert.False(refusal.EndsWith("..", StringComparison.Ordinal), refusal);
     }
 
     /// <summary>
@@ -890,6 +1195,87 @@ public sealed class SentenceTransformersConfigTests
         ArgumentException refusal = Assert.Throws<ArgumentException>(() => embedder.EmbedBatch(eight, cancellationToken: token));
         Assert.DoesNotContain("only_second", refusal.Message, StringComparison.Ordinal);
         Assert.Contains("position-embedding table", refusal.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// What the embedder relies on in every configuration the reader returns, over a grid of length shapes, truncations,
+    /// call lengths, paddings and strides: a stated length is handed or hands none, uncapped only where none is handed,
+    /// and an encode-time or unordered refusal is a refusal.
+    /// </summary>
+    [Fact]
+    public void Every_stated_length_is_handed_or_hands_none()
+    {
+        string[] lengths =
+        [
+            "1", "7", "40", "100000000000000000001", "18446744073709551616", "1e30", "Infinity", "5.5", "-1", "NaN",
+            "\"5\"", "[5]", "{}", "0", "true", "null",
+        ];
+        string[] truncations = ["", "\"truncation\": true, ", "\"truncation\": false, ", "\"truncation\": \"only_second\", ", "\"truncation\": null, "];
+        string[] calls = ["", "\"max_length\": null, ", "\"max_length\": 7, ", "\"max_length\": \"x\", "];
+        string[] paddings = ["", "\"padding\": \"max_length\", ", "\"padding\": false, "];
+        string[] strides = ["", "\"stride\": 1, "];
+        // The call kwargs in the text bucket or in the common one, and once more with no processing_kwargs at all.
+        string[] buckets = ["text", "common"];
+        using var model = new ModelDirectory(Positional);
+        string openedFrom = Directory.GetCurrentDirectory();
+        int read = 0;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string length in lengths)
+        {
+            foreach (string field in new[] { $"\"max_seq_length\": {length}", $"\"tokenizer_args\": {{\"model_max_length\": {length}}}" })
+            {
+                foreach (string json in (from bucket in buckets
+                                         from truncation in truncations
+                                         from call in calls
+                                         from padding in paddings
+                                         from stride in strides
+                                         select $"{{{field}, \"processing_kwargs\": {{\"{bucket}\": {{{truncation}{call}{padding}{stride}\"x\": 0}}}}}}")
+                                        .Append($"{{{field}}}"))
+                {
+                    model.WriteRoot("sentence_bert_config.json", Encoding.UTF8.GetBytes(json));
+                    SentenceTransformersConfig.Stated stated = SentenceTransformersConfig.Read(model.Path, openedFrom);
+                    read++;
+
+                    AssertHolds(stated, json);
+                    seen.Add(Kind(stated));
+                }
+            }
+        }
+        Assert.Equal(lengths.Length * 2 * ((buckets.Length * truncations.Length * calls.Length * paddings.Length * strides.Length) + 1), read);
+        // The grid reaches every kind of answer, so no assertion above held only for want of a case.
+        Assert.Equal(["encode", "handed", "load", "none", "uncapped", "unordered"], seen.Order(StringComparer.Ordinal).ToArray());
+    }
+
+    /// <summary>What <c>WithModelDefault</c> relies on in one configuration's answer.</summary>
+    private static void AssertHolds(SentenceTransformersConfig.Stated stated, string json)
+    {
+        Assert.True(stated.Refusal is not null || stated.Length is null || stated.Handed is not null || stated.HandsNone, json);
+        Assert.True(!stated.HandsNone || stated is { Handed: null, Stride: null, Refusal: null }, json);
+        Assert.True(!stated.AtEncode || stated.Refusal is not null, json);
+        Assert.True(!stated.Unordered || stated.AtEncode, json);
+    }
+
+    private static string Kind(SentenceTransformersConfig.Stated stated) => stated switch
+    {
+        { Unordered: true } => "unordered",
+        { AtEncode: true } => "encode",
+        { Refusal: not null } => "load",
+        { HandsNone: true, RefusesPast: true } => "uncapped",
+        { HandsNone: true } => "none",
+        _ => "handed",
+    };
+
+    /// <summary>Refused before any text, as sentence-transformers refuses the file at load: an empty batch is refused too.</summary>
+    private static void AssertRefusedAtLoad(string json)
+    {
+        CancellationToken token = TestContext.Current.CancellationToken;
+        using var model = new ModelDirectory(Positional, ("sentence_bert_config.json", json));
+        using var embedder = new OnnxTextEmbedder(model.Path, BatchCorpus.Tokenizer());
+
+        Assert.Throws<InvalidOperationException>(() => embedder.EmbedBatch([], cancellationToken: token));
+        Assert.Throws<InvalidOperationException>(() => embedder.EmbedBatch([], new BatchEncoder(BatchCorpus.Tokenizer()), token));
+        AssertRefused(Encoding.UTF8.GetBytes(json));
+        AssertOneSentence(RefusalAt(model.Path));
     }
 
     private static void AssertRefusedAt(string modelPath, string fileName) =>

@@ -74,16 +74,26 @@ limit: its fixed sequence axis, or the rows of the graph's position-embedding
 table, since most exports declare none — `torch.onnx.export` with `dynamic_axes`
 writes a symbolic sequence dimension. That table holds 512 rows for
 `all-MiniLM-L6-v2`, and a RoBERTa-style table of 514 rows, whose first two
-positions are the padding offset, reads 512. A configuration sentence-transformers
-refuses to load — not JSON, or a length that is not an integer — is
-refused by the text overloads, and so are a zero and `true`; `Embed` and the
-overload taking an `EncodedBatch` never read it. Where the file asks for
-`only_second`, or a `stride` tokenizers cannot cut under, a text past a length
-longer than the template is refused rather than cut, as sentence-transformers
-refuses it ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)). An encoder you build yourself
-is treated the same way when its `MaxLength` is null. A true `do_lower_case` in
-that file lowercases each text before it is encoded, as sentence-transformers
-does ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
+positions are the padding offset, reads 512. A configuration
+sentence-transformers refuses to load — not JSON, or one of the fields the
+`EmbedBatch` reference page lists holding a value it refuses — is refused by the
+text overloads, and so are a zero and a boolean length; a length that loads and
+fails each encode it reaches, such as `"5"` or `5.5`, is refused at the first
+text where Python hands it to tokenizers or, a string, a list or an object,
+compares it with a text's length, the call stating no `max_length` of its own;
+`Embed` and the overload taking an `EncodedBatch` never read it. Where the file
+asks for `only_second`, or a `stride` tokenizers cannot cut under, a text past a
+length longer than the template is refused rather than cut, as
+sentence-transformers refuses it
+([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)); under
+`only_second` where tokenizers is handed no length — a null `model_max_length`
+or a length past `10²⁰`, not a file stating none, which takes 256 capped at the
+model's limit — no text is cut, and one past the model's limit is refused there
+([#1793](https://github.com/CyrilB1531/lodestar/issues/1793)). An encoder you
+build yourself is treated the same way when its `MaxLength` is null. A true
+`do_lower_case` in that file lowercases each text before it is encoded, as
+sentence-transformers does
+([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
 
 The single-sequence entry point is still there for a caller who owns the
 tokenization:

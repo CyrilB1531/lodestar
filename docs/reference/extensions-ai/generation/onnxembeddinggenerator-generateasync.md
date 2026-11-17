@@ -21,7 +21,7 @@ finished, as Microsoft.Extensions.AI's own OpenAI generator fills them.
 **Exceptions** — every one of these comes back in the returned task, never from the call itself.
 `ArgumentNullException` when `values` is null. `ArgumentException` when `options`
 asks for a dimension the loaded model does not produce, or when the encoder refuses a text in
-`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None`, or a configured `only_second` or `stride` refuses one past a configured length longer than the template — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)), or when the encoder's own `MaxLength`, or a configured length below the template, which cuts nothing, lets a sequence past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md), naming `encoder` ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)). `InvalidOperationException` when the sentence-transformers configuration beside
+`values` — as it refuses one over its `MaxLength` under `TruncationStrategy.None`, or a configured `only_second` or `stride` refuses one past a configured length longer than the template — naming `values` ([#1345](https://github.com/CyrilB1531/lodestar/issues/1345)), or when the encoder's own `MaxLength`, or a configured length below the template, or a configured `only_second` handed no length, each of which cuts nothing, lets a sequence past the model's [`MaxSequenceLength`](../../onnx/inference/onnxtextembedder.md), naming `encoder`, not `values`, its message the position of the text ([#1780](https://github.com/CyrilB1531/lodestar/issues/1780), [#1793](https://github.com/CyrilB1531/lodestar/issues/1793)). `InvalidOperationException` when the sentence-transformers configuration beside
 the model is refused, as [`EmbedBatch`](../../onnx/inference/onnxtextembedder-embedbatch.md) refuses
 it ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)). `OperationCanceledException` when
 `cancellationToken` is already cancelled, or is cancelled between sub-batches — it is the batch path
@@ -80,8 +80,9 @@ does: at the length the sentence-transformers configuration exported beside the 
 fixed sequence axis, else its position-embedding table — special tokens kept, under its own
 `Truncation`, so `TruncationStrategy.None` refuses the text, as a configured `only_second` truncation does
 past a length longer than the template. A configured length shorter than the template cuts nothing, as in
-sentence-transformers, so a text past the model's limit is then refused, naming `encoder`
-([#1780](https://github.com/CyrilB1531/lodestar/issues/1780)). A true `do_lower_case` in that file
+sentence-transformers, and so does a configured `only_second` where tokenizers is handed no length, as a null
+`model_max_length` or a length past `10²⁰` hands it none, so a text past the model's limit is then refused, naming `encoder`
+([#1780](https://github.com/CyrilB1531/lodestar/issues/1780), [#1793](https://github.com/CyrilB1531/lodestar/issues/1793)). A true `do_lower_case` in that file
 lowercases each text first, as `EmbedBatch` does
 ([#1257](https://github.com/CyrilB1531/lodestar/issues/1257)).
 

@@ -407,11 +407,14 @@ public sealed class OnnxEmbeddingGeneratorTests
     }
 
     /// <summary>
-    /// A configured length below the template cuts nothing, as sentence-transformers 6.2.0 leaves such a row, measured:
-    /// a short text is embedded whole, and one past the model's table faults the task under <c>encoder</c> (#1780).
+    /// A configured length below the template, or a configured <c>only_second</c> handed no length, cuts nothing, as
+    /// sentence-transformers 6.2.0 leaves such a row, measured: a short text is embedded whole, and one past the model's
+    /// table faults the task under <c>encoder</c> (#1780, #1793).
     /// </summary>
-    [Fact]
-    public async Task A_configured_length_below_the_template_cuts_nothing()
+    [Theory]
+    [InlineData("""{"max_seq_length": 1}""")]
+    [InlineData("""{"tokenizer_args": {"model_max_length": null}, "processing_kwargs": {"text": {"truncation": "only_second"}}}""")]
+    public async Task A_configuration_that_cuts_nothing_refuses_a_text_past_the_table(string configuration)
     {
         CancellationToken token = TestContext.Current.CancellationToken;
         string root = Path.Combine(Path.GetTempPath(), $"lodestar-1780-{Guid.NewGuid():N}");
@@ -422,7 +425,7 @@ public sealed class OnnxEmbeddingGeneratorTests
         {
             await File.WriteAllTextAsync(
                 Path.Combine(root, "modules.json"), """[{"path": "", "type": "sentence_transformers.models.Transformer"}]""", token);
-            await File.WriteAllTextAsync(Path.Combine(root, "sentence_bert_config.json"), """{"max_seq_length": 1}""", token);
+            await File.WriteAllTextAsync(Path.Combine(root, "sentence_bert_config.json"), configuration, token);
             string[] whole = ["the cat sat"];
             using var embedder = new OnnxTextEmbedder(modelPath, BatchCorpus.Tokenizer());
             float[][] expected = embedder.EmbedBatch(whole, new EncodingOptions { MaxLength = 6 }, token);
