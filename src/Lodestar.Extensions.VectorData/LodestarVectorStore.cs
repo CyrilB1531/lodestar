@@ -14,7 +14,12 @@ namespace Lodestar.Extensions.VectorData;
 /// </remarks>
 public sealed class LodestarVectorStore : VectorStore
 {
+#if NET
+    // System.Threading.Lock, Sonar's S9422, where the runtime has it; netstandard2.0 keeps the Monitor on an object (#1831).
+    private readonly Lock _gate = new();
+#else
     private readonly object _gate = new();
+#endif
     private readonly Dictionary<string, IExistingCollection> _collections = [];
     private readonly LodestarVectorStoreOptions _options;
 
