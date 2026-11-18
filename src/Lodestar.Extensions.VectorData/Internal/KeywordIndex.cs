@@ -34,7 +34,12 @@ internal sealed class KeywordIndex
     // A 0 x 0 matrix, which Bm25Index accepts, so the options are refused by the type that defines them.
     private static readonly CsrMatrix NoCounts = new(0, 0, [], [], [0]);
 
+#if NET
+    // System.Threading.Lock, Sonar's S9422, where the runtime has it; netstandard2.0 keeps the Monitor on an object (#1831).
+    private readonly Lock _gate = new();
+#else
     private readonly object _gate = new();
+#endif
     private readonly CountVectorizerOptions _vectorizer;
     private readonly Bm25Options _bm25;
     private readonly Dictionary<string, Term> _terms = new(StringComparer.Ordinal);
