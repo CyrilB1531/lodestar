@@ -94,9 +94,10 @@ public sealed class OnnxTextEmbedder : IDisposable
             // The folder is the one the model was opened from, whatever the current directory is by the first text.
             int? maxSequenceLength = _maxSequenceLength;
             string fullModelPath = Path.GetFullPath(modelPath);
+            string? openedFrom = SentenceTransformersConfig.OpenedFrom();
             _configuration = new Lazy<(int, SentenceTransformersConfig.Stated)>(() =>
             {
-                SentenceTransformersConfig.Stated stated = SentenceTransformersConfig.Read(fullModelPath);
+                SentenceTransformersConfig.Stated stated = SentenceTransformersConfig.Read(fullModelPath, openedFrom);
                 int configured = stated.Length ?? SentenceTransformersConfig.DefaultMaxSeqLength;
                 return (maxSequenceLength is int limit ? Math.Min(configured, limit) : configured, stated);
             });
@@ -225,10 +226,10 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// lowercases each text first, through this overload and the one taking a <see cref="BatchEncoder"/> (#1257).
     /// </remarks>
     /// <param name="texts">The texts to embed.</param>
-    /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults; a null <c>MaxLength</c> takes the configured <c>max_seq_length</c>, else 256, capped at <see cref="MaxSequenceLength"/>, as its remarks say.</param>
+    /// <param name="options">Template, truncation and batching settings; <see langword="null"/> uses the defaults; a null <c>MaxLength</c> takes the configured <c>max_seq_length</c>, else 256, capped at <see cref="MaxSequenceLength"/>, as its remarks say; none is filled in where tokenizers would refuse a text past the length rather than cut it, the <c>only_second</c> and <c>stride</c> cases the exceptions list, or where <c>only_second</c> is handed no length (#1780, #1793), and a length shorter than the template cuts nothing (#1257).</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is, or one past a configured length longer than the template under a configured <c>only_second</c> or a configured <c>stride</c> equal to the room that length leaves beside the template, at the first such text (#1780), or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> is refused by <see cref="BatchEncoder"/> or sets a <c>MaxLength</c> past <see cref="MaxSequenceLength"/>, or a text is refused, as one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/> is, or one past a configured length longer than the template under a configured <c>only_second</c> or a configured <c>stride</c> equal to the room that length leaves beside the template, at the first such text (#1780), or, where the configuration cuts nothing, a length below the template or <c>only_second</c> handed no length, a sequence is past <see cref="MaxSequenceLength"/> (#1780, #1793), or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
     /// <exception cref="InvalidOperationException">The embedder was built without a tokenizer, or the model output is not shaped for the batch it was fed or declares its first two axes as the input's two swapped (#1424), or the sentence-transformers configuration or the <c>modules.json</c> beside the model is one sentence-transformers refuses to load or to encode under, each case the reference page lists (#1257).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
@@ -258,10 +259,10 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// for the case where the tokenizer is not the one the embedder was built with.
     /// </remarks>
     /// <param name="texts">The texts to embed.</param>
-    /// <param name="encoder">The encoder that owns the tokenizer, template and truncation; a null <c>MaxLength</c> on it takes the length the options overload takes, on a copy.</param>
+    /// <param name="encoder">The encoder that owns the tokenizer, template and truncation; a null <c>MaxLength</c> on it takes the length the options overload takes, on a copy, in the cases that overload's <c>options</c> lists.</param>
     /// <param name="cancellationToken">Observed while tokenizing and between sub-batches.</param>
     /// <exception cref="ArgumentNullException"><paramref name="texts"/> or <paramref name="encoder"/> is null.</exception>
-    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or a text is past a configured length longer than the template under a configured <c>only_second</c> or a configured <c>stride</c> equal to the room that length leaves beside the template (#1780), or encodes one past <see cref="MaxSequenceLength"/>, or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
+    /// <exception cref="ArgumentException">The encoder refuses a text, as it refuses one over <c>MaxLength</c> under <see cref="TruncationStrategy.None"/>, or a text is past a configured length longer than the template under a configured <c>only_second</c> or a configured <c>stride</c> equal to the room that length leaves beside the template (#1780), or encodes one past <see cref="MaxSequenceLength"/>, as it does where the configuration cuts nothing, a length below the template or <c>only_second</c> handed no length (#1780, #1793), or the batch and sequence, fixed by the model or brought by the call, make one chunk larger than one array.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="InvalidOperationException">The model output is not <c>[batch, sequence, dim]</c> or <c>[batch, dim]</c> for the batch it was fed, or declares its first two axes as the input's two swapped (#1424), or the sentence-transformers configuration or the <c>modules.json</c> beside the model is one sentence-transformers refuses to load or to encode under, each case the reference page lists (#1257).</exception>
     /// <exception cref="NotSupportedException">The model output's elements are not float, float16 or bfloat16.</exception>
@@ -316,6 +317,14 @@ public sealed class OnnxTextEmbedder : IDisposable
         {
             return embeddings;
         }
+        // An encoder cutting at no length within the limit can hold a row past it: refused before any padding or
+        // sub-batch runs, as Run would refuse its sub-batch (#1793).
+        if (_maxSequenceLength is int axis && (encoder.Options.MaxLength is not int cap || cap > axis)
+            && !(refusal is Refusal within && within.Past <= (ulong)axis))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            RefuseFirstPastLimit(sequences, axis, paramName);
+        }
 
         int batchSize = encoder.Options.BatchSize;
         int[]? order = encoder.Options.SortByLength && total > batchSize ? SortedByLength(sequences) : null;
@@ -365,7 +374,8 @@ public sealed class OnnxTextEmbedder : IDisposable
 
     /// <summary>
     /// The length both text overloads fill a null <c>MaxLength</c> with, so they cut alike, or, where tokenizers refuses
-    /// to cut a text past it, that length and why, with the encoder left uncut (#1257, #1780).
+    /// to cut a text past it, that length and why, with the encoder left uncut (#1257, #1780); under <c>only_second</c>
+    /// handed no length, none, the encoder left uncut and only the model's limit bounding a row (#1793).
     /// </summary>
     /// <remarks>
     /// Past the template's <c>t</c> tokens, <c>only_second</c> cuts no single text; a configured stride past
@@ -379,9 +389,15 @@ public sealed class OnnxTextEmbedder : IDisposable
         {
             return stated.AtEncode ? (encoder, null, refusal) : throw new InvalidOperationException(refusal);
         }
-        // tokenizers is handed the length the file states, before the model's cap, else ours; none where it states none.
-        ulong? handed = stated.Handed ?? (stated.Length is null ? (ulong)length : null);
-        if (handed is not ulong told || (!stated.RefusesPast && stated.Stride is null))
+        if (stated is { HandsNone: true, RefusesPast: true })
+        {
+            // Only the model's limit bounds a row, as only_second handed no length cuts nothing (#1793).
+            return (encoder, null, null);
+        }
+        // tokenizers is handed the length the file states, before the model's cap, else our capped default; past the
+        // branch above HandsNone has no only_second and never a stride, Every_stated_length_is_handed_or_hands_none checks.
+        ulong told = stated.Handed ?? (ulong)length;
+        if (!stated.RefusesPast && stated.Stride is null)
         {
             return (encoder.WithDefaultMaxLength(length), null, null);
         }
@@ -394,7 +410,7 @@ public sealed class OnnxTextEmbedder : IDisposable
         }
         why = stated.RefusesPast ? "which the configured truncation only_second cuts no single text to" : why;
         return why is not null && told > template && encoder.Options.MaxLength is null
-            ? (encoder, new Refusal(told, why), null)
+            ? (encoder, new Refusal(told, why, stated.Handed is null), null)
             : (encoder.WithDefaultMaxLength(length), null, null);
     }
 
@@ -449,13 +465,13 @@ public sealed class OnnxTextEmbedder : IDisposable
             }
             catch (ArgumentException e) when (e.ParamName == nameof(text))
             {
-                throw new ArgumentException($"The text at position {sequences.Count} is refused: {e.Message}", nameof(texts), e);
+                throw new ArgumentException($"{TextRefused(sequences.Count)}{e.Message}", nameof(texts), e);
             }
             if ((ulong)sequence.Length > refusal.Past)
             {
                 throw new ArgumentException(
-                    $"The text at position {sequences.Count} is refused: it encodes to {sequence.Length} tokens, past the " +
-                    $"configured length {refusal.Past}, {refusal.Why}.",
+                    $"{TextRefused(sequences.Count)}it encodes to {sequence.Length} tokens, past the " +
+                    $"{refusal.Named}, {refusal.Why}.",
                     nameof(texts));
             }
             sequences.Add(sequence);
@@ -463,8 +479,48 @@ public sealed class OnnxTextEmbedder : IDisposable
         return sequences;
     }
 
-    /// <summary>The length a text is refused past rather than cut at, and why tokenizers refuses it.</summary>
-    private readonly record struct Refusal(ulong Past, string Why);
+    /// <summary>
+    /// The length a text is refused past rather than cut at, why tokenizers refuses it, and whether it is the default,
+    /// capped at the model's limit as #1257's rule 2 caps it, the fixed sequence axis or the position table.
+    /// </summary>
+    private readonly record struct Refusal(ulong Past, string Why, bool Default)
+    {
+        /// <summary>The length as the refusal names it, formatted only when a text is refused.</summary>
+        public string Named => (Default, Past < SentenceTransformersConfig.DefaultMaxSeqLength) switch
+        {
+            (false, _) => $"configured length {Past}",
+            (true, true) => $"length {Past}, the default {SentenceTransformersConfig.DefaultMaxSeqLength} capped at the model's limit",
+            _ => $"default length {Past}",
+        };
+    }
+
+    /// <summary>Refuses the first text whose row passes the model's limit, naming its position, under the caller's argument.</summary>
+    private void RefuseFirstPastLimit(IReadOnlyList<long[]> sequences, int axis, string paramName)
+    {
+        for (int i = 0; i < sequences.Count; i++)
+        {
+            if (sequences[i].Length > axis)
+            {
+                throw new ArgumentException($"{TextRefused(i)}{PastLimit("a", sequences[i].Length, axis)}", paramName);
+            }
+        }
+    }
+
+    /// <summary>Refuses a sequence past the model's limit under the caller's own argument (#1423).</summary>
+    private void RequireWithinLimit(int seqLen, string paramName)
+    {
+        if (_maxSequenceLength is int axis && seqLen > axis)
+        {
+            throw new ArgumentException(PastLimit("A", seqLen, axis), paramName);
+        }
+    }
+
+    /// <summary>How every refusal of one text opens, in the words BatchEncoder's own opens with, kept alike by hand.</summary>
+    private static string TextRefused(int position) => $"The text at position {position} is refused: ";
+
+    /// <summary>The words every refusal of a row past the model's limit uses.</summary>
+    private string PastLimit(string article, int seqLen, int axis) =>
+        $"{article} sequence of {seqLen} tokens is past the model's {LimitSource} of {axis}.";
 
     /// <summary>What <see cref="MaxSequenceLength"/> was read from, for a refusal's message.</summary>
     private string LimitSource => _fixedSequence is null ? "position-embedding table" : "fixed sequence axis";
@@ -545,13 +601,9 @@ public sealed class OnnxTextEmbedder : IDisposable
     /// </remarks>
     private float[][] Run(long[] ids, long[] mask, int batchSize, int seqLen, string paramName)
     {
-        // A row past a fixed axis or the position table cannot be fed; refused under the caller's parameter rather
-        // than as an OnnxRuntimeException from inside the graph (#1423).
-        if (_maxSequenceLength is int axis && seqLen > axis)
-        {
-            throw new ArgumentException(
-                $"A sequence of {seqLen} tokens is past the model's {LimitSource} of {axis}.", paramName);
-        }
+        // A row past a fixed axis or the position table cannot be fed (#1423): held here for every caller, and before
+        // the first sub-batch too where a text overload's encoder cuts at no length within the limit.
+        RequireWithinLimit(seqLen, paramName);
 
         int width = _fixedSequence is int fixedWidth && fixedWidth > seqLen ? fixedWidth : seqLen;
         int chunk = _fixedBatch ?? batchSize;
