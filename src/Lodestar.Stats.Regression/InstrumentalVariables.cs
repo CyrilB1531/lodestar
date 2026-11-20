@@ -9,7 +9,7 @@ namespace Lodestar.Stats.Regression;
 /// excluded instruments — each with its column count, and returns the whole table <c>linearmodels</c>' <c>fit()</c>
 /// prints: estimates, standard errors, tests, intervals, R², the model test, the first-stage diagnostics and the
 /// overidentification test. The options' defaults are the reference's, a robust covariance among them. Decision 0004
-/// has why this is written here rather than delegated.
+/// has why this is writable and not delegated, and decision 0011 records it as written here.
 /// </remarks>
 public static class InstrumentalVariables
 {

@@ -11,7 +11,9 @@ under a covariance that lets errors correlate within an entity, within a period,
 
 No .NET library publishes a panel estimator: Math.NET Numerics, Accord and ML.NET fit pooled least
 squares and stop
-([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)). The
+([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)), and
+[decision 0011](../../decisions/0011-vector-autoregression-instrumental-variables-and-panel-regression-are-written-here.md)
+records these estimators as written here. The
 estimators are closed forms over transformed rows, so they are replayed against `linearmodels` at
 `1e-9` from a frozen corpus.
 
