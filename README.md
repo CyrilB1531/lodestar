@@ -100,8 +100,11 @@ trade, and this project exists to make it an avoidable one.
 Measured package by package, what .NET lacks is almost never the computation and almost always the
 **apparatus around it**: the tokenizer loader and not its encoder, the regression's inference
 table and not its coefficients, the time-series diagnostics and not the forecast, sparse
-decomposition and not dense. [Decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
-decides each case, and its reading is what the table above rests on:
+decomposition and not dense.
+[Decision 0004](docs/decisions/0004-what-is-written-here-and-what-is-delegated.md)
+decides each case, amended by [decision 0008](docs/decisions/0008-numpy-s-legacy-generator-is-replayed.md)
+and [decision 0011](docs/decisions/0011-vector-autoregression-instrumental-variables-and-panel-regression-are-written-here.md),
+and its reading is what the table above rests on:
 
 - **Ordinary least squares is everywhere; its inference is not.** Meta.Numerics (MS-PL) reports
   the standard error, the interval and the F test and stops there; the commercial Numerics.NET

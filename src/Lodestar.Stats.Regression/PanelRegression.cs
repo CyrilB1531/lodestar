@@ -9,7 +9,8 @@ namespace Lodestar.Stats.Regression;
 /// order — and returns the whole table <c>linearmodels</c> prints: estimates, standard errors, tests, intervals, the
 /// within, between and overall R², the model tests, and what the estimator adds: the poolability test of fixed effects,
 /// the variance components and <c>θ</c> of random effects. The options' defaults are the reference's, an unadjusted
-/// covariance and debiased tests among them.
+/// covariance and debiased tests among them. Decision 0004 has why this is writable and not delegated, and decision 0011
+/// records it as written here.
 /// </remarks>
 public static class PanelRegression
 {

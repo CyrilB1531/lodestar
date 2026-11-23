@@ -50,7 +50,7 @@
   amends: []
   applies: []
   superseded_by: []
-  amended_by: ["0008"]
+  amended_by: ["0008", "0011"]
   applied_by: []
 
 "0005":
@@ -108,6 +108,16 @@
   status: "accepted"
   supersedes: []
   amends: ["0005", "0007"]
+  applies: []
+  superseded_by: []
+  amended_by: []
+  applied_by: []
+
+"0011":
+  title: "Vector autoregression, instrumental variables and panel regression are written here"
+  status: "accepted"
+  supersedes: []
+  amends: ["0004"]
   applies: []
   superseded_by: []
   amended_by: []

@@ -12,7 +12,9 @@ instruments are strong, and the overidentification test that says whether they a
 
 No .NET library publishes an instrumental-variables estimator with its inference table: Math.NET
 Numerics, Accord and ML.NET fit least squares and stop
-([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)). The
+([decision 0004](../../decisions/0004-what-is-written-here-and-what-is-delegated.md)), and
+[decision 0011](../../decisions/0011-vector-autoregression-instrumental-variables-and-panel-regression-are-written-here.md)
+records these estimators as written here. The
 estimators are closed forms, so they are replayed against `linearmodels` at `1e-9` from a frozen
 corpus rather than approximated.
 
