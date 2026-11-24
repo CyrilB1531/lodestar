@@ -522,9 +522,12 @@ jobs:
           # shellcheck disable=SC2086
           git add $pages
           git commit -m "Nightly benchmark run for $(date -u +%Y-%m-%d)"
+          # The lease names what it expects: a re-run finds the branch an earlier attempt pushed, and
+          # the checkout tracks no such ref, so a bare lease refused it as "stale info" (run 45392339887).
+          expected=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
           # Named rather than left to git's own wording: run 43's rejection read in
           # the run list like a failed benchmark, which is what #464 asks to end.
-          if ! git push --force-with-lease origin "$branch"; then
+          if ! git push --force-with-lease="refs/heads/$branch:$expected" origin "$branch"; then
             echo "::error::Could not push $branch. The measurements succeeded; only the" \
                  "publish failed -- read this as a push problem, not a benchmark one (#464)."
             exit 1
