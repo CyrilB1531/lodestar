@@ -43,9 +43,12 @@ int tested = summary.FNumeratorDegreesOfFreedom;  // => 1
 [`OrdinaryLeastSquares.Fit`](ordinaryleastsquares-fit.md) returns, and the arithmetic between the
 lists is the invariant that makes it one: `TStatistics[j]` is `Coefficients[j] / StandardErrors[j]`
 and each interval is centred on its estimate. The one exception is an exact fit under a robust covariance, every
-residual within its rounding of zero, read for a generalized fit on the rows as given: the covariance is zero, so each standard error is 0, each interval the point
-estimate, and each t statistic and p-value `NaN`, a test on a zero variance, as the F is
-([#1779](https://github.com/CyrilB1531/lodestar/issues/1779)).
+residual the covariance reads exactly zero, the whitened ones for a weighted or generalized fit: the covariance is zero, so each standard error is 0, each interval the
+point estimate, and each t statistic and p-value `NaN`, a test on a zero variance, as the F is
+([#1779](https://github.com/CyrilB1531/lodestar/issues/1779)), but where HC2 or HC3 divides by a leverage of exactly
+one as computed, whose 0/0 reads `NaN` standard errors as statsmodels' does. Rows that interpolate, no more of them carrying a
+regressor than there are parameters, read the zero covariance first, whatever their residuals and leverages. Residuals of one rounding are not exactly zero and
+read the ordinary formulas, as statsmodels' do ([#1784](https://github.com/CyrilB1531/lodestar/issues/1784)).
 
 **`FStatistic` and `FPValue` test every slope at once**, not the intercept. With a fitted intercept
 the null is that all `featureCount` slopes are zero; without one the intercept is not there to
@@ -57,7 +60,7 @@ value equal to the first a positive weight keeps, reads `NaN` for both, where st
 of full rank — as a cluster fit's is when its scores span fewer directions than the slopes — the
 statistic is the pseudo-inverse's quadratic form over the block's rank, read from the covariance's score
 rows rather than the formed block so that a badly scaled column keeps its direction, and `NaN` when that
-rank is zero, as on an exact fit whose every residual lies within its rounding of zero
+rank is zero, as on an exact fit whose every residual is exactly zero
 ([#1779](https://github.com/CyrilB1531/lodestar/issues/1779)), or when the rounding of the residuals can move the form by a
 millionth of itself.
 `FNumeratorDegreesOfFreedom` is the numerator `FPValue` reads, statsmodels' `f_test(...).df_num`: the slopes

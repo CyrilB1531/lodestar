@@ -54,6 +54,9 @@ internal static class RobustCovariance
         return divisors;
     }
 
+    /// <summary>Whether <see cref="Divisors"/> holds a zero: a leverage of exactly one as computed, whose weight is 0/0 on a residual exactly zero.</summary>
+    public static bool HasZeroDivisor(double[]? divisors) => divisors is not null && Array.Exists(divisors, ExactFit.IsZero);
+
     /// <summary>The filling of HC0 to HC3, <c>Σ ωᵢ xᵢxᵢᵀ</c>, each squared residual over its divisor where HC2 and HC3 have one.</summary>
     public static double[] HeteroskedasticMeat(
         double[] matrix, double[]? divisors, double[] residuals, int rowCount, int parameterCount)
@@ -188,7 +191,14 @@ internal static class RobustCovariance
         var magnitudes = new double[rowCount];
         for (int row = 0; row < rowCount; row++)
         {
-            magnitudes[row] = ExactFit.Magnitude(matrix, residuals[row], coefficients, row * coefficients.Length);
+            int at = row * coefficients.Length;
+            double size = Math.Abs(residuals[row]);
+            for (int j = 0; j < coefficients.Length; j++)
+            {
+                size += Math.Abs(matrix[at + j] * coefficients[j]);
+            }
+
+            magnitudes[row] = size;
         }
 
         return magnitudes;
@@ -358,7 +368,7 @@ internal static class RobustCovariance
     /// <param name="withIntercept">Whether the first coefficient is left out of the test.</param>
     public static (double Statistic, int Rank) Wald(SandwichParts sandwich, double[] coefficients, bool withIntercept)
     {
-        if (sandwich.Exact)
+        if (sandwich.ZeroBlock)
         {
             // An exact fit's covariance is zero: no restriction is testable, and statsmodels' 0/0 is NaN too.
             return (double.NaN, 0);

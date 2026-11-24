@@ -195,12 +195,6 @@ public static class OrdinaryLeastSquares
         double[]? RobustMatrix,
         ClusterLabels? Clusters = null)
     {
-        /// <summary>
-        /// The rows as given, intercept column included, and their residuals, for a fit whose whitening mixes rows: its
-        /// forward substitution rounds across rows, which no whitened row's terms bound, so exactness is read here.
-        /// </summary>
-        public (double[] Matrix, double[] Residuals)? GivenRows { get; init; }
-
         /// <summary>Whether a fit with an intercept was given a response that does not vary, which leaves its F undefined.</summary>
         public bool ConstantResponse { get; init; }
     }
@@ -266,7 +260,7 @@ public static class OrdinaryLeastSquares
             : CriticalValue.TwoSidedStudent(settings.ConfidenceLevel, residualDegreesOfFreedom);
 
         // An exact fit's robust covariance is zero: each coefficient's Wald test, as the joint one, is undefined (#1779).
-        bool undefined = sandwich is { Exact: true };
+        bool undefined = sandwich is { ZeroBlock: true };
         for (int j = 0; j < parameterCount; j++)
         {
             (tStatistics[j], pValues[j]) = CoefficientTest(
@@ -323,7 +317,7 @@ public static class OrdinaryLeastSquares
     private static double HomoskedasticF(
         bool constantResponse, double totalSumOfSquares, double residualSumOfSquares, double[] residuals, int modelDf, int residualDf)
     {
-        if (residualSumOfSquares <= 0.0 && ExactFit.Vanishes(residuals))
+        if (ExactFit.Vanishes(residuals))
         {
             return double.PositiveInfinity;
         }
@@ -356,11 +350,16 @@ public static class OrdinaryLeastSquares
         double[] matrix = fit.RobustMatrix!;
         int parameterCount = fit.Coefficients.Length;
         double degreesOfFreedomFactor = (double)rowCount / (rowCount - parameterCount);
-        // Rows interpolated, or every residual within its rounding of zero: the covariance is zero in exact arithmetic.
-        if (Interpolates(matrix, parameterCount, rowCount)
-            || (fit.GivenRows is { } given
-                ? ExactFit.Holds(given.Matrix, parameterCount, given.Residuals, fit.Coefficients)
-                : ExactFit.Holds(matrix, parameterCount, fit.RowResiduals, fit.Coefficients)))
+        // Rows interpolated: the covariance is zero in exact arithmetic, whatever rounding leaves (#1779 pass 8).
+        if (Interpolates(matrix, parameterCount, rowCount))
+        {
+            return SandwichParts.Zero(parameterCount);
+        }
+
+        // Every residual the filling reads exactly zero leaves it zero (#1779, #1784), but where HC2 or HC3 divides by a
+        // leverage of exactly one, whose 0/0 reads NaN as statsmodels' does (#1779 pass 10). Null but for HC2 and HC3.
+        double[]? divisors = RobustCovariance.Divisors(matrix, fit.InverseUpper, rowCount, parameterCount, settings.CovarianceType);
+        if (ExactFit.Vanishes(fit.RowResiduals) && !RobustCovariance.HasZeroDivisor(divisors))
         {
             return SandwichParts.Zero(parameterCount);
         }
@@ -388,8 +387,6 @@ public static class OrdinaryLeastSquares
                 null, () => HacScores(fit, matrix, rowCount, lags));
         }
 
-        // HC2 and HC3's divisors are read by the filling and, short of full rank, by its score rows: built once for both.
-        double[]? divisors = RobustCovariance.Divisors(matrix, fit.InverseUpper, rowCount, parameterCount, settings.CovarianceType);
         double[] meat = RobustCovariance.HeteroskedasticMeat(matrix, divisors, fit.RowResiduals, rowCount, parameterCount);
         return RobustCovariance.Sandwich(
             meat, fit.InverseUpper, parameterCount, settings.CovarianceType == CovarianceType.Hc1 ? degreesOfFreedomFactor : null,

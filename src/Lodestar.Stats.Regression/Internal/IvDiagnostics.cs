@@ -30,18 +30,21 @@ internal static class IvDiagnostics
         double quantile = spec.Debiased
             ? CriticalValue.TwoSidedStudent(confidenceLevel, residualDf)
             : CriticalValue.TwoSided(confidenceLevel);
+        // An exact fit's robust covariance is zero, so each coefficient's test, as the joint one, is undefined (#1779).
+        bool exact = fit.Vanishes && spec.Type != IvCovarianceType.Unadjusted;
         for (int j = 0; j < k; j++)
         {
             errors[j] = Math.Sqrt(fit.Covariance[(j * k) + j]);
-            // An exact fit's covariance is zero, so each coefficient's test, as the joint one, is undefined (#1779).
-            t[j] = fit.Exact ? double.NaN : fit.Coefficients[j] / errors[j];
-            p[j] = fit.Exact ? double.NaN : TwoSided(t[j], spec.Debiased, residualDf);
+            t[j] = exact ? double.NaN : fit.Coefficients[j] / errors[j];
+            p[j] = exact ? double.NaN : TwoSided(t[j], spec.Debiased, residualDf);
             lower[j] = fit.Coefficients[j] - (quantile * errors[j]);
             upper[j] = fit.Coefficients[j] + (quantile * errors[j]);
         }
 
         (bool hasConstant, _) = IvScores.FindConstant(problem.X, k, n);
-        double r2 = RSquared(problem.Y, fit.Residuals, hasConstant);
+        // Read once, beside a constant only, the one place the R² and the model test read it.
+        bool flatResponse = NothingToExplain(hasConstant, problem.Y);
+        double r2 = RSquared(problem.Y, fit.Residuals, hasConstant, flatResponse);
         int c = hasConstant ? 1 : 0;
         return new IvSummary
         {
@@ -58,7 +61,7 @@ internal static class IvDiagnostics
             HasConstant = hasConstant,
             RSquared = r2,
             AdjustedRSquared = 1.0 - ((n - c) / (double)(n - k) * (1.0 - r2)),
-            ModelTest = ModelTest(problem, fit, spec),
+            ModelTest = ModelTest(problem, fit, spec, flatResponse),
             ResidualDegreesOfFreedom = residualDf,
             Kappa = gmm ? null : fit.Kappa,
             FirstStage = FirstStage(problem, spec with { Bandwidth = fit.Bandwidth ?? spec.Bandwidth }, instrumentCount),
@@ -67,7 +70,12 @@ internal static class IvDiagnostics
     }
 
     /// <summary>The joint Wald test that every coefficient but the first constant column is zero.</summary>
-    private static WaldTest? ModelTest(IvProblem problem, IvFit fit, IvCovarianceSpec spec)
+    /// <remarks>
+    /// Unadjusted, it is the classical F in Wald form: <c>+∞</c> on residuals exactly zero, then NaN where the constant
+    /// column it leaves out leaves a response that does not vary nothing to explain, as the R² beside it (decision 0010,
+    /// #1790). A constant the columns only span leaves out none, and its test of every coefficient is not 0/0.
+    /// </remarks>
+    private static WaldTest? ModelTest(IvProblem problem, IvFit fit, IvCovarianceSpec spec, bool flatResponse)
     {
         bool debiased = spec.Debiased;
         int k = problem.K;
@@ -83,6 +91,11 @@ internal static class IvDiagnostics
         if (Vanishes(spec, fit))
         {
             return new WaldTest(double.PositiveInfinity, 0.0, df, debiased ? residualDf : null);
+        }
+
+        if (spec.Type == IvCovarianceType.Unadjusted && constant >= 0 && flatResponse)
+        {
+            return new WaldTest(double.NaN, double.NaN, df, debiased ? residualDf : null);
         }
 
         double statistic = Quadratic(fit.Coefficients, fit.Covariance, k, tested, fit.LargestRank);
@@ -158,7 +171,7 @@ internal static class IvDiagnostics
     /// its model and first-stage tests are then infinite, as the classical F and the panel's unadjusted test are (#1779).
     /// </summary>
     private static bool Vanishes(IvCovarianceSpec spec, IvFit fit) =>
-        spec.Type == IvCovarianceType.Unadjusted && ExactFit.Vanishes(fit.Residuals);
+        spec.Type == IvCovarianceType.Unadjusted && fit.Vanishes;
 
     /// <summary>Shea's partial R², from unadjusted OLS and unadjusted 2SLS on the same regressors.</summary>
     private static double[] SheaFactors(IvProblem problem)
@@ -248,9 +261,20 @@ internal static class IvDiagnostics
         return CovarianceRank.QuadraticForm(b, block, m, largestRank);
     }
 
-    /// <summary><see cref="Explained"/>, NaN where a constant leaves a response that does not vary nothing to explain (Review A pass 26).</summary>
+    /// <summary><see cref="RSquared(double[], double[], bool, bool)"/>, the response's constancy read here, beside a constant only.</summary>
     private static double RSquared(double[] response, double[] residuals, bool centred) =>
-        centred && OrdinaryLeastSquares.IsConstant(response) ? double.NaN : Explained(response, residuals, centred);
+        RSquared(response, residuals, centred, NothingToExplain(centred, response));
+
+    /// <summary><see cref="Explained"/>, NaN where a constant leaves a response that does not vary nothing to explain (Review A pass 26).</summary>
+    /// <param name="response">The response.</param>
+    /// <param name="residuals">Its residuals.</param>
+    /// <param name="centred">Whether the regressors hold a constant, which centres the total.</param>
+    /// <param name="flat">Whether a constant leaves the response nothing to explain: centred, and constant read exactly by the caller.</param>
+    private static double RSquared(double[] response, double[] residuals, bool centred, bool flat) =>
+        flat ? double.NaN : Explained(response, residuals, centred);
+
+    /// <summary>Whether a constant leaves the response nothing to explain: centred, and every value equal, compared exactly.</summary>
+    private static bool NothingToExplain(bool centred, double[] response) => centred && OrdinaryLeastSquares.IsConstant(response);
 
     /// <summary><c>1 − RSS/TSS</c>, the total sum of squares centred when the regressors hold a constant.</summary>
     private static double Explained(double[] response, double[] residuals, bool centred)

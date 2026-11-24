@@ -3,14 +3,14 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 #endif
 
-namespace Lodestar.Internal;
+namespace Lodestar.Stats.TimeSeries.Internal;
 
 /// <summary>The largest <c>|value|</c> of a finite block, a block of lanes at a time on net10.</summary>
 /// <remarks>
-/// Shared source, as <see cref="RankBracket"/> is: the time series' unit scale and the regressions' exact-fit test both
-/// read it (#1779). A comparison, not <c>Math.Max</c>, whose NaN and signed-zero rules cost the scan more than its reads;
-/// a NaN may drop or keep its lane's other values on net10, as the hardware's maximum has it, so a caller refuses
-/// non-finite values first or tests them afterwards, as ExactFit.Holds does.
+/// The time series' unit scale reads it (#1779). A comparison, not <c>Math.Max</c>, whose NaN and signed-zero rules
+/// cost the scan more than its reads; a NaN may drop or keep its lane's other values on net10, as the hardware's maximum
+/// has it, so its one caller, <see cref="SeriesChecks.UnitScale"/>, reads only series every public entry point has
+/// refused non-finite values from.
 /// </remarks>
 internal static class LargestMagnitude
 {

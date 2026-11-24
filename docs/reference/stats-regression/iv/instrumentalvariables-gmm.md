@@ -28,10 +28,14 @@ Hansen's J, and whose `Kappa` is `null`.
 `ArgumentException` when a block's length is not its column count times the rows, when there are
 fewer instruments than endogenous regressors, when no residual degree of freedom is left, when the
 options ask for a cluster covariance or weight without labels, when `Fuller` is set, when the regressors or
-instruments are collinear, or when the second step's score covariance is singular: zero, under a robust, kernel
-or clustered weight on an exact first-step fit with every residual within its rounding of zero, or under an unadjusted
-weight on first-step residuals exactly zero, naming `design`, or, under a clustered weight and naming `clusters`, fewer clusters than instrument columns, or as many in a just-identified
-model, whose first-step scores sum to zero; naming `design`, when that covariance is not finite, its scores having
+instruments are collinear, when a Bartlett or Parzen bandwidth of the weight or the covariance runs past the sample's
+lags, or when the second step's score covariance is singular: zero, on first-step residuals
+exactly zero under every weight, too few clusters for a clustered weight named first, or under an unadjusted weight on first-step residuals whose squares about their
+mean sum to zero, as a constant response's rounding can leave them
+([#1786](https://github.com/CyrilB1531/lodestar/issues/1786)), naming `design`, or, under a clustered weight and naming `clusters`, fewer clusters than instrument columns, or as many in a just-identified
+model, whose first-step scores sum to zero, or, with clusters enough or under any other weight and naming `design`,
+scores that span fewer directions than the instruments or underflow, or an unadjusted weight whose `s²` times `ZᵀZ/n`
+falls short of full rank; naming `design`, when that covariance is not finite, its scores having
 overflowed. `ArgumentNullException` when the clustered overload gets no `options`.
 `ArgumentException` naming `design` also when the rows times the larger of the parameters and the
 instruments, or that plus one where a rank test or LIML appends a column, are more cells than one

@@ -16,18 +16,13 @@ internal static class PanelDiagnostics
     {
         int k = fit.K;
         int residualDf = fit.ResidualDegreesOfFreedom;
-        // A robust covariance of an exact fit is zero, for every reader below (#1779); the rows as given carry the rounding
-        // a transformed fit inherits. The unadjusted one, s² times a fixed matrix, stays the classical F's covariance.
-        bool exact = type != PanelCovarianceType.Unadjusted
-            && ExactFit.Holds(
-                fit.X,
-                k,
-                fit.Residuals,
-                fit.Coefficients,
-                fit.Conditioning,
-                fit.Floors is { } floors ? new Transform(panel.X, panel.Y, floors) : null);
+        // Residuals exactly zero leave a robust covariance zero, for every reader below (#1779, #1784). The unadjusted one,
+        // s² times a fixed matrix, stays the classical F's covariance, whose tests read +∞ there.
+        bool vanishes = ExactFit.Vanishes(fit.Residuals);
+        bool exact = type != PanelCovarianceType.Unadjusted && vanishes;
         if (exact)
         {
+            // Cleared rather than read: zero whatever the bread and the scaling the estimate multiplied its zero meat by.
             Array.Clear(fit.Covariance, 0, fit.Covariance.Length);
         }
 
@@ -46,10 +41,13 @@ internal static class PanelDiagnostics
             upper[j] = fit.Coefficients[j] + (quantile * errors[j]);
         }
 
-        (double overall, double within, double between) = Family(panel, fit.Coefficients, hasConstant);
+        (bool flat, bool flatWithin, bool noVariance) = Constancy(panel, fit.ResponseGroups);
+        (double overall, double within, double between) = Family(panel, fit.Coefficients, hasConstant, flat, flatWithin);
 
-        // A response the transform removes whole leaves the fit's R² and its F undefined (decision 0010, Review A pass 26).
-        bool noVariance = PanelCore.Absorbs(panel, fit.ResponseGroups);
+        // The Wald form is the classical F beside a constant column or none, read on the columns as given as the response
+        // is, whatever a transform makes of them: one they only span restricts the fit to a column no total divides (#1790).
+        bool spannedConstant = noVariance && hasConstant && !IvScores.IsFlat(panel.X, panel.K, panel.N, constantColumn);
+        bool undefinedWald = noVariance && !spannedConstant;
         return new PanelSummary
         {
             Coefficients = fit.Coefficients,
@@ -71,14 +69,41 @@ internal static class PanelDiagnostics
             RSquaredWithin = within,
             RSquaredBetween = between,
             RSquaredOverall = overall,
-            ModelTest = ClassicalF(fit, hasConstant, noVariance),
-            RobustModelTest = Wald(fit, exact, hasConstant, constantColumn, debiased),
+            ModelTest = ClassicalF(fit, hasConstant, vanishes, noVariance),
+            RobustModelTest = Wald(fit, type, vanishes, undefinedWald, hasConstant, constantColumn, debiased),
             PoolabilityTest = fit.Poolability,
             ResidualVariance = fit.ResidualVariance,
             EffectsVariance = fit.EffectsVariance,
             Rho = fit.Rho,
             Theta = fit.Theta,
         };
+    }
+
+    /// <summary>
+    /// Whether the response as given is constant, constant within each entity, and constant on every group
+    /// <paramref name="groups"/> names, which leaves the fit's R² and its F undefined (decision 0010, Review A pass 26).
+    /// </summary>
+    /// <remarks>
+    /// Read once, for the R² family and the groups; a constant response is constant within every group, so its scans are
+    /// skipped. An entity of one row is constant within itself, so a panel of one period is constant within each entity.
+    /// </remarks>
+    private static (bool Flat, bool FlatWithin, bool NoVariance) Constancy(PanelLayout panel, ResponseGroups groups)
+    {
+        bool flat = OrdinaryLeastSquares.IsConstant(panel.Y);
+        bool flatWithin = flat || PanelCore.ConstantWithin(panel.Y, panel.Entity, panel.EntityCount);
+        bool flatPeriod = flat
+            || (groups is ResponseGroups.Period or ResponseGroups.EntityOrPeriod
+                && PanelCore.ConstantWithin(panel.Y, panel.Period, panel.PeriodCount));
+        bool noVariance = groups switch
+        {
+            ResponseGroups.Overall => flat,
+            ResponseGroups.Entity => flatWithin,
+            ResponseGroups.Period => flatPeriod,
+            ResponseGroups.EntityOrPeriod => flatWithin || flatPeriod,
+            _ => false,
+        };
+
+        return (flat, flatWithin, noVariance);
     }
 
     private static double RSquared(PanelFit fit)
@@ -96,35 +121,39 @@ internal static class PanelDiagnostics
     /// <remarks>
     /// <c>_rsquared</c>: the rows as given, the entity-demeaned rows and the entity means, each against its own total sum of
     /// squares, centred when the regressors hold a constant; all three are zero for a constant alone. Each is NaN where its
-    /// response does not vary, read exactly on the rows as given: overall and between where the response is constant (or
-    /// zero without a constant), the latter's sufficient case, within where it is constant in each entity (Review A pass 26).
+    /// response does not vary, read exactly on the rows as given and before the constant's zeros (#1789): overall and
+    /// between where the response is constant (or zero without a constant), the latter's sufficient case, within where it
+    /// is constant in each entity (Review A pass 26).
     /// </remarks>
-    private static (double Overall, double Within, double Between) Family(PanelLayout panel, double[] b, bool hasConstant)
+    private static (double Overall, double Within, double Between) Family(
+        PanelLayout panel, double[] b, bool hasConstant, bool flat, bool flatWithin)
     {
         int k = panel.K;
+        // Without a constant the uncentred total is zero only on a response exactly zero.
+        if (flat && (hasConstant || ExactFit.IsZero(panel.Y[0])))
+        {
+            return (double.NaN, double.NaN, double.NaN);
+        }
+
+        // A constant alone explains nothing, so each R² reads 0, the within one NaN where its total is zero.
         if (hasConstant && k == 1)
         {
-            return (0.0, 0.0, 0.0);
+            return (0.0, flatWithin ? double.NaN : 0.0, 0.0);
         }
 
         double[] meanY = PanelLayout.GroupMeans(panel.Y, 1, panel.Entity, panel.EntityCount);
         double[] meanX = PanelLayout.GroupMeans(panel.X, k, panel.Entity, panel.EntityCount);
         double between = Explained(meanY, meanX, k, b, hasConstant);
         double overall = Explained(panel.Y, panel.X, k, b, hasConstant);
-        double[] withinY = PanelLayout.Demean(panel.Y, 1, panel.Entity, panel.EntityCount);
-        double[] withinX = PanelLayout.Demean(panel.X, k, panel.Entity, panel.EntityCount);
-        double within = panel.PeriodCount == 1 ? 0.0 : Explained(withinY, withinX, k, b, centred: false);
-        // S1244: without a constant the uncentred total is zero only on a response exactly zero.
-#pragma warning disable S1244
-        bool flat = OrdinaryLeastSquares.IsConstant(panel.Y) && (hasConstant || panel.Y[0] == 0.0);
-#pragma warning restore S1244
-        if (flat)
-        {
-            return (double.NaN, double.NaN, double.NaN);
-        }
-
-        bool flatWithin = panel.PeriodCount > 1 && PanelCore.ConstantWithin(panel.Y, panel.Entity, panel.EntityCount);
-        return (overall, flatWithin ? double.NaN : within, between);
+        double within = flatWithin
+            ? double.NaN
+            : Explained(
+                PanelLayout.Demean(panel.Y, 1, panel.Entity, panel.EntityCount),
+                PanelLayout.Demean(panel.X, k, panel.Entity, panel.EntityCount),
+                k,
+                b,
+                centred: false);
+        return (overall, within, between);
     }
 
     private static double Explained(double[] y, double[] x, int k, double[] b, bool centred)
@@ -146,7 +175,7 @@ internal static class PanelDiagnostics
             : Distributions.ChiSquaredSf(t * t, 1.0);
 
     /// <summary>The homoskedastic F of every coefficient but the constant, from the regression's own sums of squares.</summary>
-    private static WaldTest? ClassicalF(PanelFit fit, bool hasConstant, bool noVariance)
+    private static WaldTest? ClassicalF(PanelFit fit, bool hasConstant, bool vanishes, bool noVariance)
     {
         int numeratorDf = fit.K - (hasConstant ? 1 : 0);
         if (numeratorDf == 0)
@@ -154,16 +183,8 @@ internal static class PanelDiagnostics
             return null;
         }
 
-        double mean = hasConstant ? PanelCore.Mean(fit.Y) : 0.0;
-        double total = 0.0;
-        foreach (double value in fit.Y)
-        {
-            total += (value - mean) * (value - mean);
-        }
-
-        double rss = PanelCore.Dot(fit.Residuals, fit.Residuals);
         int df = fit.ResidualDegreesOfFreedom;
-        if (rss <= 0.0 && ExactFit.Vanishes(fit.Residuals))
+        if (vanishes)
         {
             // Residuals exactly zero: the reference's ratio is a division by zero, an infinite F (#1779).
             return new WaldTest(double.PositiveInfinity, 0.0, numeratorDf, df);
@@ -176,12 +197,27 @@ internal static class PanelDiagnostics
             return new WaldTest(double.NaN, double.NaN, numeratorDf, df);
         }
 
+        double mean = hasConstant ? PanelCore.Mean(fit.Y) : 0.0;
+        double total = 0.0;
+        foreach (double value in fit.Y)
+        {
+            total += (value - mean) * (value - mean);
+        }
+
+        double rss = PanelCore.Dot(fit.Residuals, fit.Residuals);
         double statistic = (total - rss) / numeratorDf / (rss / df);
         return new WaldTest(statistic, Distributions.FisherSf(statistic, numeratorDf, df), numeratorDf, df);
     }
 
     /// <summary>The same test as a Wald test under the chosen covariance: an F when debiased, else a χ².</summary>
-    private static WaldTest? Wald(PanelFit fit, bool exact, bool hasConstant, int constantColumn, bool debiased)
+    /// <remarks>
+    /// Under any other covariance, residuals exactly zero leave it zero and the test NaN (#1779). Unadjusted, it is the
+    /// classical F in Wald form, so it reads as <see cref="ClassicalF"/> does: <c>+∞</c> on residuals exactly zero, then
+    /// NaN where <paramref name="undefined"/>: a response the transform removes whole, beside a constant column or none,
+    /// where the form is the classical F (decision 0010, #1790).
+    /// </remarks>
+    private static WaldTest? Wald(
+        PanelFit fit, PanelCovarianceType type, bool vanishes, bool undefined, bool hasConstant, int constantColumn, bool debiased)
     {
         int k = fit.K;
         int[] tested = [.. Enumerable.Range(0, k).Where(j => !(hasConstant && j == constantColumn))];
@@ -192,16 +228,9 @@ internal static class PanelDiagnostics
 
         int m = tested.Length;
         int df = fit.ResidualDegreesOfFreedom;
-        if (exact)
+        if (Degenerate(type, vanishes, undefined, m, debiased ? df : null) is { } degenerate)
         {
-            // A robust covariance of an exact fit is zero, a singular block, whose test is NaN as on any other (#1779).
-            return new WaldTest(double.NaN, double.NaN, m, debiased ? df : null);
-        }
-
-        if (ExactFit.Vanishes(fit.Residuals))
-        {
-            // Residuals exactly zero leave the unadjusted covariance zero: infinite, as the classical F.
-            return new WaldTest(double.PositiveInfinity, 0.0, m, debiased ? df : null);
+            return degenerate;
         }
 
         var b = new double[m];
@@ -219,5 +248,21 @@ internal static class PanelDiagnostics
         return debiased
             ? new WaldTest(statistic / m, Distributions.FisherSf(statistic / m, m, df), m, df)
             : new WaldTest(statistic, Distributions.ChiSquaredSf(statistic, m), m, null);
+    }
+
+    /// <summary>The Wald form's answer where its covariance is zero or its response has nothing to explain, else null.</summary>
+    private static WaldTest? Degenerate(PanelCovarianceType type, bool vanishes, bool undefined, int m, int? denominatorDf)
+    {
+        bool unadjusted = type == PanelCovarianceType.Unadjusted;
+        if (vanishes)
+        {
+            // Residuals exactly zero leave every covariance zero: the unadjusted test infinite, as the classical F; any
+            // other a singular block, whose test is NaN as on any other (#1779).
+            return unadjusted
+                ? new WaldTest(double.PositiveInfinity, 0.0, m, denominatorDf)
+                : new WaldTest(double.NaN, double.NaN, m, denominatorDf);
+        }
+
+        return unadjusted && undefined ? new WaldTest(double.NaN, double.NaN, m, denominatorDf) : null;
     }
 }
