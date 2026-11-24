@@ -30,7 +30,8 @@ parameter the fit used.
 fewer instruments than endogenous regressors, when no residual degree of freedom is left, when the
 options ask for a cluster covariance or weight without labels, when `Fuller` is not finite, when the regressors or
 instruments are collinear, or when a kernel covariance without a bandwidth meets scores whose automatic bandwidth
-is undefined, as an exact fit's are. `ArgumentNullException` when the clustered overload gets no `options`.
+is undefined, as an exact fit's are, or a Bartlett or Parzen bandwidth runs past the sample's lags.
+`ArgumentNullException` when the clustered overload gets no `options`.
 `ArgumentException` naming `design` also when the rows times the larger of the parameters and the
 instruments, or that plus one where a rank test or LIML appends a column, are more cells than one
 array holds

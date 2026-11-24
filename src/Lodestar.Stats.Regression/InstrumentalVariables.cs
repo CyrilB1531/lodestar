@@ -25,7 +25,7 @@ public static class InstrumentalVariables
     /// <param name="options">The covariance, its kernel and scaling, and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
-    /// <exception cref="ArgumentException">A block's length is not its column count times the rows, the model is under-identified, no residual degree of freedom is left, the options ask for a cluster covariance or set a value this estimator does not read, the regressors or instruments are collinear, a kernel covariance without a bandwidth meets scores whose automatic bandwidth is undefined — an exact fit — or the rows times the larger of the parameters and the instruments, or that plus one where a rank test or LIML appends a column, are more cells than one array holds.</exception>
+    /// <exception cref="ArgumentException">A block's length is not its column count times the rows, the model is under-identified, no residual degree of freedom is left, the options ask for a cluster covariance or set a value this estimator does not read, the regressors or instruments are collinear, a kernel covariance without a bandwidth meets scores whose automatic bandwidth is undefined — an exact fit — or a Bartlett or Parzen bandwidth runs past the sample's lags, or the rows times the larger of the parameters and the instruments, or that plus one where a rank test or LIML appends a column, are more cells than one array holds.</exception>
     public static IvSummary TwoStageLeastSquares(IvDesign design, IvOptions? options = null) =>
         Fit(Estimator.TwoStageLeastSquares, design, default, clustered: false, options ?? new IvOptions());
 
@@ -72,7 +72,7 @@ public static class InstrumentalVariables
     /// <param name="options">The covariance, the second step's weight and the intercept; <see langword="null"/> takes the reference's defaults.</param>
     /// <returns>The fitted model's table and diagnostics, Hansen's J as <see cref="IvSummary.Overidentification"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
-    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, IvOptions?)"/>, or the second step's score covariance is singular, or zero, as an exact first-step fit, every residual within its rounding of zero, leaves a robust, kernel or clustered weight and residuals exactly zero an unadjusted one, or not finite, its scores having overflowed, each naming <paramref name="design"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, IvOptions?)"/>, or the second step's score covariance is singular, or not finite, its scores having overflowed, or zero: under every weight where the first-step residuals are exactly zero, and under an unadjusted weight where their squares about their mean sum to zero; each naming <paramref name="design"/>; or a Bartlett or Parzen weight bandwidth runs past the sample's lags, unnamed.</exception>
     /// <remarks>
     /// The first step weights by <c>(ZᵀZ/n)⁻¹</c>, the second by the inverse of <see cref="IvOptions.GmmWeightType"/>'s score
     /// covariance at the first step's residuals: <c>iter_limit=2</c>, the reference's default. A kernel weight or covariance
@@ -87,7 +87,7 @@ public static class InstrumentalVariables
     /// <param name="options">The options; the covariance or the weight must be <see cref="IvCovarianceType.Clustered"/>.</param>
     /// <returns>The fitted model's table and diagnostics.</returns>
     /// <exception cref="ArgumentOutOfRangeException">A column count is out of range, or a value of the response or of a block is NaN or infinite.</exception>
-    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, ReadOnlySpan{int}, IvOptions)"/>, or a clustered weight is singular, naming <paramref name="clusters"/>: fewer clusters than instruments, or as many in a just-identified model; or the score covariance is zero, the first-step fit exact under a robust, kernel or clustered weight or its residuals exactly zero under an unadjusted one, or not finite, its scores having overflowed, naming <paramref name="design"/>.</exception>
+    /// <exception cref="ArgumentException">As <see cref="TwoStageLeastSquares(IvDesign, ReadOnlySpan{int}, IvOptions)"/>, or a clustered weight is singular for want of clusters, fewer than the instrument columns, exogenous ones and any constant counted, or as many in a just-identified model, naming <paramref name="clusters"/>; or, naming <paramref name="design"/>, any other weight that is singular, or not finite, its scores having overflowed, or zero: under every weight where the first-step residuals are exactly zero, the clusters too few named first, and under an unadjusted weight where their squares about their mean sum to zero; or a Bartlett or Parzen weight bandwidth runs past the sample's lags, unnamed.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
     public static IvSummary Gmm(IvDesign design, ReadOnlySpan<int> clusters, IvOptions options)
     {
@@ -106,8 +106,7 @@ public static class InstrumentalVariables
         if (estimator == Estimator.Gmm)
         {
             var weight = new IvCovarianceSpec(options.GmmWeightType, false, options.GmmWeightKernel, options.GmmWeightBandwidth, labels);
-            string singularName = options.GmmWeightType == IvCovarianceType.Clustered ? nameof(clusters) : nameof(design);
-            fit = IvCore.Gmm(problem, weight, spec, singularName, nameof(design));
+            fit = IvCore.Gmm(problem, weight, spec, nameof(clusters), nameof(design));
         }
         else
         {

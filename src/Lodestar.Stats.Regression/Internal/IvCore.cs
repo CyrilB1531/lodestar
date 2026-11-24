@@ -59,8 +59,11 @@ internal sealed class IvFit
 
     public double? Kappa { get; init; }
 
-    /// <summary>Whether every residual lies within its rounding of zero under a robust covariance, which is then zero, so no Wald test is defined.</summary>
-    public bool Exact { get; init; }
+    /// <summary>
+    /// Whether every residual is exactly zero, which leaves every covariance read from them zero: a robust, kernel or
+    /// clustered one is then returned as a zero block, whose Wald tests are undefined, and the unadjusted one's are +∞.
+    /// </summary>
+    public bool Vanishes { get; init; }
 
     /// <summary>GMM's final weight matrix, which its J statistic reads.</summary>
     public double[]? Weight { get; init; }
@@ -79,8 +82,11 @@ internal readonly record struct IvCovarianceSpec(
 /// <summary>The <c>k</c>-class estimators and two-step GMM, with <c>linearmodels</c>' covariances.</summary>
 internal static class IvCore
 {
+    /// <summary>How every refusal of GMM's second-step weight opens.</summary>
+    private const string WeightRefused = "The score covariance the second GMM step weights by is ";
+
     /// <summary>A <c>k</c>-class fit: 2SLS at <c>κ = 1</c>, LIML at its <c>κ</c>, least squares when <c>Z</c> is <c>X</c>.</summary>
-    /// <exception cref="ArgumentException">A cross-product matrix is singular: the regressors or instruments are collinear.</exception>
+    /// <exception cref="ArgumentException">A cross-product matrix is singular: the regressors or instruments are collinear; or a kernel's bandwidth is refused, past the sample's lags or automatic and 0/0, as on residuals exactly zero.</exception>
     public static IvFit KClass(IvProblem problem, double kappa, IvCovarianceSpec spec)
     {
         int n = problem.N;
@@ -103,12 +109,17 @@ internal static class IvCore
             right[i] = (xy[i] * (1.0 - kappa)) + (kappa * xhy[i]);
         }
 
-        double[] solved = Invert(left, k);
-        double[] coefficients = Dense.Multiply(solved, right, k, k, 1);
+        double[] coefficients = Dense.Multiply(Invert(left, k), right, k, k, 1);
         double[] residuals = Residuals(problem, coefficients);
-        // An exact fit's robust covariance is zero, and its automatic bandwidth 0/0 (#1779); the unadjusted one, s² times a
-        // fixed matrix, stays the homoskedastic covariance and reads the rounding, as OLS's and the panel's do.
-        bool exact = spec.Type != IvCovarianceType.Unadjusted && ExactFit.Holds(problem.X, k, residuals, coefficients, Conditioning(left, solved, k));
+        // Residuals exactly zero leave a robust covariance zero, and its automatic bandwidth 0/0 (#1779, #1784); the
+        // unadjusted one, s² times a fixed matrix, stays the homoskedastic covariance, whose tests read +∞ there.
+        bool vanishes = ExactFit.Vanishes(residuals);
+        if (spec.Type != IvCovarianceType.Unadjusted && vanishes)
+        {
+            // Zero for every reader, errors, t and Wald tests; a kernel still refuses a bandwidth past the sample's lags, and
+            // an automatic one, 0/0 here.
+            return ZeroCovariance(coefficients, residuals, spec, fallbackBandwidth: null, kappa, weight: null);
+        }
 
         // The bread V: X'P_zX/n, moved towards X'X/n by 1 − κ for LIML.
         var bread = new double[k * k];
@@ -121,19 +132,14 @@ internal static class IvCore
             bread[i] = unitKappa ? xhx[i] / n : (((1.0 - kappa) * xx[i]) + (kappa * xhx[i])) / n;
         }
 
-        (double[] meat, int? bandwidth, int groups) = KClassMeat(problem, xhat, residuals, bread, spec, exact);
-        if (exact)
-        {
-            // A robust covariance of an exact fit is zero in exact arithmetic, for every reader: errors, t and Wald tests.
-            return new IvFit(coefficients, new double[k * k], residuals, bandwidth, 0) { Kappa = kappa, Exact = true };
-        }
+        (double[] meat, int? bandwidth, int groups) = KClassMeat(problem, xhat, residuals, bread, spec);
 
         double[] inverseBread = Invert(bread, k);
         double[] covariance = Dense.Multiply(Dense.Multiply(inverseBread, meat, k, k, k), inverseBread, k, k, k);
         Scale(covariance, 1.0 / n);
         Dense.Symmetrise(covariance, k);
         int zeroedTotal = unitKappa ? 1 : 0;
-        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - zeroedTotal)) { Kappa = kappa };
+        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - zeroedTotal)) { Kappa = kappa, Vanishes = vanishes };
     }
 
     /// <summary>LIML's <c>κ</c>: the smallest eigenvalue of <c>E₁ᵀE₁</c> against <c>E_zᵀE_z</c>, <c>E = [y, X_endog]</c>.</summary>
@@ -187,74 +193,82 @@ internal static class IvCore
     /// <param name="problem">The fit's arrays.</param>
     /// <param name="weightSpec">The second step's weight.</param>
     /// <param name="spec">The reported covariance.</param>
-    /// <param name="singularName">The public parameter a singular weight is refused under: the clusters, or the design.</param>
-    /// <param name="designName">The public parameter scores that overflow are refused under.</param>
-    public static IvFit Gmm(IvProblem problem, IvCovarianceSpec weightSpec, IvCovarianceSpec spec, string singularName, string designName)
+    /// <param name="clustersName">The public parameter a clustered weight with too few clusters is refused under.</param>
+    /// <param name="designName">The public parameter the weight's other refusals are under, zero, singular or not finite; a kernel bandwidth's names none.</param>
+    /// <exception cref="ArgumentException">A clustered weight has too few clusters, under <paramref name="clustersName"/>; or, under <paramref name="designName"/>, the weight is zero, on first-step residuals exactly zero or an unadjusted <c>s²</c> of zero, singular, or not finite; a normal matrix is singular; or a kernel's bandwidth runs past the sample's lags.</exception>
+    public static IvFit Gmm(IvProblem problem, IvCovarianceSpec weightSpec, IvCovarianceSpec spec, string clustersName, string designName)
     {
         int n = problem.N;
         int l = problem.L;
+
+        // 2SLS leaves Zᵀe = 0 just identified, so its score groups span one direction fewer, which rounding must not lift.
+        int zeroedTotal = l == problem.K ? 1 : 0;
+
         double[] zz = Dense.Gram(problem.Z, l, n);
         Scale(zz, 1.0 / n);
-        (double[] first, double firstConditioning) = GmmEstimate(problem, Invert(zz, l));
-        double[] firstResiduals = Residuals(problem, first);
+        double[] first = GmmEstimate(problem, Invert(zz, l));
 
-        // An exact first step leaves a robust weight zero; the unadjusted one, s² times ZᵀZ/n, only rescales 2SLS's, and is
-        // zero only where every residual is exactly zero (#1779).
-        bool zeroWeight = weightSpec.Type == IvCovarianceType.Unadjusted
-            ? ExactFit.Vanishes(firstResiduals)
-            : ExactFit.Holds(problem.X, problem.K, firstResiduals, first, firstConditioning);
-        if (zeroWeight)
+        // Too few clusters leave a clustered weight singular whatever the response, so they are named after the design's
+        // collinearity refusals and before the residuals'; given enough, the scores answer for a capped rank (#1786).
+        if (weightSpec.Type == IvCovarianceType.Clustered && weightSpec.Clusters!.Count - zeroedTotal < l)
         {
             throw new ArgumentException(
-                "The score covariance the second GMM step weights by is zero: the first-step fit is exact, every residual "
-                + "within its rounding of zero, which leaves the weight without an inverse.",
+                WeightRefused + "singular: fewer clusters than instruments, every "
+                + "column counted, exogenous ones and any constant, or as many in a just-identified model, whose first-step scores sum to zero, "
+                + "leave it without an inverse.",
+                clustersName);
+        }
+
+        double[] firstResiduals = Residuals(problem, first);
+
+        // Residuals exactly zero leave every weight zero (#1779, #1784).
+        if (ExactFit.Vanishes(firstResiduals))
+        {
+            throw new ArgumentException(
+                WeightRefused + "zero: the first-step fit is exact, every residual "
+                + "exactly zero, which leaves the weight without an inverse.",
                 designName);
         }
 
-        double[] weightScores = Scores(problem.Z, l, firstResiduals, n);
-        (double[] s, _, int weightGroups) = GmmScoreCovariance(problem, weightScores, firstResiduals, weightSpec);
+        (double[] s, _, int weightGroups) = GmmScoreCovariance(problem, firstResiduals, weightSpec, designName);
         (int measured, double[]? inverse) = CovarianceRank.Inverse(s, l);
-        // 2SLS leaves Zᵀe = 0 just identified, so its score groups span one direction fewer, which rounding must not lift.
-        int rank = Math.Min(measured, weightGroups - (l == problem.K ? 1 : 0));
+        int rank = Math.Min(measured, weightGroups - zeroedTotal);
         if (inverse is null && measured == l)
         {
             // Only a block that is not finite comes back of full rank without an inverse: the scores overflowed.
             throw new ArgumentException(
-                "The score covariance the second GMM step weights by is not finite: the first-step scores overflow.",
+                WeightRefused + "not finite: the first-step scores overflow.",
                 designName);
         }
 
         if (rank < l)
         {
-            throw new ArgumentException(
-                "The score covariance the second GMM step weights by is singular: fewer clusters than instruments, the "
-                + "exogenous columns counted, or as many in a just-identified model, whose first-step scores sum to zero, "
-                + "leave it without an inverse.",
-                singularName);
+            throw new ArgumentException(SingularWeight(weightSpec.Type), designName);
         }
 
         double[] weight = inverse!;
-        (double[] coefficients, double conditioning) = GmmEstimate(problem, weight);
+        double[] coefficients = GmmEstimate(problem, weight);
         double[] residuals = Residuals(problem, coefficients);
 
         int k = problem.K;
+        bool vanishes = ExactFit.Vanishes(residuals);
+        if (spec.Type != IvCovarianceType.Unadjusted && vanishes)
+        {
+            // As KClass: zero for every reader, a kernel taking n − 2 without a bandwidth, the reference's GMM default.
+            return ZeroCovariance(coefficients, residuals, spec, fallbackBandwidth: GmmDefaultBandwidth(n), kappa: null, weight);
+        }
+
         double[] xz = Dense.CrossProduct(problem.X, k, problem.Z, l, n);
         Scale(xz, 1.0 / n);
         double[] xzw = Dense.Multiply(xz, weight, k, l, l);
         double[] outer = Invert(Dense.Multiply(xzw, Dense.Transpose(xz, k, l), k, l, k), k);
-        double[] scores = Scores(problem.Z, l, residuals, n);
-        (double[] meat, int? bandwidth, int groups) = GmmScoreCovariance(problem, scores, residuals, spec);
-        if (spec.Type != IvCovarianceType.Unadjusted && ExactFit.Holds(problem.X, k, residuals, coefficients, conditioning))
-        {
-            // As KClass: a robust covariance of an exact second step is zero for every reader.
-            return new IvFit(coefficients, new double[k * k], residuals, bandwidth, 0) { Weight = weight, Exact = true };
-        }
+        (double[] meat, int? bandwidth, int groups) = GmmScoreCovariance(problem, residuals, spec);
 
         double[] middle = Dense.Multiply(Dense.Multiply(xzw, meat, k, l, l), Dense.Transpose(xzw, k, l), k, l, k);
         double[] covariance = Dense.Multiply(Dense.Multiply(outer, middle, k, k, k), outer, k, k, k);
         Scale(covariance, 1.0 / n);
         Dense.Symmetrise(covariance, k);
-        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - 1)) { Weight = weight };
+        return new IvFit(coefficients, covariance, residuals, bandwidth, Math.Max(0, groups - 1)) { Weight = weight, Vanishes = vanishes };
     }
 
     /// <summary><c>P_zX</c>, row by row, through <c>(ZᵀZ)⁻¹ZᵀX</c>.</summary>
@@ -308,11 +322,11 @@ internal static class IvCore
 
     /// <summary>The filling, the bandwidth a kernel used, and the score groups that are not zero (<see cref="IvFit.LargestRank"/>).</summary>
     private static (double[] Meat, int? Bandwidth, int Groups) KClassMeat(
-        IvProblem problem, double[] xhat, double[] residuals, double[] bread, IvCovarianceSpec spec, bool exact)
+        IvProblem problem, double[] xhat, double[] residuals, double[] bread, IvCovarianceSpec spec)
     {
         int n = problem.N;
         int k = problem.K;
-        double scale = spec.Debiased ? n / (double)(n - k) : 1.0;
+        double scale = Debiasing(spec, n, k);
         if (spec.Type == IvCovarianceType.Unadjusted)
         {
             double s2 = 0.0;
@@ -336,11 +350,6 @@ internal static class IvCore
 
         if (spec.Type == IvCovarianceType.Kernel)
         {
-            if (spec.Bandwidth is null && exact)
-            {
-                throw IvScores.UndefinedBandwidth();
-            }
-
             int bandwidth = spec.Bandwidth ?? AutomaticBandwidth(xhat, scores, k, n, spec.Kernel);
             double[] meat = IvScores.Kernel(scores, k, n, IvScores.KernelWeights(spec.Kernel, bandwidth, n - 1));
             Scale(meat, scale);
@@ -377,45 +386,31 @@ internal static class IvCore
         return IvScores.OptimalBandwidth(summed, kernel);
     }
 
-    /// <summary>The score covariance GMM weights or reads its covariance through, with that caller's scaling.</summary>
+    /// <summary>The robust, kernel or clustered score covariance GMM weights or reads its covariance through.</summary>
     /// <remarks>
-    /// The unadjusted estimator centres the residuals, <c>s² = Σ(eᵢ − ē)²/n</c>; a kernel one without a bandwidth takes
-    /// <c>n − 2</c>, the reference's <c>KernelWeightMatrix</c> default; a clustered one is scaled only when debiased,
-    /// by <c>(n − 1)/(n − k)·G/(G − 1)</c>.
+    /// The unadjusted one is <see cref="UnadjustedScoreCovariance"/>'s, which its callers take first. A kernel without a
+    /// bandwidth takes <c>n − 2</c>, the reference's <c>KernelWeightMatrix</c> default; a clustered one is scaled only
+    /// when debiased, by <c>(n − 1)/(n − k)·G/(G − 1)</c>.
     /// </remarks>
     /// <param name="problem">The fit's arrays.</param>
-    /// <param name="scores">The instruments times the residuals, row-major.</param>
-    /// <param name="residuals">The residuals they were formed from.</param>
+    /// <param name="residuals">The residuals the scores are formed from.</param>
     /// <param name="spec">The covariance to estimate.</param>
+    /// <param name="zeroWeightName">For the weight, the public parameter an unadjusted weight of zero is refused under; null for the reported covariance.</param>
     private static (double[] S, int? Bandwidth, int Groups) GmmScoreCovariance(
-        IvProblem problem, double[] scores, double[] residuals, IvCovarianceSpec spec)
+        IvProblem problem, double[] residuals, IvCovarianceSpec spec, string? zeroWeightName = null)
     {
+        if (spec.Type == IvCovarianceType.Unadjusted)
+        {
+            return UnadjustedScoreCovariance(problem, residuals, spec, zeroWeightName);
+        }
+
         int n = problem.N;
         int l = problem.L;
         int k = problem.K;
-        double scale = spec.Debiased ? n / (double)(n - k) : 1.0;
+        double[] scores = Scores(problem.Z, l, residuals, n);
+        double scale = Debiasing(spec, n, k);
         switch (spec.Type)
         {
-            case IvCovarianceType.Unadjusted:
-                {
-                    double mean = 0.0;
-                    foreach (double e in residuals)
-                    {
-                        mean += e;
-                    }
-
-                    mean /= n;
-                    double s2 = 0.0;
-                    foreach (double e in residuals)
-                    {
-                        s2 += (e - mean) * (e - mean);
-                    }
-
-                    double[] s = Dense.Gram(problem.Z, l, n);
-                    Scale(s, scale * s2 / n / n);
-                    return (s, null, n);
-                }
-
             case IvCovarianceType.Robust:
                 {
                     (double[] s, int rows) = IvScores.RobustSpanned(scores, l, n);
@@ -425,13 +420,13 @@ internal static class IvCore
 
             case IvCovarianceType.Kernel:
                 {
-                    int bandwidth = spec.Bandwidth ?? n - 2;
+                    int bandwidth = spec.Bandwidth ?? GmmDefaultBandwidth(n);
                     double[] s = IvScores.Kernel(scores, l, n, IvScores.KernelWeights(spec.Kernel, bandwidth, n - 1));
                     Scale(s, scale);
                     return (s, bandwidth, n);
                 }
 
-            default:
+            case IvCovarianceType.Clustered:
                 {
                     (double[] s, int spanning) = IvScores.ClusteredSpanned(scores, l, n, spec.Clusters!);
                     if (spec.Debiased)
@@ -442,10 +437,13 @@ internal static class IvCore
 
                     return (s, null, spanning);
                 }
+
+            default:
+                throw new InvalidOperationException($"No GMM score covariance is written for {spec.Type}.");
         }
     }
 
-    private static (double[] Coefficients, double Conditioning) GmmEstimate(IvProblem problem, double[] weight)
+    private static double[] GmmEstimate(IvProblem problem, double[] weight)
     {
         int n = problem.N;
         int k = problem.K;
@@ -455,30 +453,92 @@ internal static class IvCore
         double[] xzw = Dense.Multiply(xz, weight, k, l, l);
         double[] left = Dense.Multiply(xzw, Dense.Transpose(xz, k, l), k, l, k);
         double[] right = Dense.Multiply(xzw, zy, k, l, 1);
-        double[] solved = Invert(left, k);
-        return (Dense.Multiply(solved, right, k, k, 1), Conditioning(left, solved, k));
+        return Dense.Multiply(Invert(left, k), right, k, k, 1);
     }
 
-    /// <summary><c>‖A‖₁·‖A⁻¹‖₁</c>, how far the solve's rounding can carry the coefficients the exact-fit test reads.</summary>
-    public static double Conditioning(double[] matrix, double[] inverse, int order) =>
-        ColumnSumNorm(matrix, order) * ColumnSumNorm(inverse, order);
-
-    /// <summary>The largest column sum of magnitudes of a square row-major matrix.</summary>
-    private static double ColumnSumNorm(double[] matrix, int order)
+    /// <summary>
+    /// The unadjusted score covariance, <c>s²·ZᵀZ/n</c>, the estimator centring the residuals, <c>s² = Σ(eᵢ − ē)²/n</c>;
+    /// as the weight, refused under <paramref name="zeroWeightName"/> where that <c>s²</c> is exactly zero.
+    /// </summary>
+    /// <remarks>
+    /// Zero as residuals all one value whose mean rounds back to it leave it, or residuals whose squares underflow, and no
+    /// cluster is to blame (#1786); one rounding of <c>s²</c> is the formula's to invert, as linearmodels' is. An
+    /// <c>s²</c> that is not finite, from residuals or squares that overflowed, is refused as the weight by
+    /// <see cref="Gmm"/>'s test of a block that is not finite, and reads errors that are not finite as the reported one.
+    /// </remarks>
+    private static (double[] S, int? Bandwidth, int Groups) UnadjustedScoreCovariance(
+        IvProblem problem, double[] residuals, IvCovarianceSpec spec, string? zeroWeightName)
     {
-        double largest = 0.0;
-        for (int j = 0; j < order; j++)
+        int n = problem.N;
+        double squares = CentredSquares(residuals);
+        // Exactly zero, the one s² that leaves the weight without an inverse whatever ZᵀZ is.
+        if (zeroWeightName is not null && ExactFit.IsZero(squares))
         {
-            double total = 0.0;
-            for (int i = 0; i < order; i++)
-            {
-                total += Math.Abs(matrix[(i * order) + j]);
-            }
-
-            largest = Math.Max(largest, total);
+            throw new ArgumentException(
+                WeightRefused + "zero: the first-step residuals' squares about "
+                + "their mean sum to zero, so the unadjusted weight's s² is zero and the weight has no inverse.",
+                zeroWeightName);
         }
 
-        return largest;
+        double[] s = Dense.Gram(problem.Z, problem.L, n);
+        Scale(s, Debiasing(spec, n, problem.K) * squares / n / n);
+        return (s, null, n);
+    }
+
+    /// <summary>
+    /// An exact fit under a robust, kernel or clustered covariance: zero for every reader. A kernel's bandwidth is refused
+    /// without the kernel sum its zero scores would discard: past the sample's lags, and, automatic where no fallback is
+    /// given, as 0/0 on scores all zero.
+    /// </summary>
+    private static IvFit ZeroCovariance(
+        double[] coefficients, double[] residuals, IvCovarianceSpec spec, int? fallbackBandwidth, double? kappa, double[]? weight)
+    {
+        int? bandwidth = null;
+        if (spec.Type == IvCovarianceType.Kernel)
+        {
+            int chosen = spec.Bandwidth ?? fallbackBandwidth ?? throw IvScores.UndefinedBandwidth();
+            IvScores.RequireBandwidth(spec.Kernel, chosen, residuals.Length - 1);
+            bandwidth = chosen;
+        }
+
+        int k = coefficients.Length;
+        return new IvFit(coefficients, new double[k * k], residuals, bandwidth, 0) { Kappa = kappa, Weight = weight, Vanishes = true };
+    }
+
+    /// <summary>Why a weight with clusters enough, or of another type, is singular: an unadjusted one is built from no scores, its rank ZᵀZ's.</summary>
+    private static string SingularWeight(IvCovarianceType type) => type == IvCovarianceType.Unadjusted
+        ? WeightRefused + "singular: the unadjusted weight's s² times ZᵀZ/n "
+            + "falls short of full rank, as an s² that underflows to a subnormal or instruments near collinear leave it."
+        : WeightRefused + "singular: its first-step scores span fewer directions than the instrument columns, "
+            + "exogenous ones and any constant counted, or underflow, or the instruments are near collinear, which leaves it "
+            + "without an inverse.";
+
+    /// <summary>The bandwidth a GMM kernel takes without one, <c>n − 2</c>, the reference's <c>KernelWeightMatrix</c> default.</summary>
+    private static int GmmDefaultBandwidth(int n) => n - 2;
+
+    /// <summary>The debiased covariances' small-sample factor, <c>n/(n − k)</c>, or one.</summary>
+    private static double Debiasing(IvCovarianceSpec spec, int n, int k) => spec.Debiased ? n / (double)(n - k) : 1.0;
+
+    /// <summary>
+    /// <c>Σ(eᵢ − ē)²</c>, the unadjusted weight's <c>s²</c> times <c>n</c>: its own loop beside the R²'s total, which
+    /// oracles at 1e-9 pin apart, so a change for either's sake cannot move the other.
+    /// </summary>
+    private static double CentredSquares(double[] residuals)
+    {
+        double mean = 0.0;
+        foreach (double e in residuals)
+        {
+            mean += e;
+        }
+
+        mean /= residuals.Length;
+        double total = 0.0;
+        foreach (double e in residuals)
+        {
+            total += (e - mean) * (e - mean);
+        }
+
+        return total;
     }
 
     private static double[] Residuals(IvProblem problem, double[] coefficients)

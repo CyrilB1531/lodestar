@@ -103,13 +103,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/JacobiSpectrum.cs" Link="Internal/JacobiSpectrum.cs" />
   </ItemGroup>
 
-  <!-- The rank bracket over a triangularized design, compiled into the two libraries that refuse on it, and the
-       largest-magnitude scan both read (#1779). Lodestar.Stats.Regression and Lodestar.Stats.TimeSeries must refuse
-       the same designs and cannot reach each other's internals across a published floor, so shared source keeps one
-       copy (#978). -->
+  <!-- The rank bracket over a triangularized design, compiled into the two libraries that refuse on it.
+       Lodestar.Stats.Regression and Lodestar.Stats.TimeSeries must refuse the same designs and cannot
+       reach each other's internals across a published floor, so shared source keeps one copy (#978). -->
   <ItemGroup Condition="'$(LodestarIncludesRankBracket)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/RankBracket.cs" Link="Internal/RankBracket.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/LargestMagnitude.cs" Link="Internal/LargestMagnitude.cs" />
   </ItemGroup>
 
   <!-- Python's string order, by code point rather than by UTF-16 unit, compiled into the libraries
@@ -163,8 +161,7 @@
 
   <!-- A product's exact rounding, a fused multiply-add on net10.0 and Dekker's split product on
        netstandard2.0: Lodestar.Stats' incomplete beta takes its shape exponent with it, and its normal
-       tail the exact exponent past z = 6 (#1690), and Lodestar.Stats.Regression's exact-fit test the residual
-       less its span part (#1779). -->
+       tail the exact exponent past z = 6 (#1690). -->
   <ItemGroup Condition="'$(LodestarIncludesExactProduct)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/ExactProduct.cs" Link="Internal/ExactProduct.cs" />
   </ItemGroup>

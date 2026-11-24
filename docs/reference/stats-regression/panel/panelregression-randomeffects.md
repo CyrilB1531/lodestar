@@ -26,7 +26,9 @@ quasi-demeaning weight, and whose variance components are the estimated ones.
 **Exceptions** — `ArgumentOutOfRangeException` when `ExogenousCount` is below one, a value of `Response` or `Exogenous` is NaN or infinite, with the block and the cell named, or the confidence level is outside
 (0, 1). `ArgumentException` when a block's length is not its width times the rows, when two rows
 share an entity and a period, when no residual degree of freedom is left, when a Bartlett or Parzen
-bandwidth reaches past the periods, or when the options set a value this estimator does not read.
+bandwidth reaches past the periods, when the options set a value this estimator does not read, or when the
+quasi-demeaned regressors are collinear, as a constant is where θ rounds to one, or every row where θ is 0/0, both
+variance components computed zero.
 `ArgumentNullException` when the clustered overload gets no `options`. `ArgumentException` too when
 there are no more rows than entities plus coefficients, or no more entities than coefficients:
 the variance components' degrees of freedom, where the reference divides by zero.

@@ -71,9 +71,10 @@ public sealed class OlsSummary
     /// <remarks>
     /// Under a robust covariance whose tested block is short of full rank, as a cluster fit's is when its scores span fewer
     /// directions than the slopes, this is <c>bᵀC⁺b</c> over the block's rank, <c>C⁺</c> read from the covariance's score
-    /// rows rather than the formed block; NaN when that rank is zero, as an exact fit's covariance is, every residual within
-    /// its rounding of zero, or when the rounding of the residuals can move the form by a millionth of itself. Without a robust
-    /// covariance, +∞ wherever the residuals are exactly zero.
+    /// rows rather than the formed block; NaN when that rank is zero, as an exact fit's covariance is, every residual exactly
+    /// zero, when that covariance is NaN, as HC2's and HC3's 0/0 at a leverage of one leaves it, or when the rounding of
+    /// the residuals can move the form by a millionth of itself. Without a robust covariance, +∞ wherever the residuals
+    /// are exactly zero.
     /// </remarks>
     public double FStatistic { get; init; }
 

@@ -51,14 +51,14 @@ internal sealed class PanelFit
     /// <summary>The mean the regression's R² centres on, or zero without a constant.</summary>
     public double CentringMean { get; init; }
 
-    /// <summary><c>XᵀX</c>'s condition number, which the exact-fit test allows the coefficients' rounding.</summary>
-    public double Conditioning { get; init; }
-
-    /// <summary>
-    /// Where a response the transform removes whole is constant, read by <see cref="PanelCore.Absorbs"/> only when a
-    /// statistic needs it. Two-way effects and between take the sufficient case, constant within each entity or period,
-    /// and overall; first differences none, as <c>Δy = 0</c> leaves the residuals exactly zero, whose <c>+∞</c> comes first.
-    /// </summary>
+    /// <summary>Where a response the transform removes whole is constant, which the summary reads.</summary>
+    /// <remarks>
+    /// <see cref="ResponseGroups.Entity"/> under entity effects and random effects, whose θ it leaves one;
+    /// <see cref="ResponseGroups.Period"/> under time effects; <see cref="ResponseGroups.EntityOrPeriod"/>, the sufficient
+    /// case, under both; <see cref="ResponseGroups.Overall"/> pooled or between with a constant; and
+    /// <see cref="ResponseGroups.None"/> otherwise, first differences among them, as <c>Δy = 0</c> leaves the residuals
+    /// exactly zero, whose <c>+∞</c> comes first.
+    /// </remarks>
     public ResponseGroups ResponseGroups { get; init; }
 
     public WaldTest? Poolability { get; init; }
@@ -70,9 +70,6 @@ internal sealed class PanelFit
     public double? Rho { get; init; }
 
     public double[]? Theta { get; init; }
-
-    /// <summary>The rounding each fitted row inherits from its transform, at the rows as given; null where none was applied.</summary>
-    public Func<double[]>? Floors { get; init; }
 }
 
 /// <summary>The four panel estimators, each reduced to least squares on transformed rows.</summary>
@@ -94,7 +91,7 @@ internal static class PanelCore
         }
 
         (double[] y, double[] x) = Split(transformed, k, n);
-        double[] coefficients = LeastSquares(x, y, k, out double conditioning);
+        double[] coefficients = LeastSquares(x, y, k);
         double[] residuals = Residuals(y, x, k, coefficients);
         int absorbed = Absorbed(panel, entityEffects, timeEffects, hasConstant);
         int residualDf = n - k - absorbed;
@@ -106,7 +103,6 @@ internal static class PanelCore
 
         var fit = new PanelFit(y, x, k, coefficients, residuals, residualDf)
         {
-            Conditioning = conditioning,
             CentringMean = hasConstant ? Mean(panel.Y) : 0.0,
             Poolability = effects ? Poolability(panel, residuals, absorbed, residualDf, hasConstant) : null,
             ResponseGroups = (entityEffects, timeEffects) switch
@@ -116,7 +112,6 @@ internal static class PanelCore
                 (true, true) => ResponseGroups.EntityOrPeriod,
                 _ => hasConstant ? ResponseGroups.Overall : ResponseGroups.None,
             },
-            Floors = effects ? () => WithinFloors(panel, coefficients, entityEffects, timeEffects, hasConstant) : null,
         };
 
         (double residualVariance, double effectsVariance, double rho) = Decomposition(panel, coefficients, residuals);
@@ -163,14 +158,12 @@ internal static class PanelCore
         int k = panel.K;
         double[] y = PanelLayout.GroupMeans(panel.Y, 1, panel.Entity, panel.EntityCount);
         double[] x = PanelLayout.GroupMeans(panel.X, k, panel.Entity, panel.EntityCount);
-        double[] coefficients = LeastSquares(x, y, k, out double conditioning);
+        double[] coefficients = LeastSquares(x, y, k);
         double[] residuals = Residuals(y, x, k, coefficients);
         var fit = new PanelFit(y, x, k, coefficients, residuals, panel.EntityCount - k)
         {
-            Conditioning = conditioning,
             ResponseGroups = hasConstant ? ResponseGroups.Overall : ResponseGroups.None,
             CentringMean = hasConstant ? Mean(y) : 0.0,
-            Floors = () => GroupLargest(RowSizes(panel, coefficients), panel.Entity, panel.EntityCount).Largest,
         };
         (fit.Covariance, fit.Bandwidth, fit.LargestRank) = PanelCovariance.Estimate(x, k, residuals, spec);
         return fit;
@@ -183,7 +176,6 @@ internal static class PanelCore
     {
         int k = panel.K;
         var ys = new List<double>();
-        var differenced = new List<int>();
         var xs = new List<double>();
         var entities = new List<int>();
         var periods = new List<int>();
@@ -196,7 +188,6 @@ internal static class PanelCore
             }
 
             ys.Add(panel.Y[row] - panel.Y[row - 1]);
-            differenced.Add(row);
             for (int j = 0; j < k; j++)
             {
                 xs.Add(panel.X[(row * k) + j] - panel.X[((row - 1) * k) + j]);
@@ -223,13 +214,9 @@ internal static class PanelCore
             throw new ArgumentException($"{y.Length} differenced rows leave no residual degree of freedom for {k} regressors.");
         }
 
-        double[] coefficients = LeastSquares(x, y, k, out double conditioning);
+        double[] coefficients = LeastSquares(x, y, k);
         double[] residuals = Residuals(y, x, k, coefficients);
-        var fit = new PanelFit(y, x, k, coefficients, residuals, y.Length - k)
-        {
-            Conditioning = conditioning,
-            Floors = () => DifferenceFloors(RowSizes(panel, coefficients), differenced),
-        };
+        var fit = new PanelFit(y, x, k, coefficients, residuals, y.Length - k);
         (fit.Covariance, fit.Bandwidth, fit.LargestRank) =
             PanelCovariance.Estimate(x, k, residuals, spec([.. entities], [.. periods], clusters is null ? null : [.. clusters]));
         return fit;
@@ -282,18 +269,18 @@ internal static class PanelCore
             }
         }
 
-        double[] coefficients = LeastSquares(x, y, k, out double conditioning);
+        double[] coefficients = LeastSquares(x, y, k);
         double[] residuals = Residuals(y, x, k, coefficients);
         var fit = new PanelFit(y, x, k, coefficients, residuals, n - k)
         {
-            Conditioning = conditioning,
             CentringMean = hasConstant ? Mean(y) : 0.0,
             ResidualVariance = sigmaE,
             EffectsVariance = sigmaU,
             Rho = sigmaU / (sigmaU + sigmaE),
             Theta = theta,
-            ResponseGroups = hasConstant ? ResponseGroups.Overall : ResponseGroups.None,
-            Floors = () => GroupLargest(RowSizes(panel, coefficients), panel.Entity, panel.EntityCount).PerRow,
+            // A response constant within each entity leaves σₑ² zero in exact arithmetic, so θ one, removing it whole (#1787).
+            // With σᵤ² computed zero θ is 0 or, both exactly zero, 0/0, whose NaN Gram IvCore.Invert refuses as collinear.
+            ResponseGroups = ResponseGroups.Entity,
         };
         (fit.Covariance, fit.Bandwidth, fit.LargestRank) = PanelCovariance.Estimate(x, k, residuals, spec);
         return fit;
@@ -349,19 +336,9 @@ internal static class PanelCore
     {
         int n = panel.N;
         int k = panel.K;
-        double[] y = (double[])panel.Y.Clone();
-        double[] x = (double[])panel.X.Clone();
-        int numeratorDf = absorbed;
-        if (!hasConstant)
-        {
-            y = PanelLayout.Demean(y, 1, new int[n], 1);
-            x = PanelLayout.Demean(x, k, new int[n], 1);
-            numeratorDf--;
-        }
+        int numeratorDf = hasConstant ? absorbed : absorbed - 1;
 
-        double[] pooled = Residuals(y, x, k, LeastSquares(x, y, k));
-        double rss = Dot(residuals, residuals);
-        if (rss <= 0.0 && ExactFit.Vanishes(residuals))
+        if (ExactFit.Vanishes(residuals))
         {
             // Residuals exactly zero, not a sum of squares that underflowed (#1779).
             return new WaldTest(double.PositiveInfinity, 0.0, numeratorDf, residualDf);
@@ -373,20 +350,19 @@ internal static class PanelCore
             return new WaldTest(double.NaN, double.NaN, numeratorDf, residualDf);
         }
 
+        double[] y = (double[])panel.Y.Clone();
+        double[] x = (double[])panel.X.Clone();
+        if (!hasConstant)
+        {
+            y = PanelLayout.Demean(y, 1, new int[n], 1);
+            x = PanelLayout.Demean(x, k, new int[n], 1);
+        }
+
+        double[] pooled = Residuals(y, x, k, LeastSquares(x, y, k));
+        double rss = Dot(residuals, residuals);
         double statistic = ((Dot(pooled, pooled) - rss) / numeratorDf) / (rss / residualDf);
         return new WaldTest(statistic, Distributions.FisherSf(statistic, numeratorDf, residualDf), numeratorDf, residualDf);
     }
-
-    /// <summary>Whether the response as given is constant on every group <paramref name="groups"/> names.</summary>
-    public static bool Absorbs(PanelLayout panel, ResponseGroups groups) => groups switch
-    {
-        ResponseGroups.Overall => OrdinaryLeastSquares.IsConstant(panel.Y),
-        ResponseGroups.Entity => ConstantWithin(panel.Y, panel.Entity, panel.EntityCount),
-        ResponseGroups.Period => ConstantWithin(panel.Y, panel.Period, panel.PeriodCount),
-        ResponseGroups.EntityOrPeriod =>
-            ConstantWithin(panel.Y, panel.Entity, panel.EntityCount) || ConstantWithin(panel.Y, panel.Period, panel.PeriodCount),
-        _ => false,
-    };
 
     /// <summary>
     /// Whether every value equals the first of its group, compared exactly: a response its group's effect absorbs whole,
@@ -438,91 +414,22 @@ internal static class PanelCore
     private static PanelFit With(PanelFit fit, double residual, double effects, double rho, double[]? theta) =>
         new(fit.Y, fit.X, fit.K, fit.Coefficients, fit.Residuals, fit.ResidualDegreesOfFreedom)
         {
-            Conditioning = fit.Conditioning,
             ResponseGroups = fit.ResponseGroups,
             CentringMean = fit.CentringMean,
             Poolability = fit.Poolability,
-            Floors = fit.Floors,
             ResidualVariance = residual,
             EffectsVariance = effects,
             Rho = rho,
             Theta = theta,
         };
 
-    /// <summary>Each row as given, <c>|yᵢ| + Σⱼ|xᵢⱼbⱼ|</c>: the scale a transform of that row rounds at.</summary>
-    private static double[] RowSizes(PanelLayout panel, double[] coefficients)
-    {
-        var sizes = new double[panel.N];
-        for (int row = 0; row < panel.N; row++)
-        {
-            sizes[row] = ExactFit.Magnitude(panel.X, panel.Y[row], coefficients, row * panel.K);
-        }
-
-        return sizes;
-    }
-
-    /// <summary>The largest size in each group, per group and spread back to each row of it.</summary>
-    private static (double[] Largest, double[] PerRow) GroupLargest(double[] sizes, int[] labels, int count)
-    {
-        var largest = new double[count];
-        for (int row = 0; row < sizes.Length; row++)
-        {
-            largest[labels[row]] = Math.Max(largest[labels[row]], sizes[row]);
-        }
-
-        var perRow = new double[sizes.Length];
-        for (int row = 0; row < sizes.Length; row++)
-        {
-            perRow[row] = largest[labels[row]];
-        }
-
-        return (largest, perRow);
-    }
-
-    /// <summary>
-    /// A within row's floor: the largest row of its entity, of its period under time effects, and the grand means'
-    /// size where the constant's means go back in, each a mean the transform subtracted or added at that scale.
-    /// </summary>
-    private static double[] WithinFloors(
-        PanelLayout panel, double[] coefficients, bool entityEffects, bool timeEffects, bool hasConstant)
-    {
-        double[] sizes = RowSizes(panel, coefficients);
-        var floors = new double[sizes.Length];
-        double[]? byEntity = entityEffects ? GroupLargest(sizes, panel.Entity, panel.EntityCount).PerRow : null;
-        double[]? byPeriod = timeEffects ? GroupLargest(sizes, panel.Period, panel.PeriodCount).PerRow : null;
-        double grand = hasConstant ? sizes.Average() : 0.0;
-        for (int row = 0; row < floors.Length; row++)
-        {
-            floors[row] = Math.Max(Math.Max(byEntity?[row] ?? 0.0, byPeriod?[row] ?? 0.0), grand);
-        }
-
-        return floors;
-    }
-
-    /// <summary>A difference's floor: the larger of the two rows it subtracts.</summary>
-    private static double[] DifferenceFloors(double[] sizes, List<int> rows)
-    {
-        var floors = new double[rows.Count];
-        for (int i = 0; i < floors.Length; i++)
-        {
-            floors[i] = Math.Max(sizes[rows[i]], sizes[rows[i] - 1]);
-        }
-
-        return floors;
-    }
-
     /// <summary><c>(XᵀX)⁻¹Xᵀy</c>.</summary>
-    public static double[] LeastSquares(double[] x, double[] y, int k) => LeastSquares(x, y, k, out _);
-
-    /// <summary><c>(XᵀX)⁻¹Xᵀy</c>, and <c>XᵀX</c>'s condition number, which carries the solve's rounding into them.</summary>
-    public static double[] LeastSquares(double[] x, double[] y, int k, out double conditioning)
+    public static double[] LeastSquares(double[] x, double[] y, int k)
     {
         int n = y.Length;
         double[] xx = Dense.Gram(x, k, n);
         double[] xy = Dense.CrossProduct(x, k, y, 1, n);
-        double[] inverse = IvCore.Invert(xx, k);
-        conditioning = IvCore.Conditioning(xx, inverse, k);
-        return Dense.Multiply(inverse, xy, k, k, 1);
+        return Dense.Multiply(IvCore.Invert(xx, k), xy, k, k, 1);
     }
 
     public static double[] Residuals(double[] y, double[] x, int k, double[] coefficients)
@@ -597,10 +504,10 @@ internal enum ResponseGroups
     /// <summary>No exact test: the ratio is read.</summary>
     None,
 
-    /// <summary>The whole panel, a fit with a constant and no effects.</summary>
+    /// <summary>The whole panel, a pooled or between fit with a constant.</summary>
     Overall,
 
-    /// <summary>Each entity, under entity effects.</summary>
+    /// <summary>Each entity, under entity effects and under random effects.</summary>
     Entity,
 
     /// <summary>Each period, under time effects.</summary>

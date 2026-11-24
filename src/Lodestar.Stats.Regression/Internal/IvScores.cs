@@ -131,6 +131,17 @@ internal static class IvScores
         return spanning;
     }
 
+    /// <summary>Refuses a Bartlett or Parzen bandwidth past the largest lag, which <c>cov_kernel</c> refuses; the quadratic spectral window takes any.</summary>
+    /// <exception cref="ArgumentException">A Bartlett or Parzen bandwidth past <paramref name="maximumLag"/>.</exception>
+    public static void RequireBandwidth(KernelType kernel, int bandwidth, int maximumLag)
+    {
+        if (kernel != KernelType.QuadraticSpectral && bandwidth > maximumLag)
+        {
+            throw new ArgumentException(
+                $"A bandwidth of {bandwidth} weights {(long)bandwidth + 1} lags of a sample of {(long)maximumLag + 1}; the reference refuses it too.");
+        }
+    }
+
     /// <summary>The weights of lags <c>0..</c> for a kernel at a bandwidth, as the reference tabulates them.</summary>
     /// <param name="kernel">The kernel.</param>
     /// <param name="bandwidth">The bandwidth; Bartlett and Parzen truncate at it.</param>
@@ -157,12 +168,7 @@ internal static class IvScores
             return weights;
         }
 
-        if (bandwidth > maximumLag)
-        {
-            throw new ArgumentException(
-                $"A bandwidth of {bandwidth} weights {bandwidth + 1} lags of a sample of {maximumLag + 1}; the reference refuses it too.");
-        }
-
+        RequireBandwidth(kernel, bandwidth, maximumLag);
         var truncated = new double[bandwidth + 1];
         for (int lag = 0; lag < truncated.Length; lag++)
         {
@@ -223,8 +229,8 @@ internal static class IvScores
         // CA2208, S3928: the name is InstrumentalVariables' options, the one public parameter this helper serves.
 #pragma warning disable CA2208, S3928
         return new ArgumentException(
-            "The automatic kernel bandwidth is undefined: every autocovariance of the scores is zero, an exact fit, or they "
-            + "overflowed. Give the bandwidth in the options.",
+            "The automatic kernel bandwidth is undefined: every autocovariance of the scores is zero, as on an exact fit or "
+            + "scores whose squares underflow, or they overflowed. Give the bandwidth in the options.",
             OptionsParameter);
 #pragma warning restore CA2208, S3928
     }
@@ -285,13 +291,33 @@ internal static class IvScores
     {
         for (int j = 0; j < columns; j++)
         {
-            if (Shape(block, columns, rows, j).Constant)
+            if (IsFlat(block, columns, rows, j))
             {
                 return j;
             }
         }
 
         return -1;
+    }
+
+    /// <summary>Whether column <paramref name="column"/> holds one value throughout, compared exactly; stops at the first that differs.</summary>
+    public static bool IsFlat(double[] block, int columns, int rows, int column)
+    {
+        if (rows == 0)
+        {
+            return true;
+        }
+
+        double first = block[column];
+        for (int row = 1; row < rows; row++)
+        {
+            if (!Same(block[(row * columns) + column], first))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static (bool AllOne, bool Constant, bool AllZero) Shape(double[] block, int columns, int rows, int column)
