@@ -15873,3 +15873,81 @@ date,commit,cpu,class,parameters,method,ratio
 2026-11-20,d294b0dd903e83f6f31a701c2d1a31ff6843cd14,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=100, Device=CPUAc(...) GPU) [26]",GpuResident,1918.62
 2026-11-20,d294b0dd903e83f6f31a701c2d1a31ff6843cd14,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=1000, Device=CPUAc(...) GPU) [26]",SimdBaseline,1.0
 2026-11-20,d294b0dd903e83f6f31a701c2d1a31ff6843cd14,AMD EPYC 7763,CosineTopKSelectionBenchmarks,"Documents=100000, K=1000, Device=CPUAc(...) GPU) [26]",GpuResident,1871.93
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=200, Regressors=1",Lodestar_Glm,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=200, Regressors=1",Accord_Glm,1.49
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=200, Regressors=3",Lodestar_Glm,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=200, Regressors=3",Accord_Glm,2.46
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=2000, Regressors=1",Lodestar_Glm,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=2000, Regressors=1",Accord_Glm,1.12
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=2000, Regressors=3",Lodestar_Glm,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmBenchmarks,"SampleSize=2000, Regressors=3",Accord_Glm,1.88
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmOffsetBenchmarks,SampleSize=200,Poisson,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmOffsetBenchmarks,SampleSize=200,PoissonWithExposure,1.96
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmOffsetBenchmarks,SampleSize=20000,Poisson,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlmOffsetBenchmarks,SampleSize=20000,PoissonWithExposure,1.82
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=50,Lodestar_Gls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=50,MathNet_Gls,1.57
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=200,Lodestar_Gls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=200,MathNet_Gls,2.63
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=500,Lodestar_Gls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=500,MathNet_Gls,3.7
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=1000,Lodestar_Gls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,GlsBenchmarks,SampleSize=1000,MathNet_Gls,2.5
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=100, Lags=4",Nonrobust,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=100, Lags=4",Hc0,0.31
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=100, Lags=4",Hac,0.6
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=100, Lags=4",Cluster,0.28
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Nonrobust,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Hc0,1.76
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Hac,4.02
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Cluster,1.46
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Estimate,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Fit,1.78
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,LeastSquaresRoutingBenchmarks,Regressors=4,MathNet_Qr,5.22
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Estimate,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Fit,4.15
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,LeastSquaresRoutingBenchmarks,Regressors=250,MathNet_Qr,6.06
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,MultinomialLogitBenchmarks,SampleSize=200,Lodestar,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,MultinomialLogitBenchmarks,SampleSize=200,Accord,6.37
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,MultinomialLogitBenchmarks,SampleSize=2000,Lodestar,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,MultinomialLogitBenchmarks,SampleSize=2000,Accord,5.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,OlsBenchmarks,SampleSize=100,Lodestar_Ols,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,OlsBenchmarks,SampleSize=100,Accord_Ols,5.98
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,OlsBenchmarks,SampleSize=100,MathNet_Ols,0.94
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,OlsBenchmarks,SampleSize=10000,Lodestar_Ols,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,OlsBenchmarks,SampleSize=10000,Accord_Ols,10.16
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,OlsBenchmarks,SampleSize=10000,MathNet_Ols,3.39
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=200,LodestarAutocorrelation,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=200,CortexAutocorrelation,1.2
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=200,LodestarPartialAutocorrelation,1.09
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=200,CortexPartialAutocorrelation,1.36
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=200,LodestarLjungBox,1.1
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=200,CortexLjungBox,1.23
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=2000,LodestarAutocorrelation,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=2000,CortexAutocorrelation,1.12
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=2000,LodestarPartialAutocorrelation,1.01
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=2000,CortexPartialAutocorrelation,1.17
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=2000,LodestarLjungBox,1.01
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,SerialCorrelationBenchmarks,SampleSize=2000,CortexLjungBox,1.13
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,LodestarAugmentedDickeyFuller,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,LodestarAdfAutolag,3.73
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,CortexAugmentedDickeyFuller,2.74
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,LodestarKpss,0.45
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,CortexKpss,0.47
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,LodestarDecompose,0.2
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=200,CortexDecompose,0.32
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,LodestarAugmentedDickeyFuller,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,LodestarAdfAutolag,8.48
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,CortexAugmentedDickeyFuller,2.29
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,LodestarKpss,0.91
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,CortexKpss,0.93
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,LodestarDecompose,0.14
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,StationarityBenchmarks,SampleSize=2000,CortexDecompose,0.24
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=200,Lodestar_Wls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=200,MathNet_Wls,0.44
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=2000,Lodestar_Wls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=2000,MathNet_Wls,0.92
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=20000,Lodestar_Wls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=20000,MathNet_Wls,1.44
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=200000,Lodestar_Wls,1.0
+2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=200000,MathNet_Wls,1.99
