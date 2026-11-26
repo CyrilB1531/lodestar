@@ -15951,3 +15951,81 @@ date,commit,cpu,class,parameters,method,ratio
 2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=20000,MathNet_Wls,1.44
 2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=200000,Lodestar_Wls,1.0
 2026-11-24,64dcf7b37e167677244d26cb8bf82db1915bf6cf,Intel Xeon Platinum 8370C CPU 2.80GHz,WeightedLeastSquaresBenchmarks,SampleSize=200000,MathNet_Wls,1.99
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=200, Regressors=1",Lodestar_Glm,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=200, Regressors=1",Accord_Glm,1.81
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=200, Regressors=3",Lodestar_Glm,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=200, Regressors=3",Accord_Glm,2.8
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=2000, Regressors=1",Lodestar_Glm,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=2000, Regressors=1",Accord_Glm,1.19
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=2000, Regressors=3",Lodestar_Glm,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmBenchmarks,"SampleSize=2000, Regressors=3",Accord_Glm,1.97
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmOffsetBenchmarks,SampleSize=200,Poisson,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmOffsetBenchmarks,SampleSize=200,PoissonWithExposure,2.01
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmOffsetBenchmarks,SampleSize=20000,Poisson,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlmOffsetBenchmarks,SampleSize=20000,PoissonWithExposure,1.8
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=50,Lodestar_Gls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=50,MathNet_Gls,1.36
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=200,Lodestar_Gls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=200,MathNet_Gls,3.12
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=500,Lodestar_Gls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=500,MathNet_Gls,3.63
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=1000,Lodestar_Gls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,GlsBenchmarks,SampleSize=1000,MathNet_Gls,2.64
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=100, Lags=4",Nonrobust,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=100, Lags=4",Hc0,0.36
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=100, Lags=4",Hac,0.74
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=100, Lags=4",Cluster,0.32
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Nonrobust,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Hc0,1.74
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Hac,3.72
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,HacClusterBenchmarks,"SampleSize=10000, Lags=4",Cluster,1.47
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Estimate,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=4,Lodestar_Fit,1.79
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=4,MathNet_Qr,5.13
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Estimate,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=250,Lodestar_Fit,3.42
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,LeastSquaresRoutingBenchmarks,Regressors=250,MathNet_Qr,6.12
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,MultinomialLogitBenchmarks,SampleSize=200,Lodestar,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,MultinomialLogitBenchmarks,SampleSize=200,Accord,5.85
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,MultinomialLogitBenchmarks,SampleSize=2000,Lodestar,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,MultinomialLogitBenchmarks,SampleSize=2000,Accord,4.37
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,OlsBenchmarks,SampleSize=100,Lodestar_Ols,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,OlsBenchmarks,SampleSize=100,Accord_Ols,6.9
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,OlsBenchmarks,SampleSize=100,MathNet_Ols,1.18
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,OlsBenchmarks,SampleSize=10000,Lodestar_Ols,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,OlsBenchmarks,SampleSize=10000,Accord_Ols,8.08
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,OlsBenchmarks,SampleSize=10000,MathNet_Ols,2.9
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=200,LodestarAutocorrelation,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=200,CortexAutocorrelation,2.78
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=200,LodestarPartialAutocorrelation,1.16
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=200,CortexPartialAutocorrelation,3.22
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=200,LodestarLjungBox,1.12
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=200,CortexLjungBox,2.72
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=2000,LodestarAutocorrelation,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=2000,CortexAutocorrelation,2.8
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=2000,LodestarPartialAutocorrelation,1.01
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=2000,CortexPartialAutocorrelation,2.85
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=2000,LodestarLjungBox,1.01
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,SerialCorrelationBenchmarks,SampleSize=2000,CortexLjungBox,2.77
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,LodestarAugmentedDickeyFuller,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,LodestarAdfAutolag,3.46
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,CortexAugmentedDickeyFuller,3.08
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,LodestarKpss,0.39
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,CortexKpss,0.39
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,LodestarDecompose,0.21
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=200,CortexDecompose,0.39
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,LodestarAugmentedDickeyFuller,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,LodestarAdfAutolag,7.81
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,CortexAugmentedDickeyFuller,2.61
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,LodestarKpss,0.69
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,CortexKpss,0.7
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,LodestarDecompose,0.17
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,StationarityBenchmarks,SampleSize=2000,CortexDecompose,0.3
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=200,Lodestar_Wls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=200,MathNet_Wls,0.55
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=2000,Lodestar_Wls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=2000,MathNet_Wls,1.02
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=20000,Lodestar_Wls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=20000,MathNet_Wls,1.39
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=200000,Lodestar_Wls,1.0
+2026-11-25,4889a155d5a4354becd095a83d9ba98b10a8213b,INTEL XEON PLATINUM 8573C,WeightedLeastSquaresBenchmarks,SampleSize=200000,MathNet_Wls,1.73
