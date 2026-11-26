@@ -301,7 +301,7 @@ internal static class IvScores
     }
 
     /// <summary>Whether column <paramref name="column"/> holds one value throughout, compared exactly; stops at the first that differs.</summary>
-    public static bool IsFlat(double[] block, int columns, int rows, int column)
+    private static bool IsFlat(double[] block, int columns, int rows, int column)
     {
         if (rows == 0)
         {

@@ -520,12 +520,13 @@ public sealed class ExactFitTests
     }
 
     /// <summary>
-    /// Two group indicators span the constant without holding it, so the IV model test leaves no column out, the panel's
-    /// Wald form one indicator, and each tests coefficients near 5: not 0/0, so not the NaN of a response with nothing to
-    /// explain, though the R² is, and the panel's classical F, whose total is zero.
+    /// Two group indicators span the constant without holding it, so the IV model test leaves no column out and tests
+    /// coefficients near 5: not 0/0, so not the NaN of a response with nothing to explain, though the R² is. The panel's
+    /// Wald form at 0.7 also tests an indicator near 0.7 over errors of rounding size, 8.4e31 before #1848, and now reads
+    /// NaN where its classical F does, by that issue's decision rather than a 0/0.
     /// </summary>
     [Fact]
-    public void An_implied_constant_keeps_the_unadjusted_wald_tests_on_a_constant_response()
+    public void An_implied_constant_keeps_the_iv_model_test_and_not_the_panel_wald_form_on_a_constant_response()
     {
         double[] groups = [.. Enumerable.Range(0, Rows).SelectMany(i => new[] { i < Rows / 2 ? 1.0 : 0.0, i < Rows / 2 ? 0.0 : 1.0 })];
         double[] y = [.. Enumerable.Repeat(5.0, Rows)];
@@ -542,57 +543,68 @@ public sealed class ExactFitTests
         PanelSummary panel = PanelRegression.FixedEffects(
             new PanelDesign([.. Enumerable.Repeat(0.7, Rows)], groups, 2, entities, periods), new PanelOptions { WithIntercept = false });
         Assert.True(double.IsNaN(panel.RSquared) && double.IsNaN(panel.ModelTest!.Statistic), $"{panel.RSquared} {panel.ModelTest.Statistic}");
-        Assert.False(double.IsNaN(panel.RobustModelTest!.Statistic), $"{panel.RobustModelTest.Statistic}");
+        AssertUndefined(panel.RobustModelTest!);
     }
 
     /// <summary>
-    /// The unadjusted Wald form is the classical F in another form wherever the columns hold a constant column or none,
-    /// so it reads as the model F does, <c>+∞</c>, NaN or a ratio, on every estimator, intercept and degenerate response:
-    /// case by case it read rounding beside a NaN model F, 2.887 under time effects, 1.5e-30 under random effects (#1790).
+    /// A constant alone explains nothing, so its within and overall R² read 0; on entity means bitwise equal the between
+    /// total is zero, and its between R², 0 before #1847, reads NaN. <see cref="PanelEdgeGridTests"/> holds the rest.
     /// </summary>
     [Fact]
-    public void Every_unadjusted_panel_wald_form_reads_as_its_model_f()
+    public void A_constant_alone_reads_no_between_r_squared_on_equal_entity_means()
     {
-        (double[] x, _, int[] entities, int[] periods) = Degenerate(Rows);
-        double[][] responses =
-        [
-            [.. Enumerable.Repeat(5.0, Rows)],
-            [.. Enumerable.Repeat(0.1, Rows)],
-            [.. entities.Select(e => 0.1 + (0.3 * (e % 3)))],
-            [.. periods.Select(t => 0.2 + (0.5 * (t % 2)))],
-            [.. Enumerable.Range(0, Rows).Select(i => (2.0 * x[i]) + (0.1 * ((i * 7) % 5)))],
-        ];
-        var fits = new List<Func<double[], bool, PanelSummary>>
-        {
-            (y, c) => PanelRegression.FixedEffects(new PanelDesign(y, x, 1, entities, periods), new PanelOptions { WithIntercept = c }),
-            (y, c) => PanelRegression.FixedEffects(
-                new PanelDesign(y, x, 1, entities, periods), new PanelOptions { WithIntercept = c, EntityEffects = true }),
-            (y, c) => PanelRegression.FixedEffects(
-                new PanelDesign(y, x, 1, entities, periods), new PanelOptions { WithIntercept = c, TimeEffects = true }),
-            (y, c) => PanelRegression.FixedEffects(
-                new PanelDesign(y, x, 1, entities, periods),
-                new PanelOptions { WithIntercept = c, EntityEffects = true, TimeEffects = true }),
-            (y, c) => PanelRegression.Between(new PanelDesign(y, x, 1, entities, periods), new PanelOptions { WithIntercept = c }),
-            (y, c) => PanelRegression.RandomEffects(new PanelDesign(y, x, 1, entities, periods), new PanelOptions { WithIntercept = c }),
-        };
+        (_, _, int[] entities, int[] periods) = Degenerate(Rows);
+        double[] y = EqualMeans(entities, periods);
+        Assert.Single(y.Select((v, i) => (v, e: entities[i])).GroupBy(row => row.e).Select(rows => rows.Average(row => row.v)).Distinct());
+        PanelSummary alone = PanelRegression.FixedEffects(
+            new PanelDesign(y, [.. Enumerable.Repeat(1.0, Rows)], 1, entities, periods),
+            new PanelOptions { WithIntercept = false });
 
-        foreach (Func<double[], bool, PanelSummary> fit in fits)
+        Assert.True(double.IsNaN(alone.RSquaredBetween), $"{alone.RSquaredBetween}");
+        Assert.Equal(0.0, alone.RSquaredWithin);
+        Assert.Equal(0.0, alone.RSquaredOverall);
+        Assert.True(alone.ModelTest is null && alone.RobustModelTest is null && double.IsFinite(alone.RSquared), $"{alone.RSquared}");
+    }
+
+    /// <summary>
+    /// An entity of three rows leaves the means of <c>y = 0.1</c> an ulp apart, 0.1 and 0.10000000000000002: the response
+    /// is constant, so the between fit reads NaN whatever its means' rounding, as at 604602e5, where it read the response
+    /// as given: its reading of the means (#1847) must read a constant response first.
+    /// </summary>
+    [Fact]
+    public void A_constant_response_reads_no_between_statistic_whatever_its_means_round_to()
+    {
+        const int n = 23;
+        int[] entities = [.. Enumerable.Range(0, n).Select(i => i < 3 ? 0 : 1 + ((i - 3) / 5))];
+        int[] periods = [.. Enumerable.Range(0, n).Select(i => i < 3 ? i : (i - 3) % 5)];
+        (double[] x, _, _, _) = Degenerate(n);
+        double[] y = [.. Enumerable.Repeat(0.1, n)];
+        double[] means = [.. y.Select((v, i) => (v, e: entities[i])).GroupBy(row => row.e).Select(rows => rows.Average(row => row.v))];
+        Assert.NotEqual(means[0], means[1]);
+
+        // Beside a prepended constant column, and beside two indicators that span one.
+        double[] spanned = [.. Enumerable.Range(0, n).SelectMany(i => new[] { i % 3 == 0 ? 1.0 : 0.0, i % 3 == 0 ? 0.0 : 1.0, x[i] })];
+        var unadjusted = new PanelOptions { CovarianceType = PanelCovarianceType.Unadjusted };
+        PanelSummary[] fits =
+        [
+            PanelRegression.Between(new PanelDesign(y, x, 1, entities, periods), unadjusted),
+            PanelRegression.Between(new PanelDesign(y, spanned, 3, entities, periods), unadjusted with { WithIntercept = false }),
+        ];
+
+        foreach (PanelSummary between in fits)
         {
-            foreach (double[] y in responses)
-            {
-                foreach (bool withIntercept in new[] { true, false })
-                {
-                    PanelSummary summary = fit(y, withIntercept);
-                    WaldTest model = summary.ModelTest!;
-                    WaldTest wald = summary.RobustModelTest!;
-                    Assert.True(
-                        double.IsNaN(model.Statistic) == double.IsNaN(wald.Statistic)
-                        && double.IsPositiveInfinity(model.Statistic) == double.IsPositiveInfinity(wald.Statistic),
-                        $"fit {fits.IndexOf(fit)}, y[0] {y[0]}, intercept {withIntercept}: F {model.Statistic}, Wald {wald.Statistic}");
-                }
-            }
+            AssertUndefined(between);
+            AssertUndefined(between.ModelTest!);
+            AssertUndefined(between.RobustModelTest!);
         }
     }
+
+    // Integers in each entity, rotated by the entity so they vary within each period: each entity sums 16 exactly,
+    // so their means are bitwise equal, 3.2, though the response varies within every entity and every period.
+    private static double[] EqualMeans(int[] entities, int[] periods) =>
+        [.. periods.Select((t, i) => EqualMeanValues[(t + entities[i]) % 5])];
+
+    private static readonly double[] EqualMeanValues = [1.0, 2.0, 3.0, 4.0, 6.0];
 
     /// <summary>
     /// The IV unadjusted model test reads NaN exactly where its R² does and a constant column is left out of it: beside
