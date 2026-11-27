@@ -51,11 +51,12 @@ internal sealed class PanelFit
     /// <summary>The mean the regression's R² centres on, or zero without a constant.</summary>
     public double CentringMean { get; init; }
 
-    /// <summary>Where a response the transform removes whole is constant, which the summary reads.</summary>
+    /// <summary>Where a response the transform removes whole is constant, or, between beside a constant, where it or its entity means are, which the summary reads.</summary>
     /// <remarks>
     /// <see cref="ResponseGroups.Entity"/> under entity effects and random effects, whose θ it leaves one;
     /// <see cref="ResponseGroups.Period"/> under time effects; <see cref="ResponseGroups.EntityOrPeriod"/>, the sufficient
-    /// case, under both; <see cref="ResponseGroups.Overall"/> pooled or between with a constant; and
+    /// case, under both; <see cref="ResponseGroups.Overall"/> pooled with a constant;
+    /// <see cref="ResponseGroups.EntityMeans"/> between with a constant; and
     /// <see cref="ResponseGroups.None"/> otherwise, first differences among them, as <c>Δy = 0</c> leaves the residuals
     /// exactly zero, whose <c>+∞</c> comes first.
     /// </remarks>
@@ -156,13 +157,14 @@ internal static class PanelCore
     public static PanelFit Between(PanelLayout panel, bool hasConstant, PanelCovarianceSpec spec)
     {
         int k = panel.K;
+        // The summary reads these means' constancy from its own GroupMeans call on the same rows (#1847): change both.
         double[] y = PanelLayout.GroupMeans(panel.Y, 1, panel.Entity, panel.EntityCount);
         double[] x = PanelLayout.GroupMeans(panel.X, k, panel.Entity, panel.EntityCount);
         double[] coefficients = LeastSquares(x, y, k);
         double[] residuals = Residuals(y, x, k, coefficients);
         var fit = new PanelFit(y, x, k, coefficients, residuals, panel.EntityCount - k)
         {
-            ResponseGroups = hasConstant ? ResponseGroups.Overall : ResponseGroups.None,
+            ResponseGroups = hasConstant ? ResponseGroups.EntityMeans : ResponseGroups.None,
             CentringMean = hasConstant ? Mean(y) : 0.0,
         };
         (fit.Covariance, fit.Bandwidth, fit.LargestRank) = PanelCovariance.Estimate(x, k, residuals, spec);
@@ -498,14 +500,17 @@ internal static class PanelCore
     }
 }
 
-/// <summary>The groups within which a constant response leaves a panel transform nothing to explain.</summary>
+/// <summary>The groups within which a constant response leaves a panel transform nothing to explain, or the entity means whose bitwise equality leaves the between fit nothing.</summary>
 internal enum ResponseGroups
 {
     /// <summary>No exact test: the ratio is read.</summary>
     None,
 
-    /// <summary>The whole panel, a pooled or between fit with a constant.</summary>
+    /// <summary>The whole panel, a pooled fit with a constant.</summary>
     Overall,
+
+    /// <summary>The entity means a between fit with a constant regresses: bitwise equal, or the response constant (#1847).</summary>
+    EntityMeans,
 
     /// <summary>Each entity, under entity effects and under random effects.</summary>
     Entity,
