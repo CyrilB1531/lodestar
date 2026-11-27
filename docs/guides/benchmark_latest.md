@@ -311,7 +311,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.GlmBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -344,7 +344,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.GlmNegativeBinomialBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -369,7 +369,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.GlmOffsetBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -396,7 +396,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.GlmPoissonBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -421,7 +421,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.GlsBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -454,7 +454,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.HacClusterBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -561,7 +561,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.LeastSquaresRoutingBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -699,7 +699,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.MultinomialLogitBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -726,7 +726,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.OlsBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -823,7 +823,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.RobustCovarianceBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -855,7 +855,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.SerialCorrelationBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -890,7 +890,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.StationarityBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -1006,7 +1006,7 @@ Benchmarks with issues:
 
 ### Lodestar.Stats.Benchmarks.VectorAutoregressionBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -1036,7 +1036,7 @@ WarmupCount=3
 
 ### Lodestar.Stats.Benchmarks.WeightedLeastSquaresBenchmarks-report-github
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 BenchmarkDotNet v0.14.0, Ubuntu 26.04.1 LTS (Resolute Raccoon)
@@ -3963,7 +3963,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-glm
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 Python: {'scipy': '1.18.1', 'statsmodels': '0.15.0', 'numpy': '2.5.4'} (py 3.12.16)
@@ -4021,7 +4021,7 @@ Note: Indel is len(a)+len(b)-2*LCS on both sides, so this compares the subsequen
 
 ### compare-iv
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 Python: {'linearmodels': '7.0', 'numpy': '2.5.4'} (py 3.12.16)
@@ -4198,7 +4198,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-ols
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 Python: {'scipy': '1.18.1', 'statsmodels': '0.15.0', 'numpy': '2.5.4'} (py 3.12.16)
@@ -4251,7 +4251,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-panel
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 Python: {'linearmodels': '7.0', 'numpy': '2.5.4', 'pandas': '2.3.3'} (py 3.12.16)
@@ -4564,7 +4564,7 @@ threads too -- statsmodels at 100 000 rows spends ~10x more cpu than wall.
 
 ### compare-var
 
-_As of 2026-11-25, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
+_As of 2026-11-26, measured at commit `4889a155d5a4354becd095a83d9ba98b10a8213b`._
 
 ```text
 Python: {'scipy': '1.18.1', 'statsmodels': '0.15.0', 'numpy': '2.5.4'} (py 3.12.16)
